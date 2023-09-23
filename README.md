@@ -28,10 +28,10 @@ TODO:
 Multiple print cooling fans, controlled by M106/M107 gcodes.
 One may define any number of sections with a
 "multi_fan" prefix.
-ACTIVATE_FAN [gcode command](G-Codes.md#fan) can be used
+ACTIVATE_FAN gcode command can be used
 which fan is used for cooling.
 
-### [`toolchanger]
+### [toolchanger]
 
 Configures common tool changing parameters. 
 More than one toolchanger can be configured, with arbitrary names.
