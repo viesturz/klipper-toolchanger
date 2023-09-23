@@ -10,8 +10,14 @@ This is standalone version of the [klipper branch](https://github.com/viesturz/k
 
 # Installation
 
-Copy the klipper/extras into your klipper/extras.
+```
+ git clone https://github.com/viesturz/klipper-toolchanger.git klipper-toolchanger
+ ln -s klipper-toolchanger/klipper/extras/* ~/klipper/klippy/extras/
+ sudo systemctl restart klipper
+```
+
 Add the macros to your printer config.
+
 # Status
 
  * Single toolchanger works well. 
