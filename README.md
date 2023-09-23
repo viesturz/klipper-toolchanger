@@ -12,7 +12,7 @@ This is standalone version of the [klipper branch](https://github.com/viesturz/k
 
 ```
  git clone https://github.com/viesturz/klipper-toolchanger.git klipper-toolchanger
- ln -s klipper-toolchanger/klipper/extras/* ~/klipper/klippy/extras/
+ ln -s ~/klipper-toolchanger/klipper/extras/* ~/klipper/klippy/extras/
  sudo systemctl restart klipper
 ```
 
