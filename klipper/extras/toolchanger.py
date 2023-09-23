@@ -121,7 +121,7 @@ class Toolchanger:
 
     cmd_SET_TOOL_TEMPERATURE_help = 'Set temperature for tool'
     def cmd_SET_TOOL_TEMPERATURE(self, gcmd):
-        temp = gcmd.get_int('TARGET')
+        temp = gcmd.get_int('TARGET', 0)
         wait = gcmd.get_int('WAIT', 0) == 1
         tool_name = gcmd.get('TOOL', None)
         tool_nr = gcmd.get_int('T', None)
@@ -131,11 +131,13 @@ class Toolchanger:
         elif tool_nr is not None:
             tool = self.lookup_tool(tool_nr)
             if not tool:
-                raise gcmd.error("Select tool: T%d not found" % (tool_nr))
+                raise gcmd.error("SET_TOOL_TEMPERATURE: T%d not found" % (tool_nr))
         else:
-            raise gcmd.error("Select tool: Either TOOL or T needs to be specified")
+            tool = self.active_tool
+            if not tool:
+                raise gcmd.error("SET_TOOL_TEMPERATURE: No tool specified and no active tool")
         if not tool.heater:
-            raise gcmd.error("Select tool: No extruder/heater specified for tool %s" % (tool.name))
+            raise gcmd.error("SET_TOOL_TEMPERATURE: No extruder/heater specified for tool %s" % (tool.name))
         heaters = self.printer.lookup_object('heaters')
         heaters.set_temperature(tool.heater, temp, wait)
 
