@@ -11,8 +11,7 @@ This is standalone version of the [klipper branch](https://github.com/viesturz/k
 # Installation
 
 Copy the klipper/extras into your klipper/extras.
-Add the macros to your printer config. Optional of your extuders map 1:1 to tools.
-
+Add the macros to your printer config.
 # Status
 
  * Single toolchanger works well. 
