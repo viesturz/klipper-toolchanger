@@ -189,7 +189,7 @@ class Toolchanger:
             return
 
         self.status = STATUS_CHANGING
-        gcode_position = self.gcode_move.get_gcode_position()
+        gcode_position = self.gcode_move.get_status()['gcode_position']
         extra_context = {
             'dropoff_tool': self.active_tool.name if self.active_tool else None,
             'pickup_tool': tool.name if tool else None,
