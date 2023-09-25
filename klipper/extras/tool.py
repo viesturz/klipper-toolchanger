@@ -66,7 +66,7 @@ class Tool:
                 'toolchanger': self.toolchanger.name,
                 'tool_number': self.tool_number,
                 'extruder': self.extruder_name,
-                'heater': self.heater_name,
+                'heater': self.heater_name or self.extruder_name,
                 'extruder_stepper': self.extruder_stepper_name,
                 'fan': self.fan_name,
                 'active': self.main_toolchanger.get_selected_tool() == self,
