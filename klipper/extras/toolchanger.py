@@ -136,10 +136,10 @@ class Toolchanger:
             tool = self.active_tool
             if not tool:
                 raise gcmd.error("SET_TOOL_TEMPERATURE: No tool specified and no active tool")
-        if not tool.heater:
-            raise gcmd.error("SET_TOOL_TEMPERATURE: No extruder/heater specified for tool %s" % (tool.name))
+        if not tool.extruder:
+            raise gcmd.error("SET_TOOL_TEMPERATURE: No extruder specified for tool %s" % (tool.name))
         heaters = self.printer.lookup_object('heaters')
-        heaters.set_temperature(tool.heater, temp, wait)
+        heaters.set_temperature(tool.extruder.get_heater(), temp, wait)
 
     cmd_SELECT_TOOL_ERROR_help = "Abort tool change and mark the active toolchanger as failed"
     def cmd_SELECT_TOOL_ERROR(self, gcmd):
@@ -189,7 +189,7 @@ class Toolchanger:
             return
 
         self.status = STATUS_CHANGING
-        gcode_position = self.gcode_move.get_status()['gcode_position']
+        gcode_position = self.gcode_move.get_gcode_position()
         extra_context = {
             'dropoff_tool': self.active_tool.name if self.active_tool else None,
             'pickup_tool': tool.name if tool else None,

@@ -29,7 +29,6 @@ class Tool:
             config, 'gcode_z_offset', None)
         self.params = self.toolchanger.params | toolchanger.get_params_dict(config)
         self.extruder_name = self._config_get(config, 'extruder', None)
-        self.heater_name = self._config_get(config, 'heater', None)
         self.extruder_stepper_name = self._config_get(config, 'extruder_stepper', None)
         self.extruder = None
         self.extruder_stepper = None
@@ -54,10 +53,6 @@ class Tool:
             self.extruder_name) if self.extruder_name else None
         self.extruder_stepper = self.printer.lookup_object(
             self.extruder_stepper_name) if self.extruder_stepper_name else None
-        if self.heater_name:
-            self.heater = self.printer.lookup_object(self.heater_name)
-        elif self.extruder:
-            self.heater = self.extruder.get_heater()
         self.fan = self.printer.lookup_object(
             self.fan_name) if self.fan_name else None
 
@@ -66,7 +61,6 @@ class Tool:
                 'toolchanger': self.toolchanger.name,
                 'tool_number': self.tool_number,
                 'extruder': self.extruder_name,
-                'heater': self.heater_name or self.extruder_name,
                 'extruder_stepper': self.extruder_stepper_name,
                 'fan': self.fan_name,
                 'active': self.main_toolchanger.get_selected_tool() == self,

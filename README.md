@@ -109,8 +109,6 @@ See [command reference](G-Codes.md#toolchanger) for how to control tools.
   # Name of extruder stepper to use for filament motion.
   # When set the main extruder is only used for temperature control.
   # Useful for Y type multi extruder hotends.  
-# heater:
- # Name of the heater, defaults to extruder's heater. 
 # fan: 
   # Name of the fan to use as print cooling fan when this tool is selected.
   # If not set, uses parent fan or does nothing.
@@ -223,7 +221,6 @@ The following information is available in the `tool` object:
  - `tool_number`: The assigned tool number or -1 if not assigned.
  - `toolchanger`: The name of the toolchanger this tool is attached to. 
  - `extruder`: Name of the extruder used for this tool.
- - `heater`: Name of the heater used for this tool. 
  - `fan`: Name of the part fan used for this tool.
  - `active`: If this tool is currently the selected tool.
  - `mounted`: If this tool is currently mounted, the tool may be mounted but
