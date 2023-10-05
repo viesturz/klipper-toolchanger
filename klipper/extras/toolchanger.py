@@ -173,9 +173,13 @@ class Toolchanger:
             self._set_tool_gcode_offset(select_tool)
 
         if should_run_initialize:
-            self.status = STATUS_READY
-            self.gcode.respond_info('%s initialized, active %s' %
-                                    (self.name, self.active_tool.name if self.active_tool else None))
+            if self.status == STATUS_INITIALIZING:
+                self.status = STATUS_READY
+                self.gcode.respond_info('%s initialized, active %s' %
+                                        (self.name, self.active_tool.name if self.active_tool else None))
+            else:
+                raise self.gcode.error('%s failed to initialize, error: %s' %
+                                        (self.name, self.error_message))
 
     def select_tool(self, gcmd, tool, restore_axis):
         if self.status == STATUS_UNINITALIZED and self.initialize_on == INIT_FIRST_USE:
