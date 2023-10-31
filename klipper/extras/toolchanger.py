@@ -39,6 +39,18 @@ class Toolchanger:
         self.after_change_gcode = self.gcode_macro.load_template(
             config, 'after_change_gcode', '')
 
+        # Read all the fields that might be defined on toolchanger.
+        # To avoid throwing config error when no tools configured.
+        config.get('pickup_gcode', None)
+        config.get('dropoff_gcode', None)
+        config.getfloat('gcode_x_offset', None)
+        config.getfloat('gcode_y_offset', None)
+        config.getfloat('gcode_z_offset', None)
+        config.get('t_command_restore_axis', None)
+        config.get('extruder', None)
+        config.get('fan', None)
+        config.get_prefix_options('params_')
+
         self.status = STATUS_UNINITALIZED
         self.active_tool = None
         self.tools = {}
