@@ -82,14 +82,14 @@ class Toolchanger:
 
     def _handle_connect(self):
         # Lookup any T macros and intialize tools for them.
-        tn_r = re.compile('^T([0-9]+)$')
-        for macro in self.printer.lookup_objects("gcode_macro"):
-            match = tn_r.search(tn_r, macro.alias)
+        tn_r = re.compile('^gcode_macro T([0-9]+)$')
+        for name, macro in self.printer.lookup_objects("gcode_macro"):
+            match = tn_r.match(name)
             if match:
-                number = match.group(1)
-                tool = MacroTool(macro, self.printer)
+                number = int(match.group(1))
+                tool = MacroTool(name, macro, self.printer)
                 tool.base.tool_number = number
-                self.assign_tool(self, number, -1, False)
+                self.assign_tool(tool.base, number, -1, False)
 
     def _handle_home_rails_begin(self, homing_state, rails):
         if self.initialize_on == INIT_ON_HOME and self.status == STATUS_UNINITALIZED:
@@ -306,7 +306,7 @@ class Toolchanger:
         curtime = self.printer.get_reactor().monotonic()
         try:
             context = template.create_template_context() | extra_context
-            context['tool'] = self.active_tool.get_status(curtime) if self.active_tool else {}
+            context['tool'] = self.active_tool.get_status() if self.active_tool else {}
             context['toolchanger'] = self.get_status(curtime)
             template.run_gcode_from_command(context)
         except Exception as e:
@@ -349,7 +349,6 @@ class ToolBase:
             self.extruder_stepper_name) if self.extruder_stepper_name else None
         self.fan = self.printer.lookup_object(
             self.fan_name) if self.fan_name else None
-        self.config.update_status(self.get_status())
 
     def get_status(self):
         return self.params | {'name': self.name,
@@ -401,39 +400,46 @@ class ToolBase:
         self.config.update_status({'active': False})
 
 class MacroTool:
-    def __int__(self, macro, printer):
+    def __init__(self, name, macro, printer):
+        self.name = name
         self.macro = macro
+        self.config = self.macro.variables
         toolchanger_name = macro.variables.get('toolchanger', 'toolchanger')
         self.toolchanger = printer.lookup_object(toolchanger_name)
         self.gcode = printer.lookup_object('gcode')
         self.base = ToolBase(self)
         self.base.handle_connect() # We are already in connect
+        printer.register_event_handler("klippy:ready",
+                                       self.handle_ready)
+
+    def handle_ready(self):
+        self.update_status(self.base.get_status())
 
     def get_name(self):
-        return self.macro.alias
+        return self.name
 
     def get(self, name, default_value):
-        return self.macro.variables.get(name,
+        return self.config.get(name,
                                self.toolchanger.config.get(name, default_value))
 
     def getfloat(self, name, default_value):
-        if name in self.macro.variables:
-            return float(self.macro.variables[name])
+        if name in self.config:
+            return float(self.config[name])
         return self.toolchanger.config.getfloat(name, default_value)
 
     def getboolean(self, name, default_value):
-        if name in self.macro.variables:
-            return bool(self.macro.variables[name])
+        if name in self.config:
+            return bool(self.config[name])
         return self.toolchanger.config.getfloat(name, default_value)
 
     def get_params(self):
-        return self.toolchanger.params | self.macro.variables
+        return self.toolchanger.params | self.config
 
     def update_status(self, changes):
         variables = self.macro.get_status(0)
         for key, value in changes.items():
             if key in variables and value != variables[key]:
-                self.gcode.run_script_from_command("SET_GCODE_VARIABLE VARIABLE='%s' VALUE='%s'" % (key, value))
+                self.gcode.run_script_from_command("SET_GCODE_VARIABLE MACRO='%s' VARIABLE='%s' VALUE='%s'" % (self.macro.alias, key, value))
 
 def get_params_dict(config):
     result = {}

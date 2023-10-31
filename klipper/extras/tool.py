@@ -60,7 +60,7 @@ class Tool:
     def assign_tool(self, number, replace=False):
         prev_number = self.base.tool_number
         self.base.tool_number = number
-        self.main_toolchanger.assign_tool(self, number, prev_number, replace)
+        self.main_toolchanger.assign_tool(self.base, number, prev_number, replace)
         self._register_t_gcode(number)
 
     def _register_t_gcode(self, number):
