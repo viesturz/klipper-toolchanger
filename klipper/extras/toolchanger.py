@@ -5,6 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 import ast, bisect
+import re
 
 STATUS_UNINITALIZED = 'uninitialized'
 STATUS_INITIALIZING = 'initializing'
@@ -76,18 +77,32 @@ class Toolchanger:
                                     self.cmd_UNSELECT_TOOL,
                                     desc=self.cmd_UNSELECT_TOOL_help)
 
+        self.printer.register_event_handler("klippy:connect",
+                                            self._handle_connect)
+
+    def _handle_connect(self):
+        # Lookup any T macros and intialize tools for them.
+        tn_r = re.compile('^T([0-9]+)$')
+        for macro in self.printer.lookup_objects("gcode_macro"):
+            match = tn_r.search(tn_r, macro.alias)
+            if match:
+                number = match.group(1)
+                tool = MacroTool(macro, self.printer)
+                tool.base.tool_number = number
+                self.assign_tool(self, number, -1, False)
+
     def _handle_home_rails_begin(self, homing_state, rails):
         if self.initialize_on == INIT_ON_HOME and self.status == STATUS_UNINITALIZED:
             self.initialize()
 
     def get_status(self, eventtime):
-        return {'name': self.name,
+        return self.params | {'name': self.name,
                 'status': self.status,
                 'tool': self.active_tool.name if self.active_tool else None,
                 'tool_number': self.active_tool.tool_number if self.active_tool else -1,
                 'tool_numbers': self.tool_numbers,
                 'tool_names': self.tool_names,
-                } | self.params
+                }
 
     def assign_tool(self, tool, number, prev_number, replace = False):
         if number in self.tools and not replace:
@@ -300,6 +315,126 @@ class Toolchanger:
             raise Exception("Unexpected status during %s, status = %s, message = %s, aborting" % (
                 name, self.status, self.error_message))
 
+
+class ToolBase:
+    def __init__(self, config):
+        self.config = config
+        self.printer = config.toolchanger.printer
+        self.gcode_macro = self.printer.load_object(config, 'gcode_macro')
+        self.toolchanger = config.toolchanger
+        self.name = config.get_name()
+        self.main_toolchanger = None # Will be looked up on connect
+        self.pickup_gcode = self.gcode_macro.load_template(
+            config, 'pickup_gcode', '')
+        self.dropoff_gcode = self.gcode_macro.load_template(
+            config, 'dropoff_gcode', '')
+        self.gcode_x_offset = config.getfloat('gcode_x_offset', None)
+        self.gcode_y_offset = config.getfloat('gcode_y_offset', None)
+        self.gcode_z_offset = config.getfloat('gcode_z_offset', None)
+        self.params = config.get_params()
+        self.extruder_name = config.get('extruder', None)
+        self.extruder_stepper_name = config.get('extruder_stepper', None)
+        self.extruder = None
+        self.extruder_stepper = None
+        self.fan_name = config.get('fan', None)
+        self.fan = None
+        self.tool_number = -1
+        self.t_command_restore_axis = config.get('t_command_restore_axis', 'XYZ')
+
+    def handle_connect(self):
+        self.main_toolchanger = self.printer.lookup_object('toolchanger')
+        self.extruder = self.printer.lookup_object(
+            self.extruder_name) if self.extruder_name else None
+        self.extruder_stepper = self.printer.lookup_object(
+            self.extruder_stepper_name) if self.extruder_stepper_name else None
+        self.fan = self.printer.lookup_object(
+            self.fan_name) if self.fan_name else None
+        self.config.update_status(self.get_status())
+
+    def get_status(self):
+        return self.params | {'name': self.name,
+                'toolchanger': self.toolchanger.name,
+                'tool_number': self.tool_number,
+                'extruder': self.extruder_name,
+                'extruder_stepper': self.extruder_stepper_name,
+                'fan': self.fan_name,
+                'active': self.main_toolchanger.get_selected_tool() == self,
+                'gcode_x_offset': self.gcode_x_offset if self.gcode_x_offset else 0.0,
+                'gcode_y_offset': self.gcode_y_offset if self.gcode_y_offset else 0.0,
+                'gcode_z_offset': self.gcode_z_offset if self.gcode_z_offset else 0.0,
+                }
+
+    def get_offset(self):
+        return [
+            self.gcode_x_offset if self.gcode_x_offset else 0.0,
+            self.gcode_y_offset if self.gcode_y_offset else 0.0,
+            self.gcode_z_offset if self.gcode_z_offset else 0.0,
+        ]
+
+    def activate(self):
+        toolhead = self.printer.lookup_object('toolhead')
+        gcode = self.printer.lookup_object('gcode')
+        hotend_extruder = toolhead.get_extruder().name
+        if self.extruder_name and self.extruder_name != hotend_extruder:
+            gcode.run_script_from_command(
+                "ACTIVATE_EXTRUDER EXTRUDER='%s'" % (self.extruder_name,))
+        hotend_extruder = toolhead.get_extruder().name
+        if self.extruder_stepper and hotend_extruder:
+                gcode.run_script_from_command(
+                    "SYNC_EXTRUDER_MOTION EXTRUDER='%s' MOTION_QUEUE=" % (hotend_extruder, ))
+                gcode.run_script_from_command(
+                    "SYNC_EXTRUDER_MOTION EXTRUDER='%s' MOTION_QUEUE='%s'" % (self.extruder_stepper_name, hotend_extruder, ))
+        if self.fan:
+            gcode.run_script_from_command(
+                "ACTIVATE_FAN FAN='%s'" % (self.fan.name,))
+        self.config.update_status({'active': True})
+
+    def deactivate(self):
+        if self.extruder_stepper:
+            toolhead = self.printer.lookup_object('toolhead')
+            gcode = self.printer.lookup_object('gcode')
+            hotend_extruder = toolhead.get_extruder().name
+            gcode.run_script_from_command(
+                "SYNC_EXTRUDER_MOTION EXTRUDER='%s' MOTION_QUEUE=" % (self.extruder_stepper_name,))
+            gcode.run_script_from_command(
+                "SYNC_EXTRUDER_MOTION EXTRUDER='%s' MOTION_QUEUE=%s" % (hotend_extruder, hotend_extruder,))
+        self.config.update_status({'active': False})
+
+class MacroTool:
+    def __int__(self, macro, printer):
+        self.macro = macro
+        toolchanger_name = macro.variables.get('toolchanger', 'toolchanger')
+        self.toolchanger = printer.lookup_object(toolchanger_name)
+        self.gcode = printer.lookup_object('gcode')
+        self.base = ToolBase(self)
+        self.base.handle_connect() # We are already in connect
+
+    def get_name(self):
+        return self.macro.alias
+
+    def get(self, name, default_value):
+        return self.macro.variables.get(name,
+                               self.toolchanger.config.get(name, default_value))
+
+    def getfloat(self, name, default_value):
+        if name in self.macro.variables:
+            return float(self.macro.variables[name])
+        return self.toolchanger.config.getfloat(name, default_value)
+
+    def getboolean(self, name, default_value):
+        if name in self.macro.variables:
+            return bool(self.macro.variables[name])
+        return self.toolchanger.config.getfloat(name, default_value)
+
+    def get_params(self):
+        return self.toolchanger.params | self.macro.variables
+
+    def update_status(self, changes):
+        variables = self.macro.get_status(0)
+        for key, value in changes.items():
+            if key in variables and value != variables[key]:
+                self.gcode.run_script_from_command("SET_GCODE_VARIABLE VARIABLE='%s' VALUE='%s'" % (key, value))
+
 def get_params_dict(config):
     result = {}
     for option in config.get_prefix_options('params_'):
@@ -312,7 +447,4 @@ def get_params_dict(config):
     return result
 
 def load_config(config):
-    return Toolchanger(config)
-
-def load_config_prefix(config):
     return Toolchanger(config)
