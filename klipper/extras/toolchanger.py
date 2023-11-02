@@ -81,13 +81,14 @@ class Toolchanger:
             self.initialize()
 
     def get_status(self, eventtime):
-        return {'name': self.name,
+        return {** self.params,
+                'name': self.name,
                 'status': self.status,
                 'tool': self.active_tool.name if self.active_tool else None,
                 'tool_number': self.active_tool.tool_number if self.active_tool else -1,
                 'tool_numbers': self.tool_numbers,
                 'tool_names': self.tool_names,
-                } | self.params
+                }
 
     def assign_tool(self, tool, number, prev_number, replace = False):
         if number in self.tools and not replace:
@@ -290,9 +291,12 @@ class Toolchanger:
         current_status = self.status
         curtime = self.printer.get_reactor().monotonic()
         try:
-            context = template.create_template_context() | extra_context
-            context['tool'] = self.active_tool.get_status(curtime) if self.active_tool else {}
-            context['toolchanger'] = self.get_status(curtime)
+            context = {
+                **template.create_template_context(),
+                'tool': self.active_tool.get_status(curtime) if self.active_tool else {},
+                'toolchanger': self.get_status(curtime),
+                **extra_context,
+            }
             template.run_gcode_from_command(context)
         except Exception as e:
             raise Exception("Script running error: %s" % (str(e)))

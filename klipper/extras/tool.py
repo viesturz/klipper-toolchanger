@@ -27,7 +27,7 @@ class Tool:
             config, 'gcode_y_offset', None)
         self.gcode_z_offset = self._config_getfloat(
             config, 'gcode_z_offset', None)
-        self.params = self.toolchanger.params | toolchanger.get_params_dict(config)
+        self.params = {**self.toolchanger.params, **toolchanger.get_params_dict(config)}
         self.extruder_name = self._config_get(config, 'extruder', None)
         self.extruder_stepper_name = self._config_get(config, 'extruder_stepper', None)
         self.extruder = None
@@ -57,7 +57,8 @@ class Tool:
             self.fan_name) if self.fan_name else None
 
     def get_status(self, eventtime):
-        return {'name': self.name,
+        return {**self.params,
+                'name': self.name,
                 'toolchanger': self.toolchanger.name,
                 'tool_number': self.tool_number,
                 'extruder': self.extruder_name,
@@ -67,7 +68,7 @@ class Tool:
                 'gcode_x_offset': self.gcode_x_offset if self.gcode_x_offset else 0.0,
                 'gcode_y_offset': self.gcode_y_offset if self.gcode_y_offset else 0.0,
                 'gcode_z_offset': self.gcode_z_offset if self.gcode_z_offset else 0.0,
-                } | self.params
+                }
 
     def get_offset(self):
         return [
