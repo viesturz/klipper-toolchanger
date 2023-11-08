@@ -5,13 +5,13 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 UPDATE_TIME = 1.0
-UPDATE_TOLERANCE = 0.1
+UPDATE_TOLERANCE = 0.3
 
 class BedThermalAdjust:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.heater_bed = self.printer.load_object(config, "heater_bed")
-        self.chamber_sensor_name = config.get("chamber_temperature_senor", None)
+        self.chamber_sensor_name = config.get("chamber_temperature_sensor", None)
         self.chamber_sensor = None
         self.ambient_temp = 0.0
         self.use_startup_temp = config.getboolean("use_startup_temperature", False)
@@ -45,7 +45,7 @@ class BedThermalAdjust:
             reactor.register_timer(self.callback, reactor.monotonic() + UPDATE_TIME)
 
     def callback(self, eventtime):
-        self.ambient_temp = self.chamber_sensor.get_temp(eventtime)
+        self.ambient_temp = round(float(self.chamber_sensor.get_temp(eventtime)[0]), 1)
         bed_status = self.heater_bed.get_status(0)
         if bed_status['target'] > 0.0:
             # Update only if the heated bed is still active
@@ -57,24 +57,24 @@ class BedThermalAdjust:
         self.requested_temp = gcmd.get_float('S', 0.)
         if self.requested_temp > 0 and self.use_startup_temp and self.ambient_temp == 0.0:
             # first time the bed is heating, grab ambient temp
-            self.ambient_temp = self.heater_bed.get_status(0)['temperature']
+            self.ambient_temp = round(float(self.heater_bed.get_status(0)['temperature']),1)
         self.update_heater_bed(wait)
     def cmd_M190(self, gcmd):
         # Set Bed Temperature and Wait
         self.cmd_M140(gcmd, wait=True)
 
-    def to_heater_temp(self, surface_temp):
-        if surface_temp <= 0:
-            return surface_temp
-        return surface_temp + max((surface_temp - self.ambient_temp) * self.temp_drop, 0.0)
-
     def to_surface_temp(self, heater_temp):
         if heater_temp <= 0:
             return heater_temp
+        return heater_temp - max((heater_temp - self.ambient_temp) * self.temp_drop, 0.0)
+
+    def to_heater_temp(self, surface_temp):
+        if surface_temp <= 0:
+            return surface_temp
         # Inverse of the above
-        # y = x + (x - AA) * C = x * (1 + C) - AA * C
-        # x = (y + AA * C) / (1 + C)
-        return min(heater_temp, (heater_temp + self.ambient_temp * self.temp_drop) / (1.0 + self.temp_drop))
+        # s = h - (h - AA) * D = h - h*D + AA*D = h * (1 - D) + AA * D
+        # h = (s - AA * D) / (1 - D)
+        return max(surface_temp, (surface_temp - self.ambient_temp * self.temp_drop) / (1.0 - self.temp_drop))
 
     def get_status(self, eventtime):
         bed_status = self.heater_bed.get_status(eventtime)
