@@ -85,7 +85,7 @@ class BedThermalAdjust:
                 'power': bed_status['power']}
 
     def update_heater_bed(self, wait=False):
-        new_heater_temp = int(self.max_heater_temp, self.to_heater_temp(self.requested_temp))
+        new_heater_temp = int(self.to_heater_temp(self.requested_temp))
         if wait or abs(self.requested_heater_temp - new_heater_temp) > UPDATE_TOLERANCE:
             self.requested_heater_temp = new_heater_temp
             gcmd = self.gcode.create_gcode_command("M140", "M140", {"S": "%0.1f" % (new_heater_temp, )})
