@@ -18,6 +18,7 @@ class BedThermalAdjust:
         if not self.chamber_sensor_name and not self.use_startup_temp:
             self.ambient_temp = config.getfloat("fixed_chamber_temperature",
                                                 minval=0.0, maxval=100)
+        self.max_heater_temp = self.heater_bed.heater.max_temp
         self.requested_temp = 0.0
         self.requested_heater_temp = 0.0
         self.temp_drop = config.getfloat("temperature_drop_per_degree",
@@ -74,7 +75,7 @@ class BedThermalAdjust:
         # Inverse of the above
         # s = h - (h - AA) * D = h - h*D + AA*D = h * (1 - D) + AA * D
         # h = (s - AA * D) / (1 - D)
-        return max(surface_temp, (surface_temp - self.ambient_temp * self.temp_drop) / (1.0 - self.temp_drop))
+        return max(surface_temp, min(self.max_heater_temp, (surface_temp - self.ambient_temp * self.temp_drop) / (1.0 - self.temp_drop)))
 
     def get_status(self, eventtime):
         bed_status = self.heater_bed.get_status(eventtime)
@@ -84,7 +85,7 @@ class BedThermalAdjust:
                 'power': bed_status['power']}
 
     def update_heater_bed(self, wait=False):
-        new_heater_temp = int(self.to_heater_temp(self.requested_temp))
+        new_heater_temp = int(self.max_heater_temp, self.to_heater_temp(self.requested_temp))
         if wait or abs(self.requested_heater_temp - new_heater_temp) > UPDATE_TOLERANCE:
             self.requested_heater_temp = new_heater_temp
             gcmd = self.gcode.create_gcode_command("M140", "M140", {"S": "%0.1f" % (new_heater_temp, )})
