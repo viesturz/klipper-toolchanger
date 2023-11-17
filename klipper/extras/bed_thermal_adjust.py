@@ -20,7 +20,6 @@ class BedThermalAdjust:
                                                 minval=0.0, maxval=100)
         self.max_heater_temp = self.heater_bed.heater.max_temp
         self.requested_temp = 0.0
-        self.requested_heater_temp = 0.0
         self.temp_drop = config.getfloat("temperature_drop_per_degree",
                                          above=0.0, below=1.0)
 
@@ -86,7 +85,8 @@ class BedThermalAdjust:
 
     def update_heater_bed(self, wait=False):
         new_heater_temp = int(self.to_heater_temp(self.requested_temp))
-        if wait or abs(self.requested_heater_temp - new_heater_temp) > UPDATE_TOLERANCE:
+        current_heater_temp = float(self.heater_bed.get_status(0)['target'])
+        if wait or abs(current_heater_temp - new_heater_temp) > UPDATE_TOLERANCE:
             self.requested_heater_temp = new_heater_temp
             gcmd = self.gcode.create_gcode_command("M140", "M140", {"S": "%0.1f" % (new_heater_temp, )})
             self.heater_bed.cmd_M140(gcmd, wait=wait)
