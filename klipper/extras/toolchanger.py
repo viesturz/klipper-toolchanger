@@ -134,7 +134,7 @@ class Toolchanger:
 
     cmd_SET_TOOL_TEMPERATURE_help = 'Set temperature for tool'
     def cmd_SET_TOOL_TEMPERATURE(self, gcmd):
-        temp = gcmd.get_int('TARGET', 0)
+        temp = gcmd.get_float('TARGET', 0.)
         wait = gcmd.get_int('WAIT', 0) == 1
         tool_name = gcmd.get('TOOL', None)
         tool_nr = gcmd.get_int('T', None)
