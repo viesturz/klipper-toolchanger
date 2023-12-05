@@ -6,6 +6,7 @@
 
 UPDATE_TIME = 1.0
 UPDATE_TOLERANCE = 0.3
+BED_COOLDOWN_TIME = 30 * 60 * 1.0 # 30 min
 
 class BedThermalAdjust:
     def __init__(self, config):
@@ -14,8 +15,12 @@ class BedThermalAdjust:
         self.chamber_sensor_name = config.get("chamber_temperature_sensor", None)
         self.chamber_sensor = None
         self.ambient_temp = 0.0
-        self.use_startup_temp = config.getboolean("use_startup_temperature", False)
-        if not self.chamber_sensor_name and not self.use_startup_temp:
+        self.active = False
+        self.active_timer = -BED_COOLDOWN_TIME
+        self.inactive_timer = 0
+        self.requested_heater_target = 0.0
+        self.use_bed_temp = config.getboolean("use_bed_temperature", False)
+        if not self.chamber_sensor_name and not self.use_bed_temp:
             self.ambient_temp = config.getfloat("fixed_chamber_temperature",
                                                 minval=0.0, maxval=100)
         self.max_heater_temp = self.heater_bed.heater.max_temp
@@ -40,25 +45,33 @@ class BedThermalAdjust:
             self.chamber_sensor = self.printer.lookup_object(self.chamber_sensor_name)
 
     def handle_ready(self):
-        if self.chamber_sensor:
-            reactor = self.printer.get_reactor()
-            reactor.register_timer(self.callback, reactor.monotonic() + UPDATE_TIME)
+        reactor = self.printer.get_reactor()
+        reactor.register_timer(self.timer_callback, reactor.monotonic() + UPDATE_TIME)
 
-    def callback(self, eventtime):
-        self.ambient_temp = round(float(self.chamber_sensor.get_temp(eventtime)[0]), 1)
-        bed_status = self.heater_bed.get_status(0)
-        if bed_status['target'] > 0.0:
-            # Update only if the heated bed is still active
-            self.update_heater_bed()
+    def timer_callback(self, eventtime):
+        if self.chamber_sensor:
+            self.ambient_temp = round(float(self.chamber_sensor.get_temp(eventtime)[0]), 1)
+        if self.active:
+            self.active_timer = eventtime
+            bed_target_temp = self.heater_bed.get_status(0)['target']
+            if bed_target_temp != self.requested_heater_target:
+                self.active = False
+            else:
+                self.update_heater_bed()
+        else:
+            self.inactive_timer = eventtime
         return eventtime + UPDATE_TIME
 
     def cmd_M140(self, gcmd, wait=False):
         # Set Bed Temperature
         self.requested_temp = gcmd.get_float('S', 0.)
-        if self.requested_temp > 0 and self.use_startup_temp and self.ambient_temp == 0.0:
-            # first time the bed is heating, grab ambient temp
+        bed_cooled_down = self.active_timer <= self.inactive_timer + BED_COOLDOWN_TIME
+        active = self.requested_temp > 0
+        if self.active and self.use_bed_temp and bed_cooled_down:
             self.ambient_temp = round(float(self.heater_bed.get_status(0)['temperature']),1)
         self.update_heater_bed(wait)
+        # set active last to avoid races
+        self.active = active
     def cmd_M190(self, gcmd):
         # Set Bed Temperature and Wait
         self.cmd_M140(gcmd, wait=True)
@@ -84,10 +97,10 @@ class BedThermalAdjust:
                 'power': bed_status['power']}
 
     def update_heater_bed(self, wait=False):
+        current_heater_target = float(self.heater_bed.get_status(0)['target'])
         new_heater_temp = int(self.to_heater_temp(self.requested_temp))
-        current_heater_temp = float(self.heater_bed.get_status(0)['target'])
-        if wait or abs(current_heater_temp - new_heater_temp) > UPDATE_TOLERANCE:
-            self.requested_heater_temp = new_heater_temp
+        if wait or abs(current_heater_target - new_heater_temp) > UPDATE_TOLERANCE:
+            self.requested_heater_target = new_heater_temp
             gcmd = self.gcode.create_gcode_command("M140", "M140", {"S": "%0.1f" % (new_heater_temp, )})
             self.heater_bed.cmd_M140(gcmd, wait=wait)
 
