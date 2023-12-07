@@ -57,7 +57,7 @@ class ToolProbe(probe.PrinterProbe):
         self.endstop.add_probe(config, self)
 
     def _button_handler(self, eventtime, is_triggered):
-        self.endstop.note_probe_triggered(self, is_triggered)
+        self.endstop.note_probe_triggered(self, eventtime, is_triggered)
 
 def load_config_prefix(config):
     return ToolProbe(config, ProbeEndstopWrapper(config))

@@ -12,6 +12,7 @@ import pins
 class ToolProbeEndstop:
     def __init__(self, config, mcu_probe):
         self.printer = config.get_printer()
+        self.reactor = self.printer.get_reactor()
         self.name = config.get_name()
         self.mcu_probe = mcu_probe
         self.tool_probes = {}
@@ -21,6 +22,7 @@ class ToolProbeEndstop:
         self.gcode_move = self.printer.load_object(config, "gcode_move")
         self.gcode_macro = self.printer.load_object(config, 'gcode_macro')
         self.crash_detection_active = False
+        self.crash_lasttime = 0.
 
         # Emulate the probe object, since others rely on this.
         if self.printer.lookup_object('probe', default=None):
@@ -28,6 +30,7 @@ class ToolProbeEndstop:
         self.printer.add_object('probe', self)
         # Register z_virtual_endstop pin
         self.printer.lookup_object('pins').register_chip('probe', self)
+        self.crash_mintime = config.getfloat('crash_mintime', 0.5, above=0.)
         self.crash_gcode = self.gcode_macro.load_template(config, 'crash_gcode', '')
         # Register homing event handlers
         self.printer.register_event_handler("klippy:connect",
@@ -231,12 +234,24 @@ class ToolProbeEndstop:
     def cmd_STOP_TOOL_PROBE_CRASH_DETECTION(self, gcmd):
         self.crash_detection_active = False
 
-    def note_probe_triggered(self, probe, is_triggered):
+    def note_probe_triggered(self, probe, eventtime, is_triggered):
         if not self.crash_detection_active:
             return
-        if is_triggered and probe == self.active_probe:
-            self.crash_detection_active = False
-            self.crash_gcode.run_gcode_from_command()
+        if probe != self.active_probe:
+            return
+        if is_triggered:
+            self.crash_lasttime = eventtime
+            self.reactor.register_callback(lambda _: self._probe_triggered_delayed(eventtime),
+                                           self.crash_mintime)
+        else:
+            self.crash_lasttime = 0.
+
+    def _probe_triggered_delayed(self, expect_eventtime):
+        if self.crash_lasttime != expect_eventtime:
+            # The trigger was cancelled
+            return
+        self.crash_detection_active = False
+        self.crash_gcode.run_gcode_from_command()
 
 # Endstop wrapper that routes commands to the selected tool probe.
 class ToolProbeEndstopWrapper:
