@@ -94,7 +94,7 @@ class Tool:
         existing = gcode.register_command(name, None)
         if existing:
             # Do not mess with existing
-            gcode.register_command(name, existing, desc = desc)
+            gcode.register_command(name, existing)
         else:
             tc = self.main_toolchanger
             axis = self.t_command_restore_axis
