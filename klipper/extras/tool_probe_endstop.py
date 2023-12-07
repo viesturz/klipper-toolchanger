@@ -19,6 +19,8 @@ class ToolProbeEndstop:
         self.active_probe = None
         self.active_tool_number = -1
         self.gcode_move = self.printer.load_object(config, "gcode_move")
+        self.gcode_macro = self.printer.load_object(config, 'gcode_macro')
+        self.crash_detection_active = False
 
         # Emulate the probe object, since others rely on this.
         if self.printer.lookup_object('probe', default=None):
@@ -26,6 +28,7 @@ class ToolProbeEndstop:
         self.printer.add_object('probe', self)
         # Register z_virtual_endstop pin
         self.printer.lookup_object('pins').register_chip('probe', self)
+        self.crash_gcode = self.gcode_macro.load_template(config, 'crash_gcode', '')
         # Register homing event handlers
         self.printer.register_event_handler("klippy:connect",
                                             self._handle_connect)
@@ -43,6 +46,10 @@ class ToolProbeEndstop:
                                     desc=self.cmd_SET_ACTIVE_TOOL_PROBE_help)
         self.gcode.register_command('DETECT_ACTIVE_TOOL_PROBE', self.cmd_DETECT_ACTIVE_TOOL_PROBE,
                                     desc=self.cmd_DETECT_ACTIVE_TOOL_PROBE_help)
+        self.gcode.register_command('START_TOOL_PROBE_CRASH_DETECTION', self.cmd_START_TOOL_PROBE_CRASH_DETECTION,
+                                    desc=self.cmd_START_TOOL_PROBE_CRASH_DETECTION_help)
+        self.gcode.register_command('STOP_TOOL_PROBE_CRASH_DETECTION', self.cmd_STOP_TOOL_PROBE_CRASH_DETECTION,
+                                    desc=self.cmd_STOP_TOOL_PROBE_CRASH_DETECTION_help)
         self.gcode.register_command('PROBE', self.cmd_PROBE,
                                     desc=self.cmd_PROBE_help)
         self.gcode.register_command('QUERY_PROBE', self.cmd_QUERY_PROBE,
@@ -203,11 +210,33 @@ class ToolProbeEndstop:
     def cmd_PROBE_CALIBRATE(self, gcmd):
         self._ensure_active_tool_or_fail(gcmd)
         self.active_probe.cmd_PROBE_CALIBRATE(gcmd)
+    cmd_Z_OFFSET_APPLY_PROBE_help = "Adjust the probe's z_offset"
     def cmd_Z_OFFSET_APPLY_PROBE(self, gcmd):
         if not self.active_probe:
             raise gcmd.respond_info("no active tool probe")
         self.active_probe.cmd_Z_OFFSET_APPLY_PROBE(gcmd)
-    cmd_Z_OFFSET_APPLY_PROBE_help = "Adjust the probe's z_offset"
+
+    cmd_START_TOOL_PROBE_CRASH_DETECTION_help = "Start detecting tool crashes"
+    def cmd_START_TOOL_PROBE_CRASH_DETECTION(self, gcmd):
+        self.cmd_DETECT_ACTIVE_TOOL_PROBE(gcmd)
+        expected_tool_number = gcmd.get_int("T", self.active_tool_number)
+
+        if expected_tool_number is None:
+            raise gcmd.error("Cannot start probe crash detection - no active tool")
+        if expected_tool_number != self.active_tool_number:
+            raise gcmd.error("Cannot start probe crash detection - expected tool not active")
+        self.crash_detection_active = True
+
+    cmd_STOP_TOOL_PROBE_CRASH_DETECTION_help = "Stop detecting tool crashes"
+    def cmd_STOP_TOOL_PROBE_CRASH_DETECTION(self, gcmd):
+        self.crash_detection_active = False
+
+    def note_probe_triggered(self, probe, is_triggered):
+        if not self.crash_detection_active:
+            return
+        if is_triggered and probe == self.active_probe:
+            self.crash_detection_active = False
+            self.crash_gcode.run_gcode_from_command()
 
 # Endstop wrapper that routes commands to the selected tool probe.
 class ToolProbeEndstopWrapper:
