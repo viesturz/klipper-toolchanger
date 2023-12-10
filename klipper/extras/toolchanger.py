@@ -117,10 +117,10 @@ class Toolchanger:
 
     cmd_SELECT_TOOL_help = 'Select active tool'
     def cmd_SELECT_TOOL(self, gcmd):
-        restore_axis = gcmd.get('RESTORE_AXIS', 'XYZ')
         tool_name = gcmd.get('TOOL', None)
         if tool_name:
             tool = self.printer.lookup_object(tool_name)
+            restore_axis = gcmd.get('RESTORE_AXIS', tool.t_command_restore_axis)
             self.select_tool(gcmd, tool, restore_axis)
             return
         tool_nr = gcmd.get_int('T', None)
@@ -128,6 +128,7 @@ class Toolchanger:
             tool = self.lookup_tool(tool_nr)
             if not tool:
                 raise gcmd.error("Select tool: T%d not found" % (tool_nr))
+            restore_axis = gcmd.get('RESTORE_AXIS', tool.t_command_restore_axis)
             self.select_tool(gcmd, tool, restore_axis)
             return
         raise gcmd.error("Select tool: Either TOOL or T needs to be specified")
