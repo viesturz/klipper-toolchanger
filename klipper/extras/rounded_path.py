@@ -12,8 +12,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import math
 EPSILON = 0.001
-EPSILON_ANGLE = 0.01
-
+EPSILON_ANGLE = 0.001
 
 class ControlPoint:
     def __init__(self, x, y, z, d, f):
@@ -27,27 +26,27 @@ class ControlPoint:
         self.lin_d_to_r = 0.0
 
 # Some basic vector math
-def _vecto(f: ControlPoint, t: ControlPoint):
+def _vecto(f: ControlPoint, t: ControlPoint)->list:
     return [t.vec[i]-f.vec[i] for i in range(3)]
 
-def _vadd(f: list, t: list):
+def _vadd(f: list, t: list) ->list:
     return [f[i]+ t[i] for i in range(3)]
 
-def _vmul(f:list, n):
+def _vmul(f:list, n) ->list:
     return [f[i] * n for i in range(3)]
 
-def _cross(vp: list, vn: list):
+def _cross(vp: list, vn: list) -> list:
     return [vp[1] * vn[2] - vp[2] * vn[1], vp[2] * vn[0] - vp[0] * vn[2],
            vp[0] * vn[1] - vp[1] * vn[0]]
 
-def _vdist(v0: list, v1:list):
+def _vdist(v0: list, v1:list) -> float:
     return math.hypot(v0[0]-v1[0], v0[1]-v1[1], v0[2]-v1[2])
 
-def _vnorm(vec: list):
+def _vnorm(vec: list) -> list:
     invlen = 1.0/math.hypot(*vec)
     return [x*invlen for x in vec]
 
-def _vangle(vec1, vec2):
+def _vangle(vec1: list, vec2: list) -> float:
     crossx = vec1[1] * vec2[2] - vec1[2] * vec2[1]
     crossy = vec1[2] * vec2[0] - vec1[0] * vec2[2]
     crossz = vec1[0] * vec2[1] - vec1[1] * vec2[0]
@@ -55,7 +54,7 @@ def _vangle(vec1, vec2):
     dot = vec1[0] * vec2[0] + vec1[1] * vec2[1] + vec1[2] * vec2[2]
     return math.atan2(cross, dot)
 
-def _vrot(vec: list, angle, axis: list):
+def _vrot(vec: list, angle, axis: list) -> list:
     # Axis needs to be normalized
     # https://en.wikipedia.org/wiki/Rotation_matrix
     s = math.sin(angle)
@@ -67,6 +66,21 @@ def _vrot(vec: list, angle, axis: list):
         vec[0] * (t * axis[0] * axis[2] - s * axis[1]) + vec[1] * (t * axis[1] * axis[2] + s * axis[0]) + vec[2] * (t * axis[2] ** 2 + c)
     ]
 
+def _vrot_transform(angle: float, axis: list) -> list:
+    # Axis needs to be normalized
+    # https://en.wikipedia.org/wiki/Rotation_matrix
+    s = math.sin(angle)
+    c = math.cos(angle)
+    t = 1 - c
+    return [(t * axis[0] ** 2 + c), (t * axis[0] * axis[1] - s * axis[2]), (t * axis[0] * axis[2] + s * axis[1]),
+        (t * axis[0] * axis[1] + s * axis[2]), (t * axis[1] ** 2 + c), (t * axis[1] * axis[2] - s * axis[0]),
+        (t * axis[0] * axis[2] - s * axis[1]), (t * axis[1] * axis[2] + s * axis[0]), (t * axis[2] ** 2 + c)]
+
+def _vtransform(vec: list, transform: list) -> list:
+    return [vec[0] * transform[0] + vec[1]*transform[1] + vec[2]* transform[2],
+            vec[0] * transform[3] + vec[1] * transform[4] + vec[2] * transform[5],
+            vec[0] * transform[6] + vec[1] * transform[7] + vec[2] * transform[8]]
+
 class RoundedPath:
     buffer: list[ControlPoint]
 
@@ -76,11 +90,22 @@ class RoundedPath:
 
         self.gcode_move = self.printer.load_object(config, 'gcode_move')
         self.gcode = self.printer.lookup_object('gcode')
+        self.G0_params = {}
+        self.G0_cmd = self.gcode.create_gcode_command("G0", "G0", self.G0_params)
+        self.real_G0 = self.gcode_move.cmd_G1
         self.gcode.register_command("ROUNDED_G0", self.cmd_ROUNDED_G0)
         self.buffer = []
         self.lastg0 = []
 
+        if config.getboolean('replace_g0', False):
+            self.gcode.register_command("G0", None)
+            self.gcode.register_command("G0", self.cmd_ROUNDED_G0)
+
     def cmd_ROUNDED_G0(self, gcmd):
+        d = gcmd.get_float("D", 0.0)
+        if d <= 0.0 and len(self.buffer) < 2:
+            self.real_G0(gcmd)
+            return
         gcodestatus = self.gcode_move.get_status()
         if not gcodestatus['absolute_coordinates']:
             raise gcmd.error("ROUNDED_G0 does not support relative move mode")
@@ -99,7 +124,7 @@ class RoundedPath:
                                   y = gcmd.get_float("Y", currentPos[1]),
                                   z = gcmd.get_float("Z", currentPos[2]),
                                   f = gcmd.get_float("F", 0.0),
-                                  d = gcmd.get_float("D", 0.0)))
+                                  d = d))
 
     def _lineto(self, pos):
         self.buffer.append(pos)
@@ -122,7 +147,7 @@ class RoundedPath:
         vec2 = _vecto(c, v2)
         c.len = math.hypot(*vec1)
         c.angle = _vangle(vec1, vec2)
-        if abs(c.angle)  < EPSILON_ANGLE or math.pi - abs(c.angle) < EPSILON_ANGLE:
+        if abs(c.angle) < EPSILON_ANGLE or math.pi - abs(c.angle) < EPSILON_ANGLE:
             # too close of an angle - do not bother
             return
         sina2 = math.sin(c.angle / 2)
@@ -205,22 +230,26 @@ class RoundedPath:
         center = _vadd(start, _vmul(spoke, -1.0))
 
         # We are rotating counter the segment rotation.
-        angle_per_segment = -c.angle / num_segments
-        for step in range(0, num_segments+1):
-            rotspoke = _vrot(spoke, step * angle_per_segment, rotaxis)
-            pos = _vadd(center, rotspoke)
-            self._g0p(c, pos)
+        rot_transform = _vrot_transform(-c.angle / num_segments, rotaxis)
+        rotspoke = spoke
+        self._g0p(c, _vadd(center, rotspoke))
+        for step in range(0, num_segments):
+            rotspoke = _vtransform(rotspoke, rot_transform)
+            self._g0p(c, _vadd(center, rotspoke))
 
     def _g0(self, p: ControlPoint):
         self._g0p(p, p.vec)
 
     def _g0p(self, p: ControlPoint, vec: list):
-        params = {'X': vec[0], 'Y': vec[1], 'Z': vec[2]}
+        self.G0_params["X"]=vec[0]
+        self.G0_params["Y"]=vec[1]
+        self.G0_params["Z"]=vec[2]
         if p.f > 0.0:
-            params['F'] = p.f
+            self.G0_params['F'] = p.f
+        else:
+            self.G0_params.pop('F', None)
         self.lastg0 = vec
-        gcmd = self.gcode.create_gcode_command("G0", "G0", params)
-        self.gcode_move.cmd_G1(gcmd)
+        self.real_G0(self.G0_cmd)
 
 def load_config(config):
     return RoundedPath(config)
