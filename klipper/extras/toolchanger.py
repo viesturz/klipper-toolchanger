@@ -15,6 +15,7 @@ INIT_ON_HOME = 0
 INIT_MANUAL = 1
 INIT_FIRST_USE = 2
 XYZ_TO_INDEX = {'x': 0, 'X': 0, 'y': 1, 'Y': 1, 'z': 2, 'Z': 2}
+INDEX_TO_XYZ = 'XYZ'
 
 class Toolchanger:
     def __init__(self, config):
@@ -26,8 +27,6 @@ class Toolchanger:
 
         self.name = config.get_name()
         self.params = get_params_dict(config)
-        self.clear_gcode_offset_for_toolchange = config.getboolean(
-            'clear_gcode_offset_for_toolchange', True)
         init_options = {'home': INIT_ON_HOME,
                         'manual': INIT_MANUAL, 'first-use': INIT_FIRST_USE}
         self.initialize_on = config.getchoice(
@@ -75,6 +74,11 @@ class Toolchanger:
         self.gcode.register_command("UNSELECT_TOOL",
                                     self.cmd_UNSELECT_TOOL,
                                     desc=self.cmd_UNSELECT_TOOL_help)
+        self.gcode.register_command("TEST_TOOL_DOCKING",
+                                    self.cmd_TEST_TOOL_DOCKING,
+                                    desc=self.cmd_TEST_TOOL_DOCKING_help)
+        self.gcode.register_command("SET_TOOL_PARAMETER",
+                                    self.cmd_SET_TOOL_PARAMETER)
 
     def _handle_home_rails_begin(self, homing_state, rails):
         if self.initialize_on == INIT_ON_HOME and self.status == STATUS_UNINITALIZED:
@@ -137,9 +141,15 @@ class Toolchanger:
     def cmd_SET_TOOL_TEMPERATURE(self, gcmd):
         temp = gcmd.get_float('TARGET', 0.)
         wait = gcmd.get_int('WAIT', 0) == 1
+        tool = self._get_tool_from_gcmd(gcmd)
+        if not tool.extruder:
+            raise gcmd.error("SET_TOOL_TEMPERATURE: No extruder specified for tool %s" % (tool.name))
+        heaters = self.printer.lookup_object('heaters')
+        heaters.set_temperature(tool.extruder.get_heater(), temp, wait)
+
+    def _get_tool_from_gcmd(self, gcmd):
         tool_name = gcmd.get('TOOL', None)
         tool_nr = gcmd.get_int('T', None)
-        tool = None
         if tool_name:
             tool = self.printer.lookup_object(tool_name)
         elif tool_nr is not None:
@@ -150,10 +160,8 @@ class Toolchanger:
             tool = self.active_tool
             if not tool:
                 raise gcmd.error("SET_TOOL_TEMPERATURE: No tool specified and no active tool")
-        if not tool.extruder:
-            raise gcmd.error("SET_TOOL_TEMPERATURE: No extruder specified for tool %s" % (tool.name))
-        heaters = self.printer.lookup_object('heaters')
-        heaters.set_temperature(tool.extruder.get_heater(), temp, wait)
+        return tool
+
 
     cmd_SELECT_TOOL_ERROR_help = "Abort tool change and mark the active toolchanger as failed"
     def cmd_SELECT_TOOL_ERROR(self, gcmd):
@@ -166,8 +174,17 @@ class Toolchanger:
 
     cmd_UNSELECT_TOOL_help = "Unselect active tool without selecting a new one"
     def cmd_UNSELECT_TOOL(self, gcmd):
-        restore_axis = gcmd.get('RESTORE_AXIS', '')
+        if not self.active_tool:
+            return
+        restore_axis = gcmd.get('RESTORE_AXIS', self.active_tool.t_command_restore_axis)
         self.select_tool(gcmd, None, restore_axis)
+
+    cmd_TEST_TOOL_DOCKING_help = "Unselect active tool and select it again"
+    def cmd_TEST_TOOL_DOCKING(self, gcmd):
+        if not self.active_tool:
+            raise gcmd.error("Cannot test tool, no active tool")
+        restore_axis = gcmd.get('RESTORE_AXIS', self.active_tool.t_command_restore_axis)
+        self.test_tool_selection(gcmd, restore_axis)
 
     def initialize(self, select_tool=None):
         if self.status == STATUS_CHANGING:
@@ -211,6 +228,8 @@ class Toolchanger:
         extra_context = {
             'dropoff_tool': self.active_tool.name if self.active_tool else None,
             'pickup_tool': tool.name if tool else None,
+            'restore_position': self._restore_position_with_tool_offset(
+                gcode_position, restore_axis, tool)
         }
 
         self.gcode.run_script_from_command(
@@ -218,9 +237,7 @@ class Toolchanger:
 
         self.run_gcode('before_change_gcode',
                        self.before_change_gcode, extra_context)
-        if self.clear_gcode_offset_for_toolchange:
-            self.gcode.run_script_from_command(
-                "SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0")
+        self.gcode.run_script_from_command("SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0")
 
         if self.active_tool:
             self.run_gcode('tool.dropoff_gcode',
@@ -233,9 +250,7 @@ class Toolchanger:
             self.run_gcode('after_change_gcode',
                            self.after_change_gcode, extra_context)
 
-        # Set new offsets so that restore axis takes them into account.
-        self._set_tool_gcode_offset(tool)
-        self._restore_axis(gcode_position, restore_axis)
+        self._restore_axis(gcode_position, restore_axis, tool)
 
         self.gcode.run_script_from_command(
             "RESTORE_GCODE_STATE NAME=_toolchange_state MOVE=0")
@@ -248,6 +263,32 @@ class Toolchanger:
             gcmd.respond_info('Selected tool %s (%s)' % (str(tool.tool_number), tool.name))
         else:
             gcmd.respond_info('Tool unselected')
+
+    def test_tool_selection(self, gcmd, restore_axis):
+        if self.status != STATUS_READY:
+            raise gcmd.error("Cannot test tool, toolchanger status is " + self.status)
+        tool = self.active_tool
+        if not tool:
+            raise gcmd.error("Cannot test tool, no active tool")
+
+        self.status = STATUS_CHANGING
+        gcode_position = self.gcode_move.get_status()['gcode_position']
+        extra_context = {
+            'dropoff_tool': self.active_tool.name if self.active_tool else None,
+            'pickup_tool': tool.name if tool else None,
+            'restore_position': self._restore_position_with_tool_offset(gcode_position, restore_axis, tool)
+        }
+
+        self.gcode.run_script_from_command("SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0")
+
+        self.run_gcode('tool.dropoff_gcode',
+                       self.active_tool.dropoff_gcode, extra_context)
+        self.run_gcode('tool.pickup_gcode',
+                       tool.pickup_gcode, extra_context)
+
+        self._restore_axis(gcode_position, restore_axis, None)
+        self.status = STATUS_READY
+        gcmd.respond_info('Tool testing done')
 
     def lookup_tool(self, number):
         return self.tools.get(number, None)
@@ -280,13 +321,28 @@ class Toolchanger:
             self.gcode.run_script_from_command('BED_MESH_OFFSET X=%.6f Y=%.6f' %
                                                 (-tool.gcode_x_offset, -tool.gcode_y_offset))
 
-    def _restore_axis(self, position, axis):
+    def _restore_position_with_tool_offset(self, position, axis, tool):
+        result = {}
+        for i in axis:
+            index = XYZ_TO_INDEX[i]
+            v = position[index]
+            if tool:
+                offset = 0.
+                if index == 0:
+                    offset = tool.gcode_x_offset
+                elif index == 1:
+                    offset = tool.gcode_y_offset
+                elif index == 2:
+                    offset = tool.gcode_z_offset
+                v += offset
+            result[INDEX_TO_XYZ[index]] = v
+        return result
+
+    def _restore_axis(self, position, axis, tool):
         if not axis:
             return
-        cmd = 'G0'
-        for i in axis:
-            cmd += ' %s%.6f' % (i, position[XYZ_TO_INDEX[i]])
-        self.gcode.run_script_from_command(cmd)
+        pos = self._restore_position_with_tool_offset(position, axis, tool)
+        self.gcode_move.cmd_G1(self.gcode.create_gcode_command("G0", "G0", pos))
 
     def run_gcode(self, name, template, extra_context={}):
         current_status = self.status
@@ -304,6 +360,13 @@ class Toolchanger:
         if current_status != self.status:
             raise Exception("Unexpected status during %s, status = %s, message = %s, aborting" % (
                 name, self.status, self.error_message))
+
+    def cmd_SET_TOOL_PARAMETER(self, gcmd):
+        tool = self._get_tool_from_gcmd(gcmd)
+        name = gcmd.get("PARAMETER")
+        value = ast.literal_eval(gcmd.get("VALUE"))
+        tool.params[name] = value
+        tool.modified_params[name] = value
 
 def get_params_dict(config):
     result = {}

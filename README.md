@@ -52,8 +52,6 @@ and will provide a default value for all of its tools.
 # save_current_tool: false
   #  If set, saves currently selected tool and makes it available for 
   # initialize gcode.
-# clear_gcode_offset_for_toolchange: true
-  # If true, toolchange GCode is run with gcode offset set to 0,0,0     
 # initialize_gcode: 
   #  Gcode to run on initialize. Typically used for homing any motors, or 
   #  reselecting saved tool.
@@ -210,6 +208,12 @@ selected.
 
 ### SET_TOOL_TEMPERATURE
 `SET_TOOL_TEMPERATURE [TOOL=<name>] [T=<number>]  TARGET=<temp> [WAIT=0]`: Set tool temperature.
+
+### TEST_TOOL_DOCKING
+`TEST_TOOL_DOCKING`: Dock and undock current tool.
+
+### SET_TOOL_PARAMETER
+`SET_TOOL_PARAMETER [TOOL=<name>] [T=<number>]  PARAMETER=parameter_<name> VALUE=<value>`: Change tool parameter in runtime.
 
 # Status
 
