@@ -23,7 +23,7 @@ class Toolchanger:
         self.config = config
         self.gcode_macro = self.printer.load_object(config, 'gcode_macro')
         self.gcode = self.printer.lookup_object('gcode')
-        self.gcode_move = self.printer.lookup_object('gcode_move')
+        self.gcode_move = self.printer.lookup_object(config, 'gcode_move')
 
         self.name = config.get_name()
         self.params = get_params_dict(config)
@@ -225,6 +225,7 @@ class Toolchanger:
 
         self.status = STATUS_CHANGING
         gcode_position = self.gcode_move.get_status()['gcode_position']
+
         extra_context = {
             'dropoff_tool': self.active_tool.name if self.active_tool else None,
             'pickup_tool': tool.name if tool else None,
