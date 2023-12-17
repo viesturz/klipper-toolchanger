@@ -23,7 +23,7 @@ class Toolchanger:
         self.config = config
         self.gcode_macro = self.printer.load_object(config, 'gcode_macro')
         self.gcode = self.printer.lookup_object('gcode')
-        self.gcode_move = self.printer.lookup_object(config, 'gcode_move')
+        self.gcode_move = self.printer.load_object(config, 'gcode_move')
 
         self.name = config.get_name()
         self.params = get_params_dict(config)
@@ -79,6 +79,10 @@ class Toolchanger:
                                     desc=self.cmd_TEST_TOOL_DOCKING_help)
         self.gcode.register_command("SET_TOOL_PARAMETER",
                                     self.cmd_SET_TOOL_PARAMETER)
+        self.gcode.register_command("RESET_TOOL_PARAMETER",
+                                    self.cmd_RESET_TOOL_PARAMETER)
+        self.gcode.register_command("SAVE_TOOL_PARAMETER",
+                                    self.cmd_SAVE_TOOL_PARAMETER)
 
     def _handle_home_rails_begin(self, homing_state, rails):
         if self.initialize_on == INIT_ON_HOME and self.status == STATUS_UNINITALIZED:
@@ -365,9 +369,24 @@ class Toolchanger:
     def cmd_SET_TOOL_PARAMETER(self, gcmd):
         tool = self._get_tool_from_gcmd(gcmd)
         name = gcmd.get("PARAMETER")
+        if name in tool.params and name not in tool.original_params:
+            tool.original_params[name] = tool.params[name]
         value = ast.literal_eval(gcmd.get("VALUE"))
         tool.params[name] = value
-        tool.modified_params[name] = value
+
+    def cmd_RESET_TOOL_PARAMETER(self, gcmd):
+        tool = self._get_tool_from_gcmd(gcmd)
+        name = gcmd.get("PARAMETER")
+        if name in tool.original_params:
+            tool.params[name] = tool.original_params[name]
+
+    def cmd_SAVE_TOOL_PARAMETER(self, gcmd):
+        tool = self._get_tool_from_gcmd(gcmd)
+        name = gcmd.get("PARAMETER")
+        if name not in tool.params:
+            raise gcmd.error('Tool does not have parameter %s' % (name))
+        configfile = self.printer.lookup_object('configfile')
+        configfile.set(tool.name, name, tool.params[name])
 
 def get_params_dict(config):
     result = {}

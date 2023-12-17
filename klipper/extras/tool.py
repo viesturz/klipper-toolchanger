@@ -28,7 +28,7 @@ class Tool:
         self.gcode_z_offset = self._config_getfloat(
             config, 'gcode_z_offset', None)
         self.params = {**self.toolchanger.params, **toolchanger.get_params_dict(config)}
-        self.modified_params = {}
+        self.original_params = {}
         self.extruder_name = self._config_get(config, 'extruder', None)
         self.extruder_stepper_name = self._config_get(config, 'extruder_stepper', None)
         self.extruder = None
