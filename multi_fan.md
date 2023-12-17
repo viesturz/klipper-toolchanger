@@ -1,6 +1,6 @@
 # Multi Fan
 
-Multiple part cooling fans support. If find this useful, please commend the pull request: https://github.com/Klipper3d/klipper/pull/6341
+Multiple part cooling fans support. If find this useful, please comment the pull request: https://github.com/Klipper3d/klipper/pull/6341
 
 # Config
 
