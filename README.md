@@ -1,6 +1,6 @@
 # klipper-toolchanger
 
-An assortment of Klipper extensions taht I have made while working on [Tapchanger](https://github.com/viesturz/tapchanger)
+An assortment of Klipper extensions that I have made while working on [Tapchanger](https://github.com/viesturz/tapchanger)
 
 # Installation
 
@@ -10,7 +10,7 @@ An assortment of Klipper extensions taht I have made while working on [Tapchange
  sudo systemctl restart klipper
 ```
 
-Add the macros to your printer config.
+Add the [macros.cfg](/macros.cfg) to your printer config.
 
 # Components
 
