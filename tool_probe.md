@@ -9,8 +9,8 @@ A per-tool Z endstop and crash detection support. Allows using any tool to home 
 endstop_pin: probe:z_virtual_endstop
 
 [tool_probe_endstop]
-crash_mintime: 0.5 # time to wait before announcing a crash, if the probe stops 
-  #triggering durung this, no crash is reported. 
+crash_mintime: 0.5 # seconds to wait before announcing a crash, if the probe stops 
+  #triggering before this, no crash is reported. 
 crash_gcode:
     RESPOND TYPE=error MSG='Tool not detected, expected {printer.toolchanger.tool_number}. Pausing the print.' 
     M84
