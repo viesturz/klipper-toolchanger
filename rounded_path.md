@@ -16,11 +16,11 @@ replace_g0: False # Use at your own risk
 # Gcodes
 
 `ROUNDED_G0 [X=<x>] [Y=<y>] [Z=<z>] [F=<f>] D=<distance>`: 
-Move the toolhead and round for this position allow a maximum deflection `distance` to round the path.
+Moves the toolhead, same as regular G0/1.
+The printer may omit reaching this position fully to optimize the travel to the 
+next position. `Distance` is the maxiumum deflection distance from this point.
 
 # Usage
-
-The rounded path chain **must always end with D=0** to allow computing the final move.
 
 Example usage:
 ```
@@ -31,7 +31,8 @@ Example usage:
     ROUNDED_G0 Y=200 D=30
     ROUNDED_G0 X=100 Y=100 Z=10 D=0     
 ```
+The rounded path chain **must always end with D=0** to allow computing the final move.
 
 # Limitations
 This currently only optimizes on segment by segment basis, 
-and practically the rounding radius is limited by half segment length. 
+practically rounding radius for each corner is limited by the shortest distance to previous/next point.
