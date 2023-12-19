@@ -41,7 +41,7 @@ function check_download {
 
 function link_extension {
     echo "[INSTALL] Linking extension to Klipper..."
-    ln -srfn "${INSTALL_PATH}/klipper/extras/* "${KLIPPER_PATH}/klippy/extras/"
+    ln -srfn "${INSTALL_PATH}/klipper/extras/*" "${KLIPPER_PATH}/klippy/extras/"
 }
 
 function restart_klipper {
