@@ -27,6 +27,8 @@ class Tool:
             config, 'gcode_y_offset', None)
         self.gcode_z_offset = self._config_getfloat(
             config, 'gcode_z_offset', None)
+        self.unretract = self._config_getfloat(
+            config, 'unretract', None)
         self.params = {**self.toolchanger.params, **toolchanger.get_params_dict(config)}
         self.original_params = {}
         self.extruder_name = self._config_get(config, 'extruder', None)
@@ -69,6 +71,7 @@ class Tool:
                 'gcode_x_offset': self.gcode_x_offset if self.gcode_x_offset else 0.0,
                 'gcode_y_offset': self.gcode_y_offset if self.gcode_y_offset else 0.0,
                 'gcode_z_offset': self.gcode_z_offset if self.gcode_z_offset else 0.0,
+                'unretract': self.unretract if self.unretract else 0.0,
                 }
 
     def get_offset(self):
@@ -111,6 +114,10 @@ class Tool:
             gcode.run_script_from_command(
                 "ACTIVATE_EXTRUDER EXTRUDER='%s'" % (self.extruder_name,))
         hotend_extruder = toolhead.get_extruder().name
+        heaters = self.printer.lookup_object('heaters')
+        if self.unretract and toolhead.get_extruder().get_heater().can_extrude:
+            gcode.run_script_from_command(
+                "G1 E%f" % (self.unretract, ))
         if self.extruder_stepper and hotend_extruder:
                 gcode.run_script_from_command(
                     "SYNC_EXTRUDER_MOTION EXTRUDER='%s' MOTION_QUEUE=" % (hotend_extruder, ))

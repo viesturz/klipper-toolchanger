@@ -114,6 +114,11 @@ All gcode macros below have the following context available:
   # The XYZ gcode offset of the toolhead. If set, overrides offset defined 
   # by the parent. If set, even to 0, indicates the offset on that axis is 
   # relevant for this tool and any adjustments will be attributed to this tool.  
+# unretraction: 0.0
+  # Distance in mm to extrude after changing the active extruder. This extrude happens
+  # before any toolhead movement during the tool pickup, so it can be used in combination
+  # with a nozzle wiper mounted in the pickup path. Recommended to be used with a
+  # retraction in the toolhead dropoff_gcode
 # params_*: 
   # Extra params to pass to pickup/dropoff gcode. Accessible in the gcode via
   # `tool.params_name`.
@@ -221,6 +226,7 @@ The following information is available in the `tool` object:
  - `gcode_x_offset`: current X offset.
  - `gcode_y_offset`: current Y offset.
  - `gcode_z_offset`: current Z offset.
+ - `unretract`: current distance in mm to extrude when changing active extruder 
 
 ## toolchanger
 
