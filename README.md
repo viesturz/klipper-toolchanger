@@ -11,7 +11,7 @@ wget -O - https://raw.githubusercontent.com/viesturz/klipper-toolchanger/main/in
 ```
 
 Then, add the following to your moonraker.conf to enable automatic updates:
-
+```
 [update_manager klipper-toolchanger]
 type: git_repo
 channel: dev
@@ -20,7 +20,7 @@ origin: https://github.com/viesturz/klipper-toolchanger.git
 managed_services: klipper
 primary_branch: main
 install_script: install.sh
-
+```
 Add the [macros.cfg](/macros.cfg) to your printer config.
 
 # Components
