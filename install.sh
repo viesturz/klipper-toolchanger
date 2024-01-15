@@ -41,7 +41,7 @@ function check_download {
 
 function link_extension {
     echo "[INSTALL] Linking extension to Klipper..."
-    ln -srfn "${INSTALL_PATH}/klipper/extras/*" "${KLIPPER_PATH}/klippy/extras/"
+    for file in "${INSTALL_PATH}"/klipper/extras/*.py; do ln -sfn "${file}" "${KLIPPER_PATH}/klippy/extras/"; done
 }
 
 function restart_klipper {
