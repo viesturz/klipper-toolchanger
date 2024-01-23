@@ -22,11 +22,11 @@ class Tool:
         self.dropoff_gcode = self.gcode_macro.load_template(
             config, 'dropoff_gcode', self._config_get(config, 'dropoff_gcode', ''))
         self.gcode_x_offset = self._config_getfloat(
-            config, 'gcode_x_offset', None)
+            config, 'gcode_x_offset', 0.0)
         self.gcode_y_offset = self._config_getfloat(
-            config, 'gcode_y_offset', None)
+            config, 'gcode_y_offset', 0.0)
         self.gcode_z_offset = self._config_getfloat(
-            config, 'gcode_z_offset', None)
+            config, 'gcode_z_offset', 0.0)
         self.params = {**self.toolchanger.params, **toolchanger.get_params_dict(config)}
         self.original_params = {}
         self.extruder_name = self._config_get(config, 'extruder', None)
