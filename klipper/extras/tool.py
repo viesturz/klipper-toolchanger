@@ -17,6 +17,10 @@ class Tool:
         toolchanger_name = config.get('toolchanger', 'toolchanger')
         self.main_toolchanger = self.printer.load_object(config, 'toolchanger')
         self.toolchanger = self.printer.load_object(config, toolchanger_name)
+        self.before_change_gcode = self.gcode_macro.load_template(
+            config, 'before_change_gcode', self._config_get(config, 'before_change_gcode', ''))
+        self.after_change_gcode = self.gcode_macro.load_template(
+            config, 'after_change_gcode', self._config_get(config, 'after_change_gcode', ''))
         self.pickup_gcode = self.gcode_macro.load_template(
             config, 'pickup_gcode', self._config_get(config, 'pickup_gcode', ''))
         self.dropoff_gcode = self.gcode_macro.load_template(
