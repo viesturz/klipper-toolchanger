@@ -19,7 +19,6 @@ class ToolsCalibrate:
         self.printer = config.get_printer()
         self.name = config.get_name()
         self.gcode_move = self.printer.load_object(config, "gcode_move")
-        self.probe = self.printer.lookup_object("probe")
         self.probe_multi_axis = PrinterProbeMultiAxis(config, ProbeEndstopWrapper(config,'x'),
                                  ProbeEndstopWrapper(config, 'y'),
                                  ProbeEndstopWrapper(config, 'z'))
@@ -127,8 +126,8 @@ class ToolsCalibrate:
         self.gcode.respond_info(
             "%s: z_offset: %.3f\n"
             "The SAVE_CONFIG command will update the printer config file\n"
-            "with the above and restart the printer." % (self.probe.name, z_offset))
-        config_name = gcmd.get("PROBE", default=self.probe.name)
+            "with the above and restart the printer." % (self.probe_name, z_offset))
+        config_name = gcmd.get("PROBE", default=self.probe_name)
         if config_name:
             configfile = self.printer.lookup_object('configfile')
             configfile.set(config_name, 'z_offset', "%.6f" % (z_offset,))
