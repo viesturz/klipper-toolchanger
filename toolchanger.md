@@ -17,6 +17,18 @@ TODO:
  * Cascading tools support.
  * Save current tool on restart.
 
+# Lifecycle
+
+This is the overall lifecycle of the toolchanger.
+
+The initialization can be done either manually from PRINT_START or automatically
+on home or first toolchange.
+
+![Lifecycle](/Lifecycle.png)
+
+The exact sequence how each step is executed:
+![Sequence](/Sequence.png)
+
 # Config
 
 ### [toolchanger]
