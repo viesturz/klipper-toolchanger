@@ -59,6 +59,10 @@ class Toolchanger:
 
         self.printer.register_event_handler("homing:home_rails_begin",
                                             self._handle_home_rails_begin)
+        self.printer.register_event_handler('klippy:connect',
+                                            self._handle_connect)
+        self.printer.register_event_handler("klippy:shutdown",
+                                            self._handle_shutdown)
         self.gcode.register_command("INITIALIZE_TOOLCHANGER",
                                     self.cmd_INITIALIZE_TOOLCHANGER,
                                     desc=self.cmd_INITIALIZE_TOOLCHANGER_help)
@@ -87,6 +91,12 @@ class Toolchanger:
     def _handle_home_rails_begin(self, homing_state, rails):
         if self.initialize_on == INIT_ON_HOME and self.status == STATUS_UNINITALIZED:
             self.initialize()
+    def _handle_connect(self):
+        self.status = STATUS_UNINITALIZED
+        self.active_tool = None
+    def _handle_shutdown(self):
+        self.status = STATUS_UNINITALIZED
+        self.active_tool = None
 
     def get_status(self, eventtime):
         return {** self.params,
