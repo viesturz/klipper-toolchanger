@@ -7,7 +7,7 @@ See [Nozzle Align](https://github.com/viesturz/NozzleAlign) repo for some sensor
 
 ### Configuration
 
-See the [example](/example/calibrate-offsets.cfg) folder for a full example.
+See the [example](/examples/calibrate-offsets.cfg) folder for a full example.
 
 ```
 [tools_calibrate]

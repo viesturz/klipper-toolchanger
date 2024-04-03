@@ -6,8 +6,6 @@ Provides the basic structure and links into GCodes.
 Not opinionated how the tool change happens and suitable for physical tools as well as MMUs. 
 All the actual tool changing motions to be provided as gcode macros.
 
-See [This config](https://github.com/viesturz/tapchanger/tree/main/Klipper/config-example) for a comprehensive example. 
-
 # Status
 
  * Single toolchanger works well. 
