@@ -258,8 +258,8 @@ class Toolchanger:
             self.run_gcode('tool.dropoff_gcode',
                            self.active_tool.dropoff_gcode, extra_context)
 
+        self._configure_toolhead_for_tool(tool)
         if tool is not None:
-            self._configure_toolhead_for_tool(tool)
             self.run_gcode('tool.pickup_gcode',
                            tool.pickup_gcode, extra_context)
             self.run_gcode('after_change_gcode',
