@@ -143,6 +143,8 @@ class Toolchanger:
         tool_name = gcmd.get('TOOL', None)
         if tool_name:
             tool = self.printer.lookup_object(tool_name)
+            if not tool:
+                raise gcmd.error("Select tool: TOOL=%s not found" % (tool_name))
             restore_axis = gcmd.get('RESTORE_AXIS', tool.t_command_restore_axis)
             self.select_tool(gcmd, tool, restore_axis)
             return
