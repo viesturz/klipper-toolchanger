@@ -66,6 +66,7 @@ class ToolProbeEndstop:
                                     desc=self.cmd_Z_OFFSET_APPLY_PROBE_help)
 
     def _handle_connect(self):
+        self.toolhead = self.printer.lookup_object('toolhead')
         self._detect_active_tool()
     def _handle_homing_move_begin(self, hmove):
         if self.mcu_probe in hmove.get_mcu_endstops():
@@ -131,8 +132,7 @@ class ToolProbeEndstop:
             self.active_tool_number = -1
 
     def _query_open_tools(self):
-        toolhead = self.printer.lookup_object('toolhead')
-        print_time = toolhead.get_last_move_time()
+        print_time = self.toolhead.get_last_move_time()
         self.last_query.clear()
         candidates = []
         for tool_probe in self.tool_probes.values():
@@ -221,6 +221,7 @@ class ToolProbeEndstop:
 
     cmd_START_TOOL_PROBE_CRASH_DETECTION_help = "Start detecting tool crashes"
     def cmd_START_TOOL_PROBE_CRASH_DETECTION(self, gcmd):
+        # Detect waits until previous print moves are finished to detect the triggers
         self.cmd_DETECT_ACTIVE_TOOL_PROBE(gcmd)
         expected_tool_number = gcmd.get_int("T", self.active_tool_number)
 
@@ -232,6 +233,12 @@ class ToolProbeEndstop:
 
     cmd_STOP_TOOL_PROBE_CRASH_DETECTION_help = "Stop detecting tool crashes"
     def cmd_STOP_TOOL_PROBE_CRASH_DETECTION(self, gcmd):
+        # Clear when current print queue is finished
+        self.reactor.register_callback(
+            lambda _: self.stop_crash_detection(),
+            self.toolhead.get_last_move_time())
+
+    def stop_crash_detection(self):
         self.crash_detection_active = False
 
     def note_probe_triggered(self, probe, eventtime, is_triggered):
@@ -250,8 +257,9 @@ class ToolProbeEndstop:
         if self.crash_lasttime != expect_eventtime:
             # The trigger was cancelled
             return
-        self.crash_detection_active = False
-        self.crash_gcode.run_gcode_from_command()
+        if self.crash_detection_active:
+            self.crash_detection_active = False
+            self.crash_gcode.run_gcode_from_command()
 
 # Endstop wrapper that routes commands to the selected tool probe.
 class ToolProbeEndstopWrapper:
