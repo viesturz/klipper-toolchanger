@@ -229,6 +229,7 @@ class ToolProbeEndstop:
             raise gcmd.error("Cannot start probe crash detection - no active tool")
         if expected_tool_number != self.active_tool_number:
             raise gcmd.error("Cannot start probe crash detection - expected tool not active")
+        self.crash_lasttime = 0.
         self.crash_detection_active = True
 
     cmd_STOP_TOOL_PROBE_CRASH_DETECTION_help = "Stop detecting tool crashes"
@@ -239,6 +240,7 @@ class ToolProbeEndstop:
             self.toolhead.get_last_move_time())
 
     def stop_crash_detection(self):
+        self.crash_lasttime = 0.
         self.crash_detection_active = False
 
     def note_probe_triggered(self, probe, eventtime, is_triggered):
