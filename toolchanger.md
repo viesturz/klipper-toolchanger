@@ -98,7 +98,10 @@ All gcode macros below have the following context available:
 * pickup_tool - name of the tool that is being picked up, or None if not a dropoff operation.
 * restore_position.X .Y .Z - coordinates to restore the position to after toolchange. 
    Only the ones requested are set. A G0 to the coordinates is automatically run after the toolchange.
-   This is primarily for path optimization.
+   This is primarily for path optimization. 
+   Adjusted to account for tool offsets.
+* start_position.X .Y .Z - coordinates before toolchange, regardless of what is requested. 
+   Adjusted to account for tool offsets. 
 
 ```
 [tool tool_name]
