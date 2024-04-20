@@ -52,6 +52,9 @@ and will provide a default value for all of its tools.
   #  - manual: only when INITIALIZE_TOOLCHANGER is called.
   #  - home: when homing the printer.
   #  - first-use: on first toolchange command.
+# home_axis: 
+  # Home specified axis if not homed before tool change
+  # Example: xy   
 # params_*: 
   # Extra params to pass to pickup/dropoff gcode. Accessible in the gcode via
   # `toolchanger.params_name`.

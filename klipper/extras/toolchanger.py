@@ -32,6 +32,7 @@ class Toolchanger:
                         'manual': INIT_MANUAL, 'first-use': INIT_FIRST_USE}
         self.initialize_on = config.getchoice(
             'initialize_on', init_options, 'first-use')
+        self.home_axis = config.get('home_axis', '').lower()
         self.initialize_gcode = self.gcode_macro.load_template(
             config, 'initialize_gcode', '')
         self.before_change_gcode = self.gcode_macro.load_template(
@@ -256,6 +257,7 @@ class Toolchanger:
             return
 
         self.status = STATUS_CHANGING
+        self.ensure_homed(gcmd)
         gcode_position = self.gcode_move.get_status()['gcode_position']
 
         extra_context = {
@@ -422,6 +424,31 @@ class Toolchanger:
             raise gcmd.error('Tool does not have parameter %s' % (name))
         configfile = self.printer.lookup_object('configfile')
         configfile.set(tool.name, name, tool.params[name])
+
+    def ensure_homed(self, gcmd):
+        if not self.home_axis:
+            return
+
+        toolhead = self.printer.lookup_object('toolhead')
+        curtime = self.printer.get_reactor().monotonic()
+        homed = toolhead.get_kinematics().get_status(curtime)['homed_axes']
+        needs_homing = any(axis not in homed for axis in self.home_axis)
+        if not needs_homing:
+            return
+
+        # Wait for current moves to finish to ensure we are up-to-date
+        # This stalls the movement pipeline, so only do that if homing is needed
+        toolhead.wait_moves()
+        curtime = self.printer.get_reactor().monotonic()
+        homed = toolhead.get_kinematics().get_status(curtime)['homed_axes']
+
+        axis_to_home = ""
+        for axis in self.home_axis:
+            if axis not in homed:
+                axis_to_home += " " + axis.upper()
+
+        gcmd.respond_info('Homing%s before toolchange' % (axis_to_home))
+        self.gcode.run_script_from_command("G28%s" % (axis_to_home))
 
 
 def get_params_dict(config):
