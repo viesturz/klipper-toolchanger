@@ -14,6 +14,8 @@ STATUS_ERROR = 'error'
 INIT_ON_HOME = 0
 INIT_MANUAL = 1
 INIT_FIRST_USE = 2
+ON_AXIS_NOT_HOMED_ABORT = 0
+ON_AXIS_NOT_HOMED_HOME = 1
 XYZ_TO_INDEX = {'x': 0, 'X': 0, 'y': 1, 'Y': 1, 'z': 2, 'Z': 2}
 INDEX_TO_XYZ = 'XYZ'
 
@@ -32,7 +34,11 @@ class Toolchanger:
                         'manual': INIT_MANUAL, 'first-use': INIT_FIRST_USE}
         self.initialize_on = config.getchoice(
             'initialize_on', init_options, 'first-use')
-        self.home_axis = config.get('home_axis', '').lower()
+        self.uses_axis = config.get('uses_axis', 'xyz').lower()
+        home_options = {'abort': ON_AXIS_NOT_HOMED_ABORT,
+                        'home': ON_AXIS_NOT_HOMED_HOME}
+        self.on_axis_not_homed = config.getchoice('on_axis_not_homed',
+                                                  home_options, 'abort')
         self.initialize_gcode = self.gcode_macro.load_template(
             config, 'initialize_gcode', '')
         self.before_change_gcode = self.gcode_macro.load_template(
@@ -256,8 +262,8 @@ class Toolchanger:
                 'Tool %s already selected' % tool.name if tool else None)
             return
 
-        self.status = STATUS_CHANGING
         self.ensure_homed(gcmd)
+        self.status = STATUS_CHANGING
         gcode_position = self.gcode_move.get_status()['gcode_position']
 
         extra_context = {
@@ -426,13 +432,13 @@ class Toolchanger:
         configfile.set(tool.name, name, tool.params[name])
 
     def ensure_homed(self, gcmd):
-        if not self.home_axis:
+        if not self.uses_axis:
             return
 
         toolhead = self.printer.lookup_object('toolhead')
         curtime = self.printer.get_reactor().monotonic()
         homed = toolhead.get_kinematics().get_status(curtime)['homed_axes']
-        needs_homing = any(axis not in homed for axis in self.home_axis)
+        needs_homing = any(axis not in homed for axis in self.uses_axis)
         if not needs_homing:
             return
 
@@ -441,14 +447,28 @@ class Toolchanger:
         toolhead.wait_moves()
         curtime = self.printer.get_reactor().monotonic()
         homed = toolhead.get_kinematics().get_status(curtime)['homed_axes']
+        axis_to_home = list(filter(lambda a: a not in homed, self.uses_axis))
+        if not axis_to_home:
+            return
 
-        axis_to_home = ""
-        for axis in self.home_axis:
-            if axis not in homed:
-                axis_to_home += " " + axis.upper()
+        if self.on_axis_not_homed == ON_AXIS_NOT_HOMED_ABORT:
+            raise gcmd.error(
+                "Cannot perform toolchange, axis not homed. Required: %s, homed: %s" % (
+                self.uses_axis, homed))
+        # Home the missing axis
+        axis_str = " ".join(axis_to_home).upper()
+        gcmd.respond_info('Homing%s before toolchange' % (axis_str,))
+        self.gcode.run_script_from_command("G28 %s" % (axis_str,))
 
-        gcmd.respond_info('Homing%s before toolchange' % (axis_to_home))
-        self.gcode.run_script_from_command("G28%s" % (axis_to_home))
+        # Check if now we are good
+        toolhead.wait_moves()
+        curtime = self.printer.get_reactor().monotonic()
+        homed = toolhead.get_kinematics().get_status(curtime)['homed_axes']
+        axis_to_home = list(filter(lambda a: a not in homed, self.uses_axis))
+        if axis_to_home:
+            raise gcmd.error(
+                "Cannot perform toolchange, required axis still not homed after homing move. Required: %s, homed: %s" % (
+                    self.uses_axis, homed))
 
 
 def get_params_dict(config):
