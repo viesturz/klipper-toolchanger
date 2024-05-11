@@ -322,7 +322,9 @@ class Toolchanger:
             'dropoff_tool': self.active_tool.name if self.active_tool else None,
             'pickup_tool': tool.name if tool else None,
             'restore_position': self._position_with_tool_offset(
-                gcode_position, restore_axis, None)
+                gcode_position, restore_axis, None),
+            'start_position': self._position_with_tool_offset(
+                gcode_position, 'xyz', tool)
         }
 
         self.gcode.run_script_from_command("SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0")
