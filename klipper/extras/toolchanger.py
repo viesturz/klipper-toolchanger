@@ -238,7 +238,7 @@ class Toolchanger:
         if select_tool:
             self._configure_toolhead_for_tool(select_tool)
             self.run_gcode('after_change_gcode', self.after_change_gcode, {})
-            self._set_tool_gcode_offset(select_tool)
+            self._set_tool_gcode_offset(select_tool, 0.0)
 
         if should_run_initialize:
             if self.status == STATUS_INITIALIZING:
@@ -264,7 +264,9 @@ class Toolchanger:
 
         self.ensure_homed(gcmd)
         self.status = STATUS_CHANGING
+        toolhead_position = self.gcode_move.get_status()['position']
         gcode_position = self.gcode_move.get_status()['gcode_position']
+        extra_z_offset = toolhead_position[2] - gcode_position[2] - self.active_tool.gcode_z_offset if self.active_tool else 0.0
 
         extra_context = {
             'dropoff_tool': self.active_tool.name if self.active_tool else None,
@@ -299,7 +301,7 @@ class Toolchanger:
             "RESTORE_GCODE_STATE NAME=_toolchange_state MOVE=0")
         # Restore state sets old gcode offsets, fix that.
         if tool is not None:
-            self._set_tool_gcode_offset(tool)
+            self._set_tool_gcode_offset(tool, extra_z_offset)
 
         self.status = STATUS_READY
         if tool:
@@ -351,7 +353,7 @@ class Toolchanger:
         if self.active_tool:
             self.active_tool.activate()
 
-    def _set_tool_gcode_offset(self, tool):
+    def _set_tool_gcode_offset(self, tool, extra_z_offset):
         if tool is None:
             return
         if tool.gcode_x_offset is None and tool.gcode_y_offset is None and tool.gcode_z_offset is None:
@@ -362,7 +364,7 @@ class Toolchanger:
         if tool.gcode_y_offset is not None:
             cmd += ' Y=%f' % (tool.gcode_y_offset,)
         if tool.gcode_z_offset is not None:
-            cmd += ' Z=%f' % (tool.gcode_z_offset,)
+            cmd += ' Z=%f' % (tool.gcode_z_offset + extra_z_offset,)
         self.gcode.run_script_from_command(cmd)
         mesh = self.printer.lookup_object('bed_mesh')
         if mesh and mesh.get_mesh():
