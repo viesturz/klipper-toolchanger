@@ -180,7 +180,9 @@ class ToolsCalibrate:
                 'last_z_result': self.last_result[2]}
     
     def cmd_QUERY_PROBE_TOOL_CALIBRATE(self, gcmd):
-        endstop_states = [wrapper.report_endstop_state() for wrapper in self.probe_multi_axis.mcu_probe]
+        toolhead = self.printer.lookup_object('toolhead')
+        print_time = toolhead.get_last_move_time()
+        endstop_states = [wrapper.report_endstop_state(print_time) for wrapper in self.probe_multi_axis.mcu_probe]
         triggered = any(endstop_states)
         gcmd.respond_info("Probe endstop state: %s" % (["open", "TRIGGERED"][triggered]))
 
@@ -364,8 +366,8 @@ class ProbeEndstopWrapper:
     def get_position_endstop(self):
         return 0.
 
-    def report_endstop_state(self):
-        endstop_state = self.query_endstop()
+    def report_endstop_state(self, print_time):
+        endstop_state = self.query_endstop(print_time)
         return endstop_state
 
 def load_config(config):
