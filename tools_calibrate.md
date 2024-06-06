@@ -62,3 +62,8 @@ All probing moves and final offsets will be printed in the console.
 - **Probe triggered prior to movement**, the nozzle is touching the probe, could have probed a few times already
   - Likely the initial position was too far off-center. Try to position it more accurately.
   - The probe is lowered too much and/or not enough sideways - tweak ```lower_z``` and ```spread```
+
+### misc gcode commands
+
+- Run ```QUERY_PROBE_TOOL_CALIBRATE``` to report back on probe state, can be useful for first install/debugging.
+  
