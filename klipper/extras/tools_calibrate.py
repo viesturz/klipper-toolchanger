@@ -56,6 +56,9 @@ class ToolsCalibrate:
         self.gcode.register_command('TOOL_CALIBRATE_PROBE_OFFSET',
                                     self.cmd_TOOL_CALIBRATE_PROBE_OFFSET,
                                     desc=self.cmd_TOOL_CALIBRATE_PROBE_OFFSET_help)
+        self.gcode.register_command('QUERY_PROBE_TOOL_CALIBRATE',
+                                    self.cmd_QUERY_PROBE_TOOL_CALIBRATE,
+                                    desc=self.cmd_QUERY_PROBE_TOOL_CALIBRATE_help)
 
     def probe_xy(self, toolhead, top_pos, direction, gcmd, samples=None):
         offset = direction_types[direction]
@@ -175,7 +178,14 @@ class ToolsCalibrate:
                 'last_x_result': self.last_result[0],
                 'last_y_result': self.last_result[1],
                 'last_z_result': self.last_result[2]}
+    
+    def cmd_QUERY_PROBE_TOOL_CALIBRATE(self, gcmd):
+        endstop_states = [wrapper.report_endstop_state() for wrapper in self.probe_multi_axis.mcu_probe]
+        triggered = any(endstop_states)
+        gcmd.respond_info("Probe endstop state: %s" % (["open", "TRIGGERED"][triggered]))
 
+    cmd_QUERY_PROBE_TOOL_CALIBRATE_help = "Return the state of calibration probe"
+        
 
 class PrinterProbeMultiAxis:
     def __init__(self, config, mcu_probe_x, mcu_probe_y, mcu_probe_z):
@@ -210,9 +220,9 @@ class PrinterProbeMultiAxis:
 
     def setup_pin(self, pin_type, pin_params):
         if pin_type != 'endstop' or pin_params['pin'] != 'xy_virtual_endstop':
-            raise pins.error("Probe virtual endstop only useful as endstop pin")
+            raise pins.error("Probe virtual endstop only useful as endstop pin") # type: ignore
         if pin_params['invert'] or pin_params['pullup']:
-            raise pins.error("Can not pullup/invert probe virtual endstop")
+            raise pins.error("Can not pullup/invert probe virtual endstop") # type: ignore
         return self.mcu_probe
 
     def get_lift_speed(self, gcmd=None):
@@ -354,6 +364,9 @@ class ProbeEndstopWrapper:
     def get_position_endstop(self):
         return 0.
 
+    def report_endstop_state(self):
+        endstop_state = self.query_endstop()
+        return endstop_state
 
 def load_config(config):
     return ToolsCalibrate(config)
