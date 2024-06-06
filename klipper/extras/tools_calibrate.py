@@ -222,9 +222,9 @@ class PrinterProbeMultiAxis:
 
     def setup_pin(self, pin_type, pin_params):
         if pin_type != 'endstop' or pin_params['pin'] != 'xy_virtual_endstop':
-            raise pins.error("Probe virtual endstop only useful as endstop pin") # type: ignore
+            raise pins.error("Probe virtual endstop only useful as endstop pin")
         if pin_params['invert'] or pin_params['pullup']:
-            raise pins.error("Can not pullup/invert probe virtual endstop") # type: ignore
+            raise pins.error("Can not pullup/invert probe virtual endstop")
         return self.mcu_probe
 
     def get_lift_speed(self, gcmd=None):
