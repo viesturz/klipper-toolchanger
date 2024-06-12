@@ -54,11 +54,11 @@ class ToolProbeEndstop:
         return 0.0, 0.0, 0.0
     def get_probe_params(self, gcmd=None):
         if self.active_probe:
-            return self.active_probe.get_probe_params(self, gcmd)
+            return self.active_probe.get_probe_params(gcmd)
         raise self.printer.command_error("No active tool probe")
     def start_probe_session(self, gcmd):
         if self.active_probe:
-            return self.active_probe.start_probe_session(self, gcmd)
+            return self.active_probe.start_probe_session(gcmd)
         raise self.printer.command_error("No active tool probe")
 
     def add_probe(self, config, tool_probe):
