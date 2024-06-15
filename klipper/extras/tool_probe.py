@@ -37,7 +37,6 @@ class ToolProbe:
         return self.probe_session.start_probe_session(gcmd)
 
 # Helper to track multiple probe attempts in a single command
-# Copied from probe.py, removed homing helper.
 class ProbeSessionHelper:
     def __init__(self, config, mcu_probe):
         self.printer = config.get_printer()
@@ -69,6 +68,7 @@ class ProbeSessionHelper:
                                              minval=0)
         # Session state
         self.multi_probe_pending = False
+        self.results = []
         # Register event handlers
         self.printer.register_event_handler("gcode:command_error",
                                             self._handle_command_error)
@@ -86,10 +86,12 @@ class ProbeSessionHelper:
             self._probe_state_error()
         self.mcu_probe.multi_probe_begin()
         self.multi_probe_pending = True
+        self.results = []
         return self
     def end_probe_session(self):
         if not self.multi_probe_pending:
             self._probe_state_error()
+        self.results = []
         self.multi_probe_pending = False
         self.mcu_probe.multi_probe_end()
     def get_probe_params(self, gcmd=None):
@@ -159,8 +161,13 @@ class ProbeSessionHelper:
                 toolhead.manual_move(
                     probexy + [pos[2] + params['sample_retract_dist']],
                     params['lift_speed'])
-        # Calculate and return result
-        return probe.calc_probe_z_average(positions, params['samples_result'])
+        # Calculate result
+        epos = probe.calc_probe_z_average(positions, params['samples_result'])
+        self.results.append(epos)
+    def pull_probed_results(self):
+        res = self.results
+        self.results = []
+        return res
 
 def load_config_prefix(config):
     return ToolProbe(config)
