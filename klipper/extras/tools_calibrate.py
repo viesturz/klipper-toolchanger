@@ -152,7 +152,9 @@ class ToolsCalibrate:
         nozzle_z = self.probe_multi_axis.run_probe("z-", gcmd, speed_ratio=0.5)[
             2]
         # now move down with the tool probe
-        probe_z = probe.run_probe(gcmd)[2]
+        probe_session = probe.start_probe_session(gcmd)
+        probe_z = probe_session.run_probe(gcmd)[2]
+        probe_session.end_probe_session()
 
         z_offset = probe_z - nozzle_z + self.trigger_to_bottom_z
         self.last_probe_offset = z_offset
