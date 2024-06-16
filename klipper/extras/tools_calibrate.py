@@ -153,7 +153,8 @@ class ToolsCalibrate:
             2]
         # now move down with the tool probe
         probe_session = probe.start_probe_session(gcmd)
-        probe_z = probe_session.run_probe(gcmd)[2]
+        probe_session.run_probe(gcmd)
+        probe_z = probe_session.pull_probed_results()[0][2]
         probe_session.end_probe_session()
 
         z_offset = probe_z - nozzle_z + self.trigger_to_bottom_z
