@@ -331,6 +331,7 @@ class ProbeEndstopWrapper:
     def __init__(self, config, axis):
         self.printer = config.get_printer()
         self.axis = axis
+        self.idex = config.has_section('dual_carriage')
         # Create an "endstop" object to handle the probe pin
         ppins = self.printer.lookup_object('pins')
         pin = config.get('pin')
@@ -343,10 +344,18 @@ class ProbeEndstopWrapper:
         # Wrappers
         self.get_mcu = self.mcu_endstop.get_mcu
         self.add_stepper = self.mcu_endstop.add_stepper
-        self.get_steppers = self.mcu_endstop.get_steppers
+        self.get_steppers = self._get_steppers
         self.home_start = self.mcu_endstop.home_start
         self.home_wait = self.mcu_endstop.home_wait
         self.query_endstop = self.mcu_endstop.query_endstop
+
+    def _get_steppers(self):
+        if self.idex and self.axis == 'x':
+            dual_carriage = self.printer.lookup_object('dual_carriage')
+            prime_rail = dual_carriage.get_primary_rail()
+            return prime_rail.get_rail().get_steppers()
+        else:
+            return self.mcu_endstop.get_steppers()
 
     def _handle_mcu_identify(self):
         kin = self.printer.lookup_object('toolhead').get_kinematics()
