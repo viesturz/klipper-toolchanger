@@ -41,6 +41,7 @@ class ToolsCalibrate:
         self.sensor_location = None
         self.last_result = [0., 0., 0.]
         self.last_probe_offset = 0.
+        self.calibration_probe_inactive = True
 
         # Register commands
         self.gcode = self.printer.lookup_object('gcode')
@@ -178,6 +179,7 @@ class ToolsCalibrate:
     def get_status(self, eventtime):
         return {'last_result': self.last_result,
                 'last_probe_offset': self.last_probe_offset,
+                'calibration_probe_inactive': self.calibration_probe_inactive,
                 'last_x_result': self.last_result[0],
                 'last_y_result': self.last_result[1],
                 'last_z_result': self.last_result[2]}
@@ -187,6 +189,7 @@ class ToolsCalibrate:
         toolhead = self.printer.lookup_object('toolhead')
         print_time = toolhead.get_last_move_time()
         endstop_states = [probe.query_endstop(print_time) for probe in self.probe_multi_axis.mcu_probe] # Check the state of each axis probe (x, y, z)
+        self.calibration_probe_inactive = any(endstop_states)
         gcmd.respond_info("Calibration Probe: %s" % (["open", "TRIGGERED"][any(endstop_states)]))
 
 class PrinterProbeMultiAxis:
