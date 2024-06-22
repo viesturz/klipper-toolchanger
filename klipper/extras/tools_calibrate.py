@@ -56,6 +56,9 @@ class ToolsCalibrate:
         self.gcode.register_command('TOOL_CALIBRATE_PROBE_OFFSET',
                                     self.cmd_TOOL_CALIBRATE_PROBE_OFFSET,
                                     desc=self.cmd_TOOL_CALIBRATE_PROBE_OFFSET_help)
+        self.gcode.register_command('TOOL_CALIBRATE_QUERY_PROBE',
+                                    self.cmd_TOOL_CALIBRATE_QUERY_PROBE,
+                                    desc=self.cmd_TOOL_CALIBRATE_QUERY_PROBE_help)
 
     def probe_xy(self, toolhead, top_pos, direction, gcmd, samples=None):
         offset = direction_types[direction]
@@ -179,6 +182,12 @@ class ToolsCalibrate:
                 'last_y_result': self.last_result[1],
                 'last_z_result': self.last_result[2]}
 
+    cmd_TOOL_CALIBRATE_QUERY_PROBE_help = "Return the state of calibration probe"
+    def cmd_TOOL_CALIBRATE_QUERY_PROBE(self, gcmd):
+        toolhead = self.printer.lookup_object('toolhead')
+        print_time = toolhead.get_last_move_time()
+        endstop_states = [probe.query_endstop(print_time) for probe in self.probe_multi_axis.mcu_probe] # Check the state of each axis probe (x, y, z)
+        gcmd.respond_info("Calibration Probe: %s" % (["open", "TRIGGERED"][any(endstop_states)]))
 
 class PrinterProbeMultiAxis:
     def __init__(self, config, mcu_probe_x, mcu_probe_y, mcu_probe_z):
