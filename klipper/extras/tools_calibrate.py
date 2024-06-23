@@ -378,6 +378,5 @@ class ProbeEndstopWrapper:
     def get_position_endstop(self):
         return 0.
 
-
 def load_config(config):
     return ToolsCalibrate(config)
