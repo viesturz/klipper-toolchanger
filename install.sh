@@ -27,7 +27,7 @@ function check_download {
 
     if [ ! -d "${INSTALL_PATH}" ]; then
         echo "[DOWNLOAD] Downloading repository..."
-        if git -C $installdirname clone https://github.com/viesturz/klipper-toolchanger.git $installbasename; then
+        if git -C $installdirname clone https://github.com/VIN-y/klipper-toolchanger.git $installbasename; then
             chmod +x ${INSTALL_PATH}/install.sh
             printf "[DOWNLOAD] Download complete!\n\n"
         else
