@@ -12,15 +12,16 @@ See the [example](/examples/calibrate-offsets.cfg) folder for a full example.
 ```
 [tools_calibrate]
 pin: ^!PF5
-travel_speed: 20  # mms to travel sideways for XY probing
-spread: 7  # mms to travel down from top for XY probing
-lower_z: 1.0  # The speed (in mm/sec) to move tools down onto the probe
-speed: 2  # The speed (in mm/sec) to retract between probes
-lift_speed: 4  # Z Lift after probing done, should be greater than any Z variance between tools
-final_lift_z: 6 
-sample_retract_dist:2
-samples_tolerance:0.05
-samples:5
+travel_speed: 20  # Speed (in mm/sec) when positioning for XY probing
+spread: 5  # mms to travel sideways when positioning for XY probes
+lower_z: 1.0  # mms to lower nozzle down when positioning for XY probes
+lift_z: 1.0 # mms to lift nozzle up when positioning for XY probes
+speed: 2  # Probe speed
+lift_speed: 4 # Speed (in mm/sec) for all Z moves when probing
+final_lift_z: 6 # Z Lift after probing done, should be greater than any Z variance between tools
+sample_retract_dist: 2
+samples_tolerance: 0.05
+samples: 5
 samples_result: median # median, average
 
 # Settings for nozzle probe calibration - optional.
@@ -28,6 +29,10 @@ probe: probe # name of the nozzle probe to use
 
 trigger_to_bottom_z: 0.25 # Offset from probe trigger to vertical motion bottoms out. 
 # decrease if the nozzle is too high, increase if too low.
+
+idex_vars_macro: DC_VARS # Default not set. Allows exporting of offsets to gcode macro vars
+# Assumes the offsets are named "offset_x", etc. This allows IDEX setups to use the calibration
+# as a standalone component
 ```
 
 ### Clean your nozzles 
