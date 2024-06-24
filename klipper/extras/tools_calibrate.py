@@ -33,6 +33,7 @@ class ToolsCalibrate:
         self.spread = config.getfloat('spread', 5.0)
         self.lower_z = config.getfloat('lower_z', 0.5)
         self.lift_z = config.getfloat('lift_z', 1.0)
+        self.var_macro = config.get('idex_vars_macro',None)
         self.trigger_to_bottom_z = config.getfloat('trigger_to_bottom_z',
                                                    default=0.0)
         self.lift_speed = config.getfloat('lift_speed',
@@ -124,6 +125,11 @@ class ToolsCalibrate:
         location = self.locate_sensor(gcmd)
         self.last_result = [location[i] - self.sensor_location[i] for i in
                             range(3)]
+        if self.var_macro is not None:
+            vars_macro = self.printer.lookup_object(f"gcode_macro {self.var_macro}")
+            vars_macro.offset_x = self.last_result[0]
+            vars_macro.offset_y = self.last_result[1]
+            vars_macro.offset_z = self.last_result[2]
         self.gcode.respond_info("Tool offset is %.6f,%.6f,%.6f"
                                 % (self.last_result[0], self.last_result[1],
                                    self.last_result[2]))
