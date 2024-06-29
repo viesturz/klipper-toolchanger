@@ -6,7 +6,6 @@ class ConfigSwitch:
                                     self.cmd_SAVE_CONFIG_MODET,
                                     desc=self.cmd_SAVE_CONFIG_MODE_help)
 
-        
     cmd_SAVE_CONFIG_MODE_help = "..."
     def cmd_SAVE_CONFIG_MODE(self, gcmd):
         record_point = False
@@ -29,4 +28,6 @@ class ConfigSwitch:
                 if "#;#" in string and record_point == True :
                     record_point = False
                     self.gcode.respond_info("Record point:", record_point)
-                    
+
+def load_config(config):
+    return ConfigSwitch(config)
