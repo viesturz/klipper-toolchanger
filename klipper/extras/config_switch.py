@@ -56,6 +56,5 @@ class ConfigSwitch:
                             savefile.write(line)
 
 
-
 def load_config(config):
     return ConfigSwitch(config)
