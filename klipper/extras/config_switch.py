@@ -7,7 +7,7 @@ class ConfigSwitch:
         self.gcode = self.printer.lookup_object('gcode')
 
         self.gcode.register_command('SAVE_CONFIG_MODE',
-                                    self.cmd_SAVE_CONFIG_MODET,
+                                    self.cmd_SAVE_CONFIG_MODE,
                                     desc=self.cmd_SAVE_CONFIG_MODE_help)
 
 
