@@ -43,17 +43,17 @@ class ConfigSwitch:
                 with open(destination, 'w'):
                     pass
 
-                # for line in file:
-                #     ## Record point begin / end
-                #     if "#;<" in line.strip() and record == False:
-                #         record = True
-                #     if "#;>" in line.strip() and record == True :
-                #         record = False                
+                for line in file:
+                    ## Record point begin / end
+                    if "#;<" in line.strip() and record == False:
+                        record = True
+                    if "#;>" in line.strip() and record == True :
+                        record = False                
                     
-                #     # ## Start / Stop record
-                #     # if record == True:
-                #     #     with open(destination, 'a') as file:
-                #     #         file.write(line)
+                    ## Start / Stop record
+                    if record == True:
+                        with open(destination, 'a') as savefile:
+                            savefile.write(line)
 
 
 
