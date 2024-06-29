@@ -48,13 +48,15 @@ class ConfigSwitch:
                     if "#;<" in line.strip():
                         record = True
                     if "#;>" in line.strip():
-                        record = False                
+                        record = False
                     
                     ## Start / Stop record
-                    if record:
-                        self.gcode.respond_info("line: ", line)
+                    if record is True:
+                        self.gcode.respond_info(line)
                         with open(destination, 'a') as savefile:
                             savefile.write(line)
+                    
+                    self.gcode.respond_info(line)
 
 
 def load_config(config):
