@@ -45,20 +45,18 @@ class ConfigSwitch:
                     pass
 
             for line in file:
-                # ## Record point begin / end
-                # if "#;<" in line.strip():
-                #     record = True
-                # if "#;>" in line.strip():
-                #     record = False
+                ## Record point begin / end
+                if "#;<" in line.strip():
+                    record = True
+                if "#;>" in line.strip():
+                    record = False
                 
-                # ## Start / Stop record
-                # if record is True:
-                #     self.gcode.respond_info(line)
-                #     with open(destination, 'a') as savefile:
-                #         savefile.write(line)
-                
-                self.gcode.respond_info(line)
-
+                ## Start / Stop record
+                if record is True:
+                    self.gcode.respond_info(line)
+                    with open(destination, 'a') as savefile:
+                        savefile.write(line)
+                        
 
 def load_config(config):
     return ConfigSwitch(config)
