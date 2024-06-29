@@ -13,18 +13,18 @@ class ConfigSwitch:
 
     cmd_SAVE_CONFIG_MODE_help = "..."
     def cmd_SAVE_CONFIG_MODE(self, gcmd):
-        home_dir = os.path.expanduser("~")
+        # home_dir = os.path.expanduser("~")
 
-        config_dir = os.path.join(home_dir, "printer_data/config/config1")
-        if not os.path.exists(destination_dir):
-            os.makedirs(destination_dir)  
+        # config_dir = os.path.join(home_dir, "printer_data/config/config1")
+        # if not os.path.exists(destination_dir):
+        #     os.makedirs(destination_dir)  
 
-        printer_config = os.path.join(home_dir, "printer_data/config/printer.cfg")
+        # printer_config = os.path.join(home_dir, "printer_data/config/printer.cfg")
 
-        tc_config_multi = os.path.join(storage_dir, f"tc_config_multi.cfg")
-        tc_config_single = os.path.join(storage_dir, f"tc_config_single.cfg")
+        # tc_config_multi = os.path.join(storage_dir, f"tc_config_multi.cfg")
+        # tc_config_single = os.path.join(storage_dir, f"tc_config_single.cfg")
 
-        record_point = False
+        # record_point = False
         
         # self.gcode.respond_info("Record point:", record_point)
         self.gcode.respond_info("Hello?...")
