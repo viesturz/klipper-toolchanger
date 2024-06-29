@@ -52,6 +52,7 @@ class ConfigSwitch:
                     
                     ## Start / Stop record
                     if record == True:
+                        self.gcode.respond_info(line)
                         with open(destination, 'a') as savefile:
                             savefile.write(line)
 
