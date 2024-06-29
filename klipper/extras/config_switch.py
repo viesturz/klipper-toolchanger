@@ -50,10 +50,10 @@ class ConfigSwitch:
                     if "#;>" in line.strip() and record == True :
                         record = False                
                     
-                    ## Start / Stop record
-                    if record == True:
-                        with open(destination, 'a') as file:
-                            file.write(line)
+                    # ## Start / Stop record
+                    # if record == True:
+                    #     with open(destination, 'a') as file:
+                    #         file.write(line)
 
 
 
