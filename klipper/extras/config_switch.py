@@ -28,10 +28,13 @@ class ConfigSwitch:
         with open(printer_config) as file:
             for line in file:
                 if "variable_dock:" in line.strip():
-                    if "False" in line.strip():
+                    if "True" in line.strip():
                         self.gcode.respond_info("Dock is installed...")
-                    elif "True" in line.strip():
+                    elif "False" in line.strip():
                         self.gcode.respond_info("Dock is not installed...")
+                    else:
+                        raise gcmd.error("[variable_dock: ] can only be 'True' or 'False'...")
+
 
             for line in file:
                 ## Record point begin / end
