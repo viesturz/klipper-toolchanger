@@ -27,13 +27,21 @@ class ConfigSwitch:
 
         with open(printer_config) as file:
             for line in file:
+                if "variable_dock:" in line.strip():
+                    if "False" in line.strip():
+                        self.gcode.respond_info("Dock is installed...")
+                    elif "False" in line.strip():
+                        self.gcode.respond_info("Dock is not installed...")
+
+            for line in file:
                 ## Record point begin / end
                 if "#;<" in line.strip() and record == False:
                     record = True
                 if "#;>" in line.strip() and record == True :
                     record = False
 
-                self.gcode.respond_info("Record point: " + str(record))
+                # self.gcode.respond_info("Record: " + str(record))
+
 
 
 def load_config(config):
