@@ -1,8 +1,12 @@
 import os
+import logging
 
 class ConfigSwitch:
     def __init__(self, config):
-       self.gcode.register_command('SAVE_CONFIG_MODE',
+        self.printer = config.get_printer()
+        self.gcode = self.printer.lookup_object('gcode')
+
+        self.gcode.register_command('SAVE_CONFIG_MODE',
                                     self.cmd_SAVE_CONFIG_MODET,
                                     desc=self.cmd_SAVE_CONFIG_MODE_help)
 
