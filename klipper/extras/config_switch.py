@@ -9,9 +9,11 @@ class ConfigSwitch:
         self.gcode.register_command('SAVE_CONFIG_MODE',
                                     self.cmd_SAVE_CONFIG_MODE,
                                     desc=self.cmd_SAVE_CONFIG_MODE_help)
+        self.gcode.register_command('TOGGLE_CONFIG_MODE',
+                                    self.cmd_TOGGLE_CONFIG_MODE,
+                                    desc=self.cmd_TOGGLE_CONFIG_MODE_help)
 
-
-    cmd_SAVE_CONFIG_MODE_help = "..."
+    cmd_SAVE_CONFIG_MODE_help = "Save session variables, marked in printer.cfg"
     def cmd_SAVE_CONFIG_MODE(self, gcmd):
         ## Variables
         home_dir = os.path.expanduser("~")
@@ -19,7 +21,7 @@ class ConfigSwitch:
         record = False
 
         printer_config = os.path.join(home_dir, "printer_data/config/printer.cfg")
-        config_dir = os.path.join(home_dir, "printer_data/config/config/")
+        config_dir = os.path.join(home_dir, "printer_data/config/config")
         config_multi = os.path.join(config_dir, "config_multi.cfg")
         config_single = os.path.join(config_dir, "config_single.cfg")
 
@@ -27,6 +29,7 @@ class ConfigSwitch:
         if not os.path.exists(config_dir):
             os.makedirs(config_dir, exist_ok=True) 
         
+        ## Decide where it should be saved
         with open(printer_config) as file:
             for line in file:
                 ## Set destination file
@@ -41,7 +44,8 @@ class ConfigSwitch:
                             pass
                     else:
                         raise gcmd.error("[variable_dock: ] must be 'True' or 'False'")
-                
+        
+        ## Save session variable
         with open(printer_config) as file:
             if destination != "":
                 for line in file:
@@ -60,6 +64,28 @@ class ConfigSwitch:
                     self.gcode.respond_info("Section variables saved to config/config_multi.cfg")
                 elif "config_single" in destination:
                     self.gcode.respond_info("Section variables saved to config/config_single.cfg")
+
+    cmd_TOGGLE_CONFIG_MODE_help = "Toggle saved section variable into printer.cfg"
+    def cmd_TOGGLE_CONFIG_MODE(self, gcmd):
+        ## Variables
+        home_dir = os.path.expanduser("~")
+        source = ""
+        record = False
+
+        printer_config = os.path.join(home_dir, "printer_data/config/printer.cfg")
+        config_multi = os.path.join(home_dir, "printer_data/config/config/config_multi.cfg")
+        config_single = os.path.join(home_dir, "printer_data/config/config/config_single.cfg")
+
+        ## Detect current config
+        with open(printer_config) as file:
+            for line in file:
+                if "variable_dock:" in line.strip():
+                    if "True" in line.strip():
+                        source = config_single
+                    elif "False" in line.strip():
+                        source = config_multi
+                    else:
+                        raise gcmd.error("[variable_dock: ] must be 'True' or 'False'")
 
 
 def load_config(config):
