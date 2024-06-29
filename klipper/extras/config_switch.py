@@ -25,7 +25,7 @@ class ConfigSwitch:
         tc_config_multi_file = os.path.join(config_dir, f"tc_config_multi.cfg")
         tc_config_single_file = os.path.join(config_dir, f"tc_config_single.cfg")
         
-        self.gcode.respond_info("Record point:", record_point)
+        self.gcode.respond_info("Record point:" + str(record_point))
 
         # with open(printer_config) as file:
         #     for line in file:
