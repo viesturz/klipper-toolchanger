@@ -47,7 +47,7 @@ class ConfigSwitch:
                     ## Record point begin / end
                     if "#;<" in line.strip() and record == False:
                         record = True
-                    if "#;>" in line.strip() and record == True :
+                    elif "#;>" in line.strip() and record == True :
                         record = False                
                     
                     ## Start / Stop record
