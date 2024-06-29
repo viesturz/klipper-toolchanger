@@ -27,7 +27,7 @@ class ConfigSwitch:
         # record_point = False
         
         # self.gcode.respond_info("Record point:", record_point)
-        self.gcode.respond_info("Hello?...")
+        self.gcode.respond_info(config_dir)
 
         # with open(printer_config) as file:
         #     for line in file:
