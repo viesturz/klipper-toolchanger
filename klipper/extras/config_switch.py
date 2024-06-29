@@ -38,22 +38,22 @@ class ConfigSwitch:
                     else:
                         raise gcmd.error("[variable_dock: ] must be 'True' or 'False'")
             
-            if "/" in destination:
-                # self.gcode.respond_info(destination)
-                with open(destination, 'w') as file:
-                    pass
+            if destination != "":
+                self.gcode.respond_info(destination)
+                # with open(destination, 'w') as file:
+                #     pass
 
-                for line in file:
-                    ## Record point begin / end
-                    if "#;<" in line.strip() and record == False:
-                        record = True
-                    if "#;>" in line.strip() and record == True :
-                        record = False                
+                # for line in file:
+                #     ## Record point begin / end
+                #     if "#;<" in line.strip() and record == False:
+                #         record = True
+                #     if "#;>" in line.strip() and record == True :
+                #         record = False                
                     
-                    # ## Start / Stop record
-                    # if record == True:
-                    #     with open(destination, 'a') as file:
-                    #         file.write(line)
+                #     # ## Start / Stop record
+                #     # if record == True:
+                #     #     with open(destination, 'a') as file:
+                #     #         file.write(line)
 
 
 
