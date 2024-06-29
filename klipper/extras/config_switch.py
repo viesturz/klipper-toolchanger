@@ -21,16 +21,12 @@ class ConfigSwitch:
         tc_config_multi = os.path.join(storage_dir, f"tc_config_multi.cfg")
         tc_config_single = os.path.join(storage_dir, f"tc_config_single.cfg")
 
-        # with open(filename, "a") as f:
-        #     f.write("Tool {} offset is {:.6f},{:.6f},{:.6f}\n".format(
-        #         tool_number, *self.last_result))
-
         with open(printer_config) as file:
             for line in file:
                 if "#;#" in string and record_point == False :
                     record_point = True
-                    print("Record point: {record_point}")
+                    self.gcode.respond_info("Record point:", record_point)
                 if "#;#" in string and record_point == True :
                     record_point = False
-                    print("Record point: {record_point}")
-
+                    self.gcode.respond_info("Record point:", record_point)
+                    
