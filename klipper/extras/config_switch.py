@@ -37,5 +37,5 @@ class ConfigSwitch:
                     self.gcode.respond_info("Record point:", record_point)
 
 
-def load_config_switch(config):
+def load_config(config):
     return ConfigSwitch(config)
