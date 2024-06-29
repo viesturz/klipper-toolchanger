@@ -30,7 +30,7 @@ class ConfigSwitch:
                 if "variable_dock:" in line.strip():
                     if "False" in line.strip():
                         self.gcode.respond_info("Dock is installed...")
-                    elif "False" in line.strip():
+                    elif "True" in line.strip():
                         self.gcode.respond_info("Dock is not installed...")
 
             for line in file:
