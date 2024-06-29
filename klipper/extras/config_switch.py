@@ -5,7 +5,7 @@ class ConfigSwitch:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.gcode = self.printer.lookup_object('gcode')
-
+        ## Register Commands
         self.gcode.register_command('SAVE_CONFIG_MODE',
                                     self.cmd_SAVE_CONFIG_MODE,
                                     desc=self.cmd_SAVE_CONFIG_MODE_help)
@@ -13,28 +13,32 @@ class ConfigSwitch:
 
     cmd_SAVE_CONFIG_MODE_help = "..."
     def cmd_SAVE_CONFIG_MODE(self, gcmd):
+        ## Variables
         home_dir = os.path.expanduser("~")
-        config_dir = os.path.join(home_dir, "printer_data/config/config-test/")
         record = False
-
-        if not os.path.exists(config_dir):
-            os.makedirs(config_dir, exist_ok=True) 
+        destination = ""
 
         printer_config = os.path.join(home_dir, "printer_data/config/printer.cfg")
+        config_dir = os.path.join(home_dir, "printer_data/config/config-test/")
+        tc_config_multi_file = os.path.join(config_dir, "tc_config_multi.cfg")
+        tc_config_single_file = os.path.join(config_dir, "tc_config_single.cfg")
 
-        tc_config_multi_file = os.path.join(config_dir, f"tc_config_multi.cfg")
-        tc_config_single_file = os.path.join(config_dir, f"tc_config_single.cfg")
-
+        ## Make the config folder, if it is not already there
+        if not os.path.exists(config_dir):
+            os.makedirs(config_dir, exist_ok=True) 
+        
         with open(printer_config) as file:
             for line in file:
+                ## set destination file
                 if "variable_dock:" in line.strip():
                     if "True" in line.strip():
-                        self.gcode.respond_info("Dock is installed...")
+                        destination = tc_config_multi_file
                     elif "False" in line.strip():
-                        self.gcode.respond_info("Dock is not installed...")
+                        destination = tc_config_single_file
                     else:
-                        raise gcmd.error("[variable_dock: ] can only be 'True' or 'False'...")
-
+                        raise gcmd.error("[variable_dock: ] must be 'True' or 'False'")
+            
+            self.gcode.respond_info(destination)
 
             for line in file:
                 ## Record point begin / end
@@ -43,7 +47,10 @@ class ConfigSwitch:
                 if "#;>" in line.strip() and record == True :
                     record = False
 
-                # self.gcode.respond_info("Record: " + str(record))
+                
+
+                if record == True:
+                    record = True
 
 
 
