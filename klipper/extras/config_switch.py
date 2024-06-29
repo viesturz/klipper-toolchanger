@@ -15,10 +15,9 @@ class ConfigSwitch:
     def cmd_SAVE_CONFIG_MODE(self, gcmd):
         home_dir = os.path.expanduser("~")
 
-        config_dir = os.path.join(home_dir, "printer_data/config/config1/")
+        config_dir = os.path.join(home_dir, "printer_data/config/config-test/")
         if not os.path.exists(destination_dir):
-            self.gcode.respond_info(config_dir)
-        #     os.makedirs(destination_dir)  
+            os.makedirs(config_dir, exist_ok=True) 
 
         # printer_config = os.path.join(home_dir, "printer_data/config/printer.cfg")
 
