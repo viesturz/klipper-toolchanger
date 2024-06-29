@@ -16,7 +16,8 @@ class ConfigSwitch:
         home_dir = os.path.expanduser("~")
 
         config_dir = os.path.join(home_dir, "printer_data/config/config1/")
-        # if not os.path.exists(destination_dir):
+        if not os.path.exists(destination_dir):
+            self.gcode.respond_info(config_dir)
         #     os.makedirs(destination_dir)  
 
         # printer_config = os.path.join(home_dir, "printer_data/config/printer.cfg")
@@ -27,7 +28,6 @@ class ConfigSwitch:
         # record_point = False
         
         # self.gcode.respond_info("Record point:", record_point)
-        self.gcode.respond_info(config_dir)
 
         # with open(printer_config) as file:
         #     for line in file:
