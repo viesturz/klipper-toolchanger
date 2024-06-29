@@ -28,7 +28,7 @@ class ConfigSwitch:
         with open(printer_config) as file:
             self.gcode.respond_info("Record point: " + str(record_point))
             for line in file:
-                if "#;<" in line.strip() and record_point == False :
+                if "#;<" in line.strip() and record_point == False:
                     record_point = True
                     self.gcode.respond_info("Record point: " + str(record_point))
 
@@ -37,5 +37,5 @@ class ConfigSwitch:
             #         self.gcode.respond_info("Record point: " + str(record_point))
 
 
-def load_config(config):s
+def load_config(config):
     return ConfigSwitch(config)
