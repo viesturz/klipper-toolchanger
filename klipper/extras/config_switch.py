@@ -6,6 +6,7 @@ class ConfigSwitch:
                                     self.cmd_SAVE_CONFIG_MODET,
                                     desc=self.cmd_SAVE_CONFIG_MODE_help)
 
+
     cmd_SAVE_CONFIG_MODE_help = "..."
     def cmd_SAVE_CONFIG_MODE(self, gcmd):
         record_point = False
@@ -31,5 +32,6 @@ class ConfigSwitch:
                     record_point = False
                     self.gcode.respond_info("Record point:", record_point)
 
-def load_config(config):
+
+def load_config_switch(config):
     return ConfigSwitch(config)
