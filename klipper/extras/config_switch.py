@@ -37,9 +37,8 @@ class ConfigSwitch:
                         destination = tc_config_single_file
                     else:
                         raise gcmd.error("[variable_dock: ] must be 'True' or 'False'")
-                self.gcode.respond_info("line")
                 
-            
+        with open(printer_config) as file:
             if destination != "":
                 self.gcode.respond_info(destination)
                 with open(destination, 'w'):
@@ -58,7 +57,7 @@ class ConfigSwitch:
                 #     with open(destination, 'a') as savefile:
                 #         savefile.write(line)
                 
-                self.gcode.respond_info("line")
+                self.gcode.respond_info(line)
 
 
 def load_config(config):
