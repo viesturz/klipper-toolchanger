@@ -9,6 +9,8 @@ class ConfigSwitch:
     cmd_SAVE_CONFIG_MODE_help = "..."
     def cmd_SAVE_CONFIG_MODE(self, gcmd):
         record_point = False
+        self.gcode.respond_info("Record point:", record_point)
+
         home_dir = os.path.expanduser("~")
 
         config_dir = os.path.join(home_dir, "printer_data/config/config1")
