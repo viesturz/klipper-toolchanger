@@ -24,19 +24,17 @@ class ConfigSwitch:
 
         tc_config_multi_file = os.path.join(config_dir, f"tc_config_multi.cfg")
         tc_config_single_file = os.path.join(config_dir, f"tc_config_single.cfg")
-        
-        self.gcode.respond_info("Record point:" + str(record_point))
 
-        # with open(printer_config) as file:
-        #     for line in file:
+        with open(printer_config) as file:
+            for line in file:
 
-        #         if "#;<" in string and record_point == False :
-        #             record_point = True
-        #             self.gcode.respond_info("Record point:", record_point)
+                if "#;<" in string and record_point == False :
+                    record_point = True
+                    self.gcode.respond_info("Record point: " + str(record_point))
 
-        #         if "#;>" in string and record_point == True :
-        #             record_point = False
-        #             self.gcode.respond_info("Record point:", record_point)
+                if "#;>" in string and record_point == True :
+                    record_point = False
+                    self.gcode.respond_info("Record point: " + str(record_point))
 
 
 def load_config(config):
