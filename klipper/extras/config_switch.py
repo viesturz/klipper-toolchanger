@@ -47,12 +47,12 @@ class ConfigSwitch:
                     ## Record point begin / end
                     if "#;<" in line.strip():
                         record = True
-                    elif "#;>" in line.strip():
+                    if "#;>" in line.strip():
                         record = False                
                     
                     ## Start / Stop record
-                    if record is True:
-                        self.gcode.respond_info(line)
+                    if record:
+                        self.gcode.respond_info("line: ", line)
                         with open(destination, 'a') as savefile:
                             savefile.write(line)
 
