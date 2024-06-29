@@ -40,8 +40,8 @@ class ConfigSwitch:
             
             if destination != "":
                 self.gcode.respond_info(destination)
-                # with open(destination, 'w') as file:
-                #     pass
+                with open(destination, 'w'):
+                    pass
 
                 # for line in file:
                 #     ## Record point begin / end
