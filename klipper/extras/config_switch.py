@@ -38,7 +38,7 @@ class ConfigSwitch:
                     else:
                         raise gcmd.error("[variable_dock: ] must be 'True' or 'False'")
             
-            if destination != "":
+            if "/" in destination:
                 # self.gcode.respond_info(destination)
                 with open(destination, 'w') as file:
                     pass
