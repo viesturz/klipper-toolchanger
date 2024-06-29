@@ -16,7 +16,7 @@ class ConfigSwitch:
         home_dir = os.path.expanduser("~")
 
         config_dir = os.path.join(home_dir, "printer_data/config/config-test/")
-        if not os.path.exists(destination_dir):
+        if not os.path.exists(config_dir):
             os.makedirs(config_dir, exist_ok=True) 
 
         # printer_config = os.path.join(home_dir, "printer_data/config/printer.cfg")
