@@ -78,7 +78,6 @@ class ConfigSwitch:
 
         ## Detect and toggle current config
         with open(printer_config) as file:
-            self.gcode.respond_info("Detect and toggle current config to:")
             for line in file:
                 if "variable_dock:" in line.strip():
                     if "True" in line.strip():
@@ -87,11 +86,16 @@ class ConfigSwitch:
                         source = config_multi
                     else:
                         raise gcmd.error("[variable_dock: ] must be 'True' or 'False'")
-            self.gcode.respond_info(source)
         
-        ## Save common variables
-        with open(printer_config) as file:
-            if source != "":
+        
+        
+        ## Compile new printer.cfg in printer.temp
+        if source != "":
+            self.gcode.respond_info("Detect and toggle current config to:" + source)
+            with open(source, 'r') as session_variable_source:
+                source_content = session_variable_source.read()
+
+            with open(printer_config) as file:
                 self.gcode.respond_info("Create config/printer.temp...")
                 with open(config_temp, 'w'):
                             pass
@@ -108,7 +112,10 @@ class ConfigSwitch:
                         with open(config_temp, 'a') as tempfile:
                             tempfile.write(line)
                 
-                self.gcode.respond_info("Common variable saved to config/printer.temp")
+            with open(config_temp, 'a') as tempfile:
+                tempfile.write(source_content)
+                
+            self.gcode.respond_info("New config file saved to: config/printer.temp")
 
 
 def load_config(config):
