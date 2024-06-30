@@ -13,6 +13,7 @@ wget -O - https://raw.githubusercontent.com/VIN-y/klipper-toolchanger/test-machi
 ```
 
 Then, add the following to your moonraker.conf to enable automatic updates:
+
 ```
 [update_manager klipper-toolchanger]
 type: git_repo
@@ -26,9 +27,9 @@ install_script: install.sh
 
 # Components
 
-* [Multi fan](/multi_fan.md) - multiple primary part fans.
-* [Toolchanger](/toolchanger.md) - tool management support.
-* [Tool probe](/tool_probe.md) - per tool Z probe.
-* [Rounded path](/rounded_path.md) - rounds the travel path corners for fast non-print moves.
-* [Tools calibrate](/tools_calibrate.md) - support for contact based XYZ offset calibration probes.
-* [config_switch](/config_switch.md) - allow the printer to be toggled between with-dock (multi-toolhead) and no-dock (single toolhead).
+* [multi fan](/descriptions/multi_fan.md) - multiple primary part fans.
+* [toolchanger](/descriptions/toolchanger.md) - tool management support.
+* [tool probe](/descriptions/tool_probe.md) - per tool Z probe.
+* [rounded path](/descriptions/rounded_path.md) - rounds the travel path corners for fast non-print moves.
+* [tools calibrate](/descriptions/tools_calibrate.md) - support for contact based XYZ offset calibration probes.
+* [config_switch](/descriptions/config_switch.md) - allow the printer to be toggled between with-dock (multi-toolhead) and no-dock (single toolhead).
