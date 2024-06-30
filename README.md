@@ -18,7 +18,7 @@ channel: dev
 path: ~/klipper-toolchanger
 origin: https://github.com/VIN-y/klipper-toolchanger.git
 managed_services: klipper
-primary_branch: test-machine
+primary_branch: main
 install_script: install.sh
 ```
 Add the [macros.cfg](/macros.cfg) to your printer config.
