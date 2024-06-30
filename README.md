@@ -1,6 +1,7 @@
 # klipper-toolchanger
 
-An assortment of Klipper extensions that I have made while working on [Tapchanger](https://github.com/viesturz/tapchanger)
+This repository is a fork of [klipper-toolchanger](https://github.com/viesturz/klipper-toolchanger), for [Tapchanger](https://github.com/viesturz/tapchanger).
+It contains all the lastest codes that is compatible with [MissChanger](https://github.com/VIN-y/MissChanger).
 
 # Installation
 
@@ -21,7 +22,6 @@ managed_services: klipper
 primary_branch: main
 install_script: install.sh
 ```
-Add the [macros.cfg](/macros.cfg) to your printer config.
 
 # Components
 
