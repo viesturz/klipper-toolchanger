@@ -13,6 +13,7 @@ class ConfigSwitch:
                                     self.cmd_TOGGLE_CONFIG_MODE,
                                     desc=self.cmd_TOGGLE_CONFIG_MODE_help)
 
+
     cmd_SAVE_CONFIG_MODE_help = "Save session variables, marked in printer.cfg"
     def cmd_SAVE_CONFIG_MODE(self, gcmd):
         ## Variables
@@ -59,11 +60,12 @@ class ConfigSwitch:
                             savefile.write(line)
                 
                 if "config_multi" in destination:
-                    self.gcode.respond_info("Section variables saved to config/config_multi.cfg")
+                    self.gcode.respond_info("Session variables saved to config/config_multi.cfg")
                 elif "config_single" in destination:
-                    self.gcode.respond_info("Section variables saved to config/config_single.cfg")
+                    self.gcode.respond_info("Session variables saved to config/config_single.cfg")
 
-    cmd_TOGGLE_CONFIG_MODE_help = "Toggle saved section variable in printer.cfg"
+
+    cmd_TOGGLE_CONFIG_MODE_help = "Toggle saved session variable in printer.cfg"
     def cmd_TOGGLE_CONFIG_MODE(self, gcmd):
         ## Variables
         home_dir = os.path.expanduser("~")
@@ -87,16 +89,14 @@ class ConfigSwitch:
                     else:
                         raise gcmd.error("[variable_dock: ] must be 'True' or 'False'")
         
-        
-        
         ## Compile new printer.cfg in printer.temp
         if source != "":
-            self.gcode.respond_info("Detect and toggle current session variables to:" + source)
+            self.gcode.respond_info("Toggle current session variables to:\n" + source)
             with open(source, 'r') as session_variable_source:
                 source_content = session_variable_source.read()
 
             with open(printer_config) as file:
-                self.gcode.respond_info("Create config/printer.temp...")
+                self.gcode.respond_info("Compiling config/printer.temp ...")
                 with open(config_temp, 'w'):
                             pass
                 
@@ -119,9 +119,12 @@ class ConfigSwitch:
                 temp_config = tempfile.read()
             
             with open(printer_config, 'w') as configfile:
+                self.gcode.respond_info("Update printer.cfg ...")
                 configfile.write(temp_config)
-                
-            self.gcode.respond_info("New config file saved to: config/printer.temp")
+            
+            if os.path.exists(config_temp):
+                self.gcode.respond_info("Remove config/printer.temp ...")
+                os.remove(config_temp)
 
 
 def load_config(config):
