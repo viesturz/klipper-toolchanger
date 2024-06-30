@@ -91,7 +91,7 @@ class ConfigSwitch:
         
         ## Compile new printer.cfg in printer.temp
         if source != "":
-            self.gcode.respond_info("Detect and toggle current config to:" + source)
+            self.gcode.respond_info("Detect and toggle current session variables to:" + source)
             with open(source, 'r') as session_variable_source:
                 source_content = session_variable_source.read()
 
@@ -114,6 +114,12 @@ class ConfigSwitch:
                 
             with open(config_temp, 'a') as tempfile:
                 tempfile.write(source_content)
+
+            with open(config_temp, 'r') as tempfile:
+                temp_config = tempfile.read()
+            
+            with open(printer_config, 'w') as configfile:
+                configfile.write(temp_config)
                 
             self.gcode.respond_info("New config file saved to: config/printer.temp")
 
