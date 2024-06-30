@@ -63,7 +63,7 @@ class ConfigSwitch:
                 elif "config_single" in destination:
                     self.gcode.respond_info("Section variables saved to config/config_single.cfg")
 
-    cmd_TOGGLE_CONFIG_MODE_help = "Toggle saved section variable into printer.cfg"
+    cmd_TOGGLE_CONFIG_MODE_help = "Toggle saved section variable in printer.cfg"
     def cmd_TOGGLE_CONFIG_MODE(self, gcmd):
         ## Variables
         home_dir = os.path.expanduser("~")
@@ -90,8 +90,10 @@ class ConfigSwitch:
         ## Save common variables
         with open(printer_config) as file:
             if source != "":
+                self.gcode.respond_info("Create config/printer.cfg.temp")
                 with open(config_temp, 'w'):
                             pass
+                
                 for line in file:
                     ## Record point begin / end
                     if "#;<" in line.strip():
@@ -101,8 +103,10 @@ class ConfigSwitch:
 
                     ## Start / Stop record
                     if record is True:
-                        with open(config_temp, 'a') as savefile:
-                            savefile.write(line)
+                        with open(config_temp, 'a') as tempfile:
+                            tempfile.write(line)
+                
+                self.gcode.respond_info("Common variable saved to config/printer.cfg.temp")
 
 
 def load_config(config):
