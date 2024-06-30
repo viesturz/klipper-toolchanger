@@ -91,40 +91,43 @@ class ConfigSwitch:
         
         ## Compile new printer.cfg in printer.temp
         if source != "":
-            self.gcode.respond_info("Toggle current session variables to:\n" + source)
-            with open(source, 'r') as session_variable_source:
-                source_content = session_variable_source.read()
+            if os.path.exists(source):
+                self.gcode.respond_info("Toggle current session variables to:\n" + source)
+                with open(source, 'r') as session_variable_source:
+                    source_content = session_variable_source.read()
 
-            with open(printer_config) as file:
-                self.gcode.respond_info("Compiling config/printer.temp ...")
-                with open(config_temp, 'w'):
-                            pass
+                with open(printer_config) as file:
+                    self.gcode.respond_info("Compiling config/printer.temp ...")
+                    with open(config_temp, 'w'):
+                                pass
+                    
+                    for line in file:
+                        ## Record point begin / end
+                        if "#;<" in line.strip():
+                            record = False
+                        if "#;>" in line.strip():
+                            record = True
+
+                        ## Start / Stop record
+                        if record is True:
+                            with open(config_temp, 'a') as tempfile:
+                                tempfile.write(line)
+                    
+                with open(config_temp, 'a') as tempfile:
+                    tempfile.write(source_content)
+
+                with open(config_temp, 'r') as tempfile:
+                    temp_config = tempfile.read()
                 
-                for line in file:
-                    ## Record point begin / end
-                    if "#;<" in line.strip():
-                        record = False
-                    if "#;>" in line.strip():
-                        record = True
-
-                    ## Start / Stop record
-                    if record is True:
-                        with open(config_temp, 'a') as tempfile:
-                            tempfile.write(line)
+                with open(printer_config, 'w') as configfile:
+                    self.gcode.respond_info("Update printer.cfg ...")
+                    configfile.write(temp_config)
                 
-            with open(config_temp, 'a') as tempfile:
-                tempfile.write(source_content)
-
-            with open(config_temp, 'r') as tempfile:
-                temp_config = tempfile.read()
-            
-            with open(printer_config, 'w') as configfile:
-                self.gcode.respond_info("Update printer.cfg ...")
-                configfile.write(temp_config)
-            
-            if os.path.exists(config_temp):
-                self.gcode.respond_info("Remove config/printer.temp ...")
-                os.remove(config_temp)
+                if os.path.exists(config_temp):
+                    self.gcode.respond_info("Remove config/printer.temp ...")
+                    os.remove(config_temp)
+            else:
+                raise gcmd.error("Missing file: " + source)
 
 
 def load_config(config):

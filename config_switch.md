@@ -1,6 +1,6 @@
 # Config Switch
 
-This extension provide the means to quickly convert the config from a toolchanger to a traditional single tool head printer.
+This extension provide the means to quickly convert the config from a tool-changer to a traditional single tool-head printer.
 
 ## Added Console Command
 
@@ -38,4 +38,17 @@ This extension provide the means to quickly convert the config from a toolchange
 
 1. Toggle the session variables between that are saved in `config/config_wt_dock.cfg` and `config/config_no_dock.cfg`, if they are available.
 
+2. If either `config/config_wt_dock.cfg` and `config/config_no_dock.cfg` are not yet available. Please build that config (in **printer.cfg**), with the right `variable_dock:` value,  then use `SAVE_CONFIG_MODE` to create the save file.
 
+3. The command needs to be follow up with `FIRMWARE_RESTART` it implement the new settings. It is suggested that you have the following macro in your config:
+   
+   ```
+   [gcode_macro PRINTER_CONFIG_TOGGLE]
+   gcode:
+       M400
+       SAVE_CONFIG_MODE
+       M400
+       TOGGLE_CONFIG_MODE
+       M400
+       FIRMWARE_RESTART
+   ```
