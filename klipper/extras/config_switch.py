@@ -23,12 +23,12 @@ class ConfigSwitch:
 
         printer_config = os.path.join(home_dir, "printer_data/config/printer.cfg")
         config_dir = os.path.join(home_dir, "printer_data/config/config")
-        config_multi = os.path.join(config_dir, "config_multi.cfg")
-        config_single = os.path.join(config_dir, "config_single.cfg")
+        config_wt_dock = os.path.join(config_dir, "config_wt_dock.cfg")
+        config_no_dock = os.path.join(config_dir, "config_no_dock.cfg")
 
         ## Make the config folder, if it is not already there
         if not os.path.exists(config_dir):
-            os.makedirs(config_dir, exist_ok=True) 
+            os.makedirs(config_dir, exist_ok=True)
         
         ## Decide where it should be saved
         with open(printer_config) as file:
@@ -36,9 +36,9 @@ class ConfigSwitch:
                 ## Set destination file
                 if "variable_dock:" in line.strip():
                     if "True" in line.strip():
-                        destination = config_multi
+                        destination = config_wt_dock
                     elif "False" in line.strip():
-                        destination = config_single
+                        destination = config_no_dock
                     else:
                         raise gcmd.error("[variable_dock: ] must be 'True' or 'False'")
         
@@ -59,10 +59,10 @@ class ConfigSwitch:
                         with open(destination, 'a') as savefile:
                             savefile.write(line)
                 
-                if "config_multi" in destination:
-                    self.gcode.respond_info("Session variables saved to config/config_multi.cfg")
-                elif "config_single" in destination:
-                    self.gcode.respond_info("Session variables saved to config/config_single.cfg")
+                if "config_wt_dock" in destination:
+                    self.gcode.respond_info("Session variables saved to config/config_wt_dock.cfg")
+                elif "config_no_dock" in destination:
+                    self.gcode.respond_info("Session variables saved to config/config_no_dock.cfg")
 
 
     cmd_TOGGLE_CONFIG_MODE_help = "Toggle saved session variable in printer.cfg"
@@ -74,8 +74,8 @@ class ConfigSwitch:
 
         printer_config = os.path.join(home_dir, "printer_data/config/printer.cfg")
         config_dir = os.path.join(home_dir, "printer_data/config/config")
-        config_multi = os.path.join(config_dir, "config_multi.cfg")
-        config_single = os.path.join(config_dir, "config_single.cfg")
+        config_wt_dock = os.path.join(config_dir, "config_wt_dock.cfg")
+        config_no_dock = os.path.join(config_dir, "config_no_dock.cfg")
         config_temp = os.path.join(config_dir, "printer.temp")
 
         ## Detect and toggle current config
@@ -83,9 +83,9 @@ class ConfigSwitch:
             for line in file:
                 if "variable_dock:" in line.strip():
                     if "True" in line.strip():
-                        source = config_single
+                        source = config_no_dock
                     elif "False" in line.strip():
-                        source = config_multi
+                        source = config_wt_dock
                     else:
                         raise gcmd.error("[variable_dock: ] must be 'True' or 'False'")
         
