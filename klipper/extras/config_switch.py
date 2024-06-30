@@ -97,7 +97,7 @@ class ConfigSwitch:
                     source_content = session_variable_source.read()
 
                 with open(printer_config) as file:
-                    self.gcode.respond_info("Compiling config/printer.temp ...")
+                    self.gcode.respond_info("Compile config/printer.temp ...")
                     with open(config_temp, 'w'):
                                 pass
                     
