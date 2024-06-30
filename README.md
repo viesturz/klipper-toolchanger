@@ -30,3 +30,4 @@ Add the [macros.cfg](/macros.cfg) to your printer config.
 * [Tool probe](/tool_probe.md) - per tool Z probe.
 * [Rounded path](/rounded_path.md) - rounds the travel path corners for fast non-print moves.
 * [Tools calibrate](/tools_calibrate.md) - support for contact based XYZ offset calibration probes.
+* [config_switch](/config_switch.md) - allow the printer to be toggled between with-dock (multi-toolhead) and no-dock (single toolhead).
