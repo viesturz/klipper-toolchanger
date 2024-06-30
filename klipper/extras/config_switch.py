@@ -36,18 +36,16 @@ class ConfigSwitch:
                 if "variable_dock:" in line.strip():
                     if "True" in line.strip():
                         destination = config_multi
-                        with open(destination, 'w'):
-                            pass
                     elif "False" in line.strip():
                         destination = config_single
-                        with open(destination, 'w'):
-                            pass
                     else:
                         raise gcmd.error("[variable_dock: ] must be 'True' or 'False'")
         
-        ## Save session variable
+        ## Save session variables
         with open(printer_config) as file:
             if destination != "":
+                with open(destination, 'w'):
+                    pass
                 for line in file:
                     ## Record point begin / end
                     if "#;<" in line.strip():
@@ -70,13 +68,15 @@ class ConfigSwitch:
         ## Variables
         home_dir = os.path.expanduser("~")
         source = ""
-        record = False
+        record = True
 
         printer_config = os.path.join(home_dir, "printer_data/config/printer.cfg")
-        config_multi = os.path.join(home_dir, "printer_data/config/config/config_multi.cfg")
-        config_single = os.path.join(home_dir, "printer_data/config/config/config_single.cfg")
+        config_dir = os.path.join(home_dir, "printer_data/config/config")
+        config_multi = os.path.join(config_dir, "config_multi.cfg")
+        config_single = os.path.join(config_dir, "config_single.cfg")
+        config_temp = os.path.join(config_dir, "printer.cfg.temp")
 
-        ## Detect current config
+        ## Detect and toggle current config
         with open(printer_config) as file:
             for line in file:
                 if "variable_dock:" in line.strip():
@@ -86,6 +86,23 @@ class ConfigSwitch:
                         source = config_multi
                     else:
                         raise gcmd.error("[variable_dock: ] must be 'True' or 'False'")
+        
+        ## Save common variables
+        with open(printer_config) as file:
+            if source != "":
+                with open(config_temp, 'w'):
+                            pass
+                for line in file:
+                    ## Record point begin / end
+                    if "#;<" in line.strip():
+                        record = False
+                    if "#;>" in line.strip():
+                        record = True
+
+                    ## Start / Stop record
+                    if record is True:
+                        with open(config_temp, 'a') as savefile:
+                            savefile.write(line)
 
 
 def load_config(config):
