@@ -127,7 +127,7 @@ class ConfigSwitch:
                     self.gcode.respond_info("Remove config/printer.temp ...")
                     os.remove(config_temp)
             else:
-                raise gcmd.error("Missing file: " + source)
+                raise gcmd.error("Missing file:\n" + source)
 
 
 def load_config(config):
