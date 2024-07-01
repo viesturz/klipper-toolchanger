@@ -191,6 +191,7 @@ class ToolsCalibrate:
         endstop_states = [probe.query_endstop(print_time) for probe in self.probe_multi_axis.mcu_probe] # Check the state of each axis probe (x, y, z)
         self.calibration_probe_inactive = any(endstop_states)
         gcmd.respond_info("Calibration Probe: %s" % (["open", "TRIGGERED"][any(endstop_states)]))
+        return self.calibration_probe_inactive
 
 class PrinterProbeMultiAxis:
     def __init__(self, config, mcu_probe_x, mcu_probe_y, mcu_probe_z):
@@ -377,7 +378,6 @@ class ProbeEndstopWrapper:
 
     def get_position_endstop(self):
         return 0.
-
 
 def load_config(config):
     return ToolsCalibrate(config)
