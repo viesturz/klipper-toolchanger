@@ -9,7 +9,7 @@ It contains all the lastest codes that is compatible with [MissChanger](https://
 To install this plugin, run the installation script using the following command over SSH. This script will download this GitHub repository to your RaspberryPi home directory, and symlink the files in the Klipper extra folder.
 
 ```
-wget -O - https://raw.githubusercontent.com/VIN-y/klipper-toolchanger/test-machine/install.sh | bash
+wget -O - https://raw.githubusercontent.com/VIN-y/klipper-toolchanger/main/install.sh | bash
 ```
 
 Then, add the following to your moonraker.conf to enable automatic updates:
