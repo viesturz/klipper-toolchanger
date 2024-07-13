@@ -42,6 +42,7 @@ class ToolsCalibrate:
         self.sensor_location = None
         self.last_result = [0., 0., 0.]
         self.last_probe_offset = 0.
+        self.calibration_probe_inactive = True
 
         # Register commands
         self.gcode = self.printer.lookup_object('gcode')
@@ -60,6 +61,9 @@ class ToolsCalibrate:
         self.gcode.register_command('TOOL_CALIBRATE_PROBE_OFFSET',
                                     self.cmd_TOOL_CALIBRATE_PROBE_OFFSET,
                                     desc=self.cmd_TOOL_CALIBRATE_PROBE_OFFSET_help)
+        self.gcode.register_command('TOOL_CALIBRATE_QUERY_PROBE',
+                                    self.cmd_TOOL_CALIBRATE_QUERY_PROBE,
+                                    desc=self.cmd_TOOL_CALIBRATE_QUERY_PROBE_help)
 
     def probe_xy(self, toolhead, top_pos, direction, gcmd, samples=None):
         offset = direction_types[direction]
@@ -181,7 +185,10 @@ class ToolsCalibrate:
         nozzle_z = self.probe_multi_axis.run_probe("z-", gcmd, speed_ratio=0.5)[
             2]
         # now move down with the tool probe
-        probe_z = probe.run_probe(gcmd)[2]
+        probe_session = probe.start_probe_session(gcmd)
+        probe_session.run_probe(gcmd)
+        probe_z = probe_session.pull_probed_results()[0][2]
+        probe_session.end_probe_session()
 
         z_offset = probe_z - nozzle_z + self.trigger_to_bottom_z
         self.last_probe_offset = z_offset
@@ -201,10 +208,18 @@ class ToolsCalibrate:
     def get_status(self, eventtime):
         return {'last_result': self.last_result,
                 'last_probe_offset': self.last_probe_offset,
+                'calibration_probe_inactive': self.calibration_probe_inactive,
                 'last_x_result': self.last_result[0],
                 'last_y_result': self.last_result[1],
                 'last_z_result': self.last_result[2]}
 
+    cmd_TOOL_CALIBRATE_QUERY_PROBE_help = "Return the state of calibration probe"
+    def cmd_TOOL_CALIBRATE_QUERY_PROBE(self, gcmd):
+        toolhead = self.printer.lookup_object('toolhead')
+        print_time = toolhead.get_last_move_time()
+        endstop_states = [probe.query_endstop(print_time) for probe in self.probe_multi_axis.mcu_probe] # Check the state of each axis probe (x, y, z)
+        self.calibration_probe_inactive = any(endstop_states)
+        gcmd.respond_info("Calibration Probe: %s" % (["open", "TRIGGERED"][any(endstop_states)]))
 
 class PrinterProbeMultiAxis:
     def __init__(self, config, mcu_probe_x, mcu_probe_y, mcu_probe_z):
@@ -357,6 +372,7 @@ class ProbeEndstopWrapper:
     def __init__(self, config, axis):
         self.printer = config.get_printer()
         self.axis = axis
+        self.idex = config.has_section('dual_carriage')
         # Create an "endstop" object to handle the probe pin
         ppins = self.printer.lookup_object('pins')
         pin = config.get('pin')
@@ -369,10 +385,18 @@ class ProbeEndstopWrapper:
         # Wrappers
         self.get_mcu = self.mcu_endstop.get_mcu
         self.add_stepper = self.mcu_endstop.add_stepper
-        self.get_steppers = self.mcu_endstop.get_steppers
+        self.get_steppers = self._get_steppers
         self.home_start = self.mcu_endstop.home_start
         self.home_wait = self.mcu_endstop.home_wait
         self.query_endstop = self.mcu_endstop.query_endstop
+
+    def _get_steppers(self):
+        if self.idex and self.axis == 'x':
+            dual_carriage = self.printer.lookup_object('dual_carriage')
+            prime_rail = dual_carriage.get_primary_rail()
+            return prime_rail.get_rail().get_steppers()
+        else:
+            return self.mcu_endstop.get_steppers()
 
     def _handle_mcu_identify(self):
         kin = self.printer.lookup_object('toolhead').get_kinematics()

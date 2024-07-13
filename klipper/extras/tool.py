@@ -21,6 +21,10 @@ class Tool:
             config, 'pickup_gcode', self._config_get(config, 'pickup_gcode', ''))
         self.dropoff_gcode = self.gcode_macro.load_template(
             config, 'dropoff_gcode', self._config_get(config, 'dropoff_gcode', ''))
+        self.before_change_gcode = self.gcode_macro.load_template(
+            config, 'before_change_gcode', self._config_get(config, 'before_change_gcode', ''))
+        self.after_change_gcode = self.gcode_macro.load_template(
+            config, 'after_change_gcode', self._config_get(config, 'after_change_gcode', ''))
         self.gcode_x_offset = self._config_getfloat(
             config, 'gcode_x_offset', 0.0)
         self.gcode_y_offset = self._config_getfloat(

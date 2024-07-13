@@ -41,9 +41,9 @@ class Toolchanger:
                                                   home_options, 'abort')
         self.initialize_gcode = self.gcode_macro.load_template(
             config, 'initialize_gcode', '')
-        self.before_change_gcode = self.gcode_macro.load_template(
+        self.default_before_change_gcode = self.gcode_macro.load_template(
             config, 'before_change_gcode', '')
-        self.after_change_gcode = self.gcode_macro.load_template(
+        self.default_after_change_gcode = self.gcode_macro.load_template(
             config, 'after_change_gcode', '')
 
         # Read all the fields that might be defined on toolchanger.
@@ -231,13 +231,18 @@ class Toolchanger:
         # to set active tool without performing a full change
         should_run_initialize = self.status != STATUS_INITIALIZING
 
+        extra_context = {
+            'dropoff_tool': None,
+            'pickup_tool': select_tool.name if select_tool else None,
+        }
+
         if should_run_initialize:
             self.status = STATUS_INITIALIZING
-            self.run_gcode('initialize_gcode', self.initialize_gcode, {})
+            self.run_gcode('initialize_gcode', self.initialize_gcode, extra_context)
 
         if select_tool:
             self._configure_toolhead_for_tool(select_tool)
-            self.run_gcode('after_change_gcode', self.after_change_gcode, {})
+            self.run_gcode('after_change_gcode', select_tool.after_change_gcode, extra_context)
             self._set_tool_gcode_offset(select_tool, 0.0)
 
         if should_run_initialize:
@@ -280,8 +285,8 @@ class Toolchanger:
         self.gcode.run_script_from_command(
             "SAVE_GCODE_STATE NAME=_toolchange_state")
 
-        self.run_gcode('before_change_gcode',
-                       self.before_change_gcode, extra_context)
+        before_change_gcode = self.active_tool.before_change_gcode if self.active_tool else self.default_before_change_gcode
+        self.run_gcode('before_change_gcode', before_change_gcode, extra_context)
         self.gcode.run_script_from_command("SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0")
 
         if self.active_tool:
@@ -293,7 +298,7 @@ class Toolchanger:
             self.run_gcode('tool.pickup_gcode',
                            tool.pickup_gcode, extra_context)
             self.run_gcode('after_change_gcode',
-                           self.after_change_gcode, extra_context)
+                           tool.after_change_gcode, extra_context)
 
         self._restore_axis(gcode_position, restore_axis, tool)
 
@@ -396,7 +401,7 @@ class Toolchanger:
         pos = self._position_with_tool_offset(position, axis, tool)
         self.gcode_move.cmd_G1(self.gcode.create_gcode_command("G0", "G0", pos))
 
-    def run_gcode(self, name, template, extra_context={}):
+    def run_gcode(self, name, template, extra_context):
         current_status = self.status
         curtime = self.printer.get_reactor().monotonic()
         try:
