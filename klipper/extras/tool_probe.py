@@ -66,6 +66,8 @@ class ProbeSessionHelper:
                                                  minval=0.)
         self.samples_retries = config.getint('samples_tolerance_retries', 0,
                                              minval=0)
+        # Settling sample support
+        self.settling_sample = config.getboolean('settling_sample', False)
         # Session state
         self.multi_probe_pending = False
         self.results = []
@@ -94,6 +96,15 @@ class ProbeSessionHelper:
         self.results = []
         self.multi_probe_pending = False
         self.mcu_probe.multi_probe_end()
+    def _run_settling_probe(self, gcmd):
+        """Perform a settling probe before the main probe."""
+        toolhead = self.printer.lookup_object('toolhead')        
+        probexy = toolhead.get_position()[:2]
+        speed = gcmd.get_float("SETTLING_SPEED", self.speed, above=0.)
+        pos = self._probe(speed)
+        # Retract after settling
+        toolhead.manual_move(probexy + [pos[2] + self.sample_retract_dist], self.lift_speed)
+        gcmd.respond_info("Sample throwed")
     def get_probe_params(self, gcmd=None):
         if gcmd is None:
             gcmd = self.dummy_gcode_cmd
@@ -139,6 +150,8 @@ class ProbeSessionHelper:
         if not self.multi_probe_pending:
             self._probe_state_error()
         params = self.get_probe_params(gcmd)
+        if self.settling_sample:
+            self._run_settling_probe(gcmd)
         toolhead = self.printer.lookup_object('toolhead')
         probexy = toolhead.get_position()[:2]
         retries = 0
