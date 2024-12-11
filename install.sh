@@ -73,6 +73,29 @@ function link_extension {
     echo
 }
 
+function remove_links {
+    echo -n "[UNINSTALL] Remove old links..."
+    for path in "${KLIPPER_PATH}"/klippy/extras/ "${CONFIG_PATH}"/; do
+        for file in $(find "${path}" -type l); do
+            if readlink -f "${file}" | grep -q "${INSTALL_PATH}"; then
+                if ! rm ${file}; then
+                    echo " failed!"
+                    exit -1
+                fi
+            fi
+        done
+    done
+    echo " complete!"
+
+    if [ -f "${SERVICE}" ]; then
+        echo -n "[UNINSTALL] Service..."
+        sudo rm "${SERVICE}"
+        echo " complete!"
+    fi
+
+    echo
+}
+
 function link_macros {
     echo -n "[INSTALL] Linking macros to Klipper..."
     for file in "${INSTALL_PATH}"/macros/*.cfg; do
