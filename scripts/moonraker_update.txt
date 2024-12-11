@@ -1,0 +1,7 @@
+[update_manager ToolChanger]
+type: git_repo
+path: ~/klipper-toolchanger
+origin: https://github.com/DraftShift/klipper-toolchanger.git
+primary_branch: main
+is_system_service: True
+managed_services: ToolChanger

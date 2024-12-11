@@ -43,7 +43,7 @@ function check_download {
     if [ $doclone -gt 0 ]; then
         echo -n "[DOWNLOAD] Clone repository..."
         if git -C $installdirname clone -b ${BRANCH} https://github.com/${REPO} $installbasename; then
-            chmod +x ${INSTALL_PATH}/install.sh
+            chmod +x ${INSTALL_PATH}/scripts/install.sh
             echo " complete!"
         else
             echo " failed!"
@@ -97,7 +97,7 @@ function remove_links {
 function link_macros {
     echo -n "[INSTALL] Link macros to Klipper..."
     for file in "${INSTALL_PATH}"/macros/*.cfg; do
-        if ! ln -sfn ${file} "${CONFIG_PATH}"/; then
+        if ! ln -sfn ${file} "${CONFIG_PATH}"/tc_config/; then
             echo " failed!"
             exit -1
         fi
