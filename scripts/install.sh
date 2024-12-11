@@ -97,6 +97,9 @@ function remove_links {
 function link_macros {
     echo -n "[INSTALL] Link macros to Klipper..."
     for file in "${INSTALL_PATH}"/macros/*.cfg; do
+        if [ ! -d "${CONFIG_PATH}"/tc_config ]; then
+            mkdir "${CONFIG_PATH}"/tc_config
+        fi
         if ! ln -sfn ${file} "${CONFIG_PATH}"/tc_config/; then
             echo " failed!"
             exit -1
