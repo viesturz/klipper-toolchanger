@@ -138,12 +138,12 @@ function add_updater {
         return
     fi
 
-    if [ "$(grep -c "$(head -n1 "${INSTALL_PATH}"/scripts/moonraker_update.txt | sed -e 's/\[/\\\[/' -e 's/\]/\\\]/')" "${CONFIG_PATH}"/moonraker.conf || true)" -eq 0 ]; then
+    if [ "$(grep -c "$(head -n1 "${INSTALL_PATH}"/scripts/moonraker_update.cfg | sed -e 's/\[/\\\[/' -e 's/\]/\\\]/')" "${CONFIG_PATH}"/moonraker.conf || true)" -eq 0 ]; then
         echo -n "[INSTALL] Add update manager to moonraker.conf..."
         echo -e "\n" >> "${CONFIG_PATH}"/moonraker.conf
         while read -r line; do
             echo -e "${line}" >> "${CONFIG_PATH}"/moonraker.conf
-        done < "${INSTALL_PATH}"/scripts/moonraker_update.txt
+        done < "${INSTALL_PATH}"/scripts/moonraker_update.cfg
         echo -e "\n" >> "${CONFIG_PATH}"/moonraker.conf
         echo " complete!"
         sudo systemctl restart moonraker
