@@ -216,7 +216,7 @@ remove_links
 if [ $doinstall -gt 0 ]; then
     link_extension
     link_macros
-    copy_examples
+    # copy_examples
     add_updater
     install_service
     check_includes
