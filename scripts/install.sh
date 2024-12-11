@@ -223,7 +223,7 @@ if [ $doinstall -gt 0 ]; then
     link_extension
     link_macros
     # copy_examples
-    add_updater
+    # add_updater
     install_service
     check_includes
     if [ $withklipper -gt 0 ]; then
