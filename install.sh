@@ -3,6 +3,9 @@
 KLIPPER_PATH="${HOME}/klipper"
 INSTALL_PATH="${HOME}/klipper-toolchanger"
 
+CONFIG_PATH="${HOME}/printer_data/config"
+REPO="VIN-y/klipper-toolchanger.git"
+
 set -eu
 export LC_ALL=C
 
@@ -25,18 +28,38 @@ function check_download {
     installdirname="$(dirname ${INSTALL_PATH})"
     installbasename="$(basename ${INSTALL_PATH})"
 
+    doclone=0
     if [ ! -d "${INSTALL_PATH}" ]; then
-        echo "[DOWNLOAD] Downloading repository..."
-        if git -C $installdirname clone https://github.com/VIN-y/klipper-toolchanger.git $installbasename; then
-            chmod +x ${INSTALL_PATH}/install.sh
-            printf "[DOWNLOAD] Download complete!\n\n"
+        doclone=1
+    else
+        if [[ "$(cd "${INSTALL_PATH}" && git remote get-url origin)" != *"${REPO}"* ]]; then
+            echo "[DOWNLOAD] Incorrect repository found in ${INSTALL_PATH}, remove and rerun install!"
+            echo " -> rm -rf \"${INSTALL_PATH}\""
+            exit -1
+        fi
+    fi
+
+    if [ $doclone -gt 0 ]; then
+        echo -n "[DOWNLOAD] Cloning repository..."
+        if git -C $installdirname clone https://github.com/${REPO} $installbasename; then
+            chmod +x ${INSTALL_PATH}/scripts/install.sh
+            echo " complete!"
         else
-            echo "[ERROR] Download of git repository failed!"
+            echo " failed!"
             exit -1
         fi
     else
-        printf "[DOWNLOAD] repository already found locally. Continuing...\n\n"
+        echo "[DOWNLOAD] repository already found locally. [UPDATING]"
+        pushd "${INSTALL_PATH}"
+        if ! git pull > /dev/null; then
+            popd
+            echo "Repo dirty, remove and rerun install by running the following command!"
+            echo "\trm -rf \"${INSTALL_PATH}\""
+            exit -1
+        fi
+        popd
     fi
+    echo
 }
 
 function link_extension {
@@ -56,5 +79,5 @@ printf "======================================\n\n"
 # Run steps
 preflight_checks
 check_download
-link_extension
+# link_extension
 restart_klipper
