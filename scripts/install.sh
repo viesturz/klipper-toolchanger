@@ -54,8 +54,10 @@ function check_download {
         pushd "${INSTALL_PATH}"
         if ! git pull > /dev/null; then
             popd
-            echo "Repo dirty, remove and rerun install by running the following command!"
-            echo "\trm -rf \"${INSTALL_PATH}\""
+            echo "Repo dirty, remove before rerun install"
+            echo "by running the following command:"
+            echo "    rm -rf \"${INSTALL_PATH}\""
+            echo
             exit -1
         fi
         popd
@@ -96,11 +98,11 @@ function remove_links {
 
 function link_macros {
     echo -n "[INSTALL] Link macros to Klipper..."
+    if [ ! -d "${CONFIG_PATH}"/toolchanger_link ]; then
+        mkdir "${CONFIG_PATH}"/toolchanger_link
+    fi
     for file in "${INSTALL_PATH}"/macros/*.cfg; do
-        if [ ! -d "${CONFIG_PATH}"/tc_config ]; then
-            mkdir "${CONFIG_PATH}"/tc_config
-        fi
-        if ! ln -sfn ${file} "${CONFIG_PATH}"/tc_config/; then
+        if ! ln -sfn ${file} "${CONFIG_PATH}"/toolchanger_link/; then
             echo " failed!"
             exit -1
         fi
@@ -220,9 +222,9 @@ remove_links
 if [ $doinstall -gt 0 ]; then
     link_extension
     link_macros
-    # copy_examples
-    # add_updater
-    # install_service
+    copy_examples
+    add_updater
+    install_service
     check_includes
     if [ $withklipper -gt 0 ]; then
         restart_klipper
