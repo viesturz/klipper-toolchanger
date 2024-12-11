@@ -110,16 +110,16 @@ function link_macros {
     echo " complete!"
 }
 
-function copy_examples {
-    echo -n "[INSTALL] Copy in examples to Klipper..."
-    for file in "${INSTALL_PATH}"/examples/*.cfg; do
-        if ! cp -n ${file} "${CONFIG_PATH}"/; then
-            echo " failed!"
-            exit -1
-        fi
-    done
-    echo " complete!"
-}
+# function copy_examples {
+#     echo -n "[INSTALL] Copy in examples to Klipper..."
+#     for file in "${INSTALL_PATH}"/examples/*.cfg; do
+#         if ! cp -n ${file} "${CONFIG_PATH}"/; then
+#             echo " failed!"
+#             exit -1
+#         fi
+#     done
+#     echo " complete!"
+# }
 
 function add_updater {
     if [ ! -f "${CONFIG_PATH}"/moonraker.conf ]; then
