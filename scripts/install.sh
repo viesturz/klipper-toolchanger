@@ -46,7 +46,6 @@ function check_download {
             echo " complete!"
         else
             echo " failed!"
-            echo
             exit -1
         fi
     else
@@ -57,7 +56,6 @@ function check_download {
             echo "Repo dirty, remove before rerun install"
             echo "by running the following command:"
             echo " -> rm -rf \"${INSTALL_PATH}\""
-            echo
             exit -1
         fi
         popd
@@ -97,11 +95,11 @@ function remove_links {
 
 function link_macros {
     echo -n "[INSTALL] Link macros to Klipper..."
-    if [ ! -d "${CONFIG_PATH}"/tc_default_macros ]; then
-        mkdir "${CONFIG_PATH}"/tc_default_macros
+    if [ ! -d "${CONFIG_PATH}"/misschanger_macros ]; then
+        mkdir "${CONFIG_PATH}"/misschanger_macros
     fi
     for file in "${INSTALL_PATH}"/macros/*.cfg; do
-        if ! ln -sfn ${file} "${CONFIG_PATH}"/tc_default_macros/; then
+        if ! ln -sfn ${file} "${CONFIG_PATH}"/misschanger_macros/; then
             echo " failed!"
             exit -1
         fi
@@ -112,6 +110,17 @@ function link_macros {
 function copy_examples {
     echo -n "[INSTALL] Copy in examples to Klipper..."
     for file in "${INSTALL_PATH}"/examples/*.cfg; do
+        if ! cp -n ${file} "${CONFIG_PATH}"/; then
+            echo " failed!"
+            exit -1
+        fi
+    done
+    echo " complete!"
+}
+
+function copy_settings {
+    echo -n "[INSTALL] Copy in examples to Klipper..."
+    for file in "${INSTALL_PATH}"/scripts/misschanger_settings.cfg; do
         if ! cp -n ${file} "${CONFIG_PATH}"/; then
             echo " failed!"
             exit -1
@@ -151,7 +160,6 @@ function add_updater {
 function install_service {
     if [ -f "${SERVICE}" ]; then
         echo "[INSTALL] Service already installed. [SKIPPED]"
-        echo
         return
     fi
     echo -n "[INSTALL] Install Service..."
@@ -217,6 +225,7 @@ if [ $doinstall -gt 0 ]; then
     link_extension
     link_macros
     # copy_examples
+    copy_settings
     add_updater
     install_service
     check_includes
