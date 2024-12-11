@@ -3,7 +3,7 @@
 KLIPPER_PATH="${HOME}/klipper"
 INSTALL_PATH="${HOME}/klipper-toolchanger"
 CONFIG_PATH="${HOME}/printer_data/config"
-
+SERVICE="/etc/systemd/system/ToolChanger.service"
 REPO="VIN-y/klipper-toolchanger.git"
 BRANCH="test-machine"
 
@@ -88,7 +88,6 @@ function remove_links {
         done
     done
     echo " complete!"
-
     if [ -f "${SERVICE}" ]; then
         echo -n "[UNINSTALL] Service..."
         sudo rm "${SERVICE}"
@@ -217,7 +216,7 @@ remove_links
 if [ $doinstall -gt 0 ]; then
     link_extension
     link_macros
-    # copy_examples
+    copy_examples
     add_updater
     install_service
     check_includes
