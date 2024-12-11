@@ -1,11 +1,14 @@
 #!/bin/bash
 
+# Original written by Viesturs Zarins
+# Modified by Justin F. Hallett
+# Modified by Chinh Nhan Vo, Dec 2024
+REPO="VIN-y/klipper-toolchanger.git"
+BRANCH="test-machine"
+SERVICE="/etc/systemd/system/ToolChanger.service"
 KLIPPER_PATH="${HOME}/klipper"
 INSTALL_PATH="${HOME}/klipper-toolchanger"
 CONFIG_PATH="${HOME}/printer_data/config"
-SERVICE="/etc/systemd/system/ToolChanger.service"
-REPO="VIN-y/klipper-toolchanger.git"
-BRANCH="test-machine"
 
 set -eu
 export LC_ALL=C
@@ -107,16 +110,16 @@ function link_macros {
     echo " complete!"
 }
 
-function copy_examples {
-    echo -n "[INSTALL] Copy in examples to Klipper..."
-    for file in "${INSTALL_PATH}"/examples/*.cfg; do
-        if ! cp -n ${file} "${CONFIG_PATH}"/; then
-            echo " failed!"
-            exit -1
-        fi
-    done
-    echo " complete!"
-}
+# function copy_examples {
+#     echo -n "[INSTALL] Copy in examples to Klipper..."
+#     for file in "${INSTALL_PATH}"/examples/*.cfg; do
+#         if ! cp -n ${file} "${CONFIG_PATH}"/; then
+#             echo " failed!"
+#             exit -1
+#         fi
+#     done
+#     echo " complete!"
+# }
 
 function copy_settings {
     echo -n "[INSTALL] Copy in examples to Klipper..."
@@ -222,13 +225,13 @@ fi
 remove_links
 
 if [ $doinstall -gt 0 ]; then
-    link_extension
-    link_macros
-    # copy_examples
-    copy_settings
-    add_updater
-    install_service
-    check_includes
+    # link_extension
+    # link_macros
+    # # copy_examples
+    # copy_settings
+    # add_updater
+    # install_service
+    # check_includes
     if [ $withklipper -gt 0 ]; then
         restart_klipper
     fi
