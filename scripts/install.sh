@@ -15,7 +15,6 @@ function preflight_checks {
         echo "[PRE-CHECK] This script must not be run as root!"
         exit -1
     fi
-
     if [ "$(sudo systemctl list-units --full -all -t service --no-legend | grep -F 'klipper.service')" ]; then
         printf "[PRE-CHECK] Klipper service found! Continuing...\n\n"
     else
@@ -47,6 +46,7 @@ function check_download {
             echo " complete!"
         else
             echo " failed!"
+            echo
             exit -1
         fi
     else
@@ -56,7 +56,7 @@ function check_download {
             popd
             echo "Repo dirty, remove before rerun install"
             echo "by running the following command:"
-            echo "    rm -rf \"${INSTALL_PATH}\""
+            echo " -> rm -rf \"${INSTALL_PATH}\""
             echo
             exit -1
         fi
@@ -89,20 +89,20 @@ function remove_links {
     done
     echo " complete!"
 
-    # if [ -f "${SERVICE}" ]; then
-    #     echo -n "[UNINSTALL] Service..."
-    #     sudo rm "${SERVICE}"
-    #     echo " complete!"
-    # fi
+    if [ -f "${SERVICE}" ]; then
+        echo -n "[UNINSTALL] Service..."
+        sudo rm "${SERVICE}"
+        echo " complete!"
+    fi
 }
 
 function link_macros {
     echo -n "[INSTALL] Link macros to Klipper..."
-    if [ ! -d "${CONFIG_PATH}"/toolchanger_link ]; then
-        mkdir "${CONFIG_PATH}"/toolchanger_link
+    if [ ! -d "${CONFIG_PATH}"/tc_default_macros ]; then
+        mkdir "${CONFIG_PATH}"/tc_default_macros
     fi
     for file in "${INSTALL_PATH}"/macros/*.cfg; do
-        if ! ln -sfn ${file} "${CONFIG_PATH}"/toolchanger_link/; then
+        if ! ln -sfn ${file} "${CONFIG_PATH}"/tc_default_macros/; then
             echo " failed!"
             exit -1
         fi
@@ -110,16 +110,16 @@ function link_macros {
     echo " complete!"
 }
 
-# function copy_examples {
-#     echo -n "[INSTALL] Copy in examples to Klipper..."
-#     for file in "${INSTALL_PATH}"/examples/*.cfg; do
-#         if ! cp -n ${file} "${CONFIG_PATH}"/; then
-#             echo " failed!"
-#             exit -1
-#         fi
-#     done
-#     echo " complete!"
-# }
+function copy_examples {
+    echo -n "[INSTALL] Copy in examples to Klipper..."
+    for file in "${INSTALL_PATH}"/examples/*.cfg; do
+        if ! cp -n ${file} "${CONFIG_PATH}"/; then
+            echo " failed!"
+            exit -1
+        fi
+    done
+    echo " complete!"
+}
 
 function add_updater {
     if [ ! -f "${CONFIG_PATH}"/moonraker.conf ]; then
@@ -155,15 +155,10 @@ function install_service {
         echo
         return
     fi
-
     echo -n "[INSTALL] Install Service..."
-
     S=$(<"${INSTALL_PATH}"/scripts/ToolChanger.service)
-
     S=$(sed "s/TC_USER/$(whoami)/g" <<< $S)
-
     echo "$S" | sudo tee "${SERVICE}" > /dev/null
-
     echo " complete!"
 }
 
@@ -222,9 +217,9 @@ remove_links
 if [ $doinstall -gt 0 ]; then
     link_extension
     link_macros
-    # copy_examples
-    # add_updater
-    install_service
+    copy_examples
+    add_updater
+    # install_service
     check_includes
     if [ $withklipper -gt 0 ]; then
         restart_klipper
