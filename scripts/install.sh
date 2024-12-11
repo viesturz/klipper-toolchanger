@@ -88,9 +88,9 @@ function remove_links {
         done
     done
     echo " complete!"
-    if [ -f "${SERVICE}" ]; then
+    if [ -f ${SERVICE} ]; then
         echo -n "[UNINSTALL] Service..."
-        sudo rm "${SERVICE}"
+        sudo rm ${SERVICE}
         echo " complete!"
     fi
 }
