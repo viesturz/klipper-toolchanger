@@ -123,12 +123,12 @@ function link_macros {
 
 function copy_settings {
     echo -n "[INSTALL] Copy in examples to Klipper..."
-    for file in "${INSTALL_PATH}"/scripts/misschanger_settings.cfg; do
-        if ! cp -n ${file} "${CONFIG_PATH}"/; then
+    if [ ! -d "${INSTALL_PATH}"/scripts/misschanger_settings.cfg ]; then
+        if ! cp -n "${INSTALL_PATH}"/scripts/misschanger_settings.cfg "${CONFIG_PATH}"/; then
             echo " failed!"
             exit -1
         fi
-    done
+    fi
     echo " complete!"
 }
 
