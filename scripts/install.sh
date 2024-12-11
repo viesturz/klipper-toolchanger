@@ -225,13 +225,13 @@ fi
 remove_links
 
 if [ $doinstall -gt 0 ]; then
-    # link_extension
-    # link_macros
-    # # copy_examples
-    # copy_settings
-    # add_updater
+    link_extension
+    link_macros
+    # copy_examples
+    copy_settings
+    add_updater
     # install_service
-    # check_includes
+    check_includes
     if [ $withklipper -gt 0 ]; then
         restart_klipper
     fi
