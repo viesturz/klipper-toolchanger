@@ -2,9 +2,10 @@
 
 KLIPPER_PATH="${HOME}/klipper"
 INSTALL_PATH="${HOME}/klipper-toolchanger"
-
 CONFIG_PATH="${HOME}/printer_data/config"
+
 REPO="VIN-y/klipper-toolchanger.git"
+BRANCH="test-machine"
 
 set -eu
 export LC_ALL=C
@@ -40,8 +41,8 @@ function check_download {
     fi
 
     if [ $doclone -gt 0 ]; then
-        echo -n "[DOWNLOAD] Cloning repository..."
-        if git -C $installdirname clone https://github.com/${REPO} $installbasename; then
+        echo -n "[DOWNLOAD] Clone repository..."
+        if git -C $installdirname clone -b ${BRANCH} https://github.com/${REPO} $installbasename; then
             chmod +x ${INSTALL_PATH}/install.sh
             echo " complete!"
         else
@@ -49,7 +50,7 @@ function check_download {
             exit -1
         fi
     else
-        echo "[DOWNLOAD] repository already found locally. [UPDATING]"
+        echo "[DOWNLOAD] Repository already found locally. [UPDATING]"
         pushd "${INSTALL_PATH}"
         if ! git pull > /dev/null; then
             popd
@@ -62,7 +63,7 @@ function check_download {
 }
 
 function link_extension {
-    echo -n "[INSTALL] Linking extension to Klipper..."
+    echo -n "[INSTALL] Link extension to Klipper..."
     for file in "${INSTALL_PATH}"/klipper/extras/*.py; do
         if ! ln -sfn ${file} "${KLIPPER_PATH}"/klippy/extras/; then
             echo " failed!"
@@ -70,7 +71,6 @@ function link_extension {
         fi
     done
     echo " complete!"
-    echo
 }
 
 function remove_links {
@@ -87,17 +87,15 @@ function remove_links {
     done
     echo " complete!"
 
-    if [ -f "${SERVICE}" ]; then
-        echo -n "[UNINSTALL] Service..."
-        sudo rm "${SERVICE}"
-        echo " complete!"
-    fi
-
-    echo
+    # if [ -f "${SERVICE}" ]; then
+    #     echo -n "[UNINSTALL] Service..."
+    #     sudo rm "${SERVICE}"
+    #     echo " complete!"
+    # fi
 }
 
 function link_macros {
-    echo -n "[INSTALL] Linking macros to Klipper..."
+    echo -n "[INSTALL] Link macros to Klipper..."
     for file in "${INSTALL_PATH}"/macros/*.cfg; do
         if ! ln -sfn ${file} "${CONFIG_PATH}"/; then
             echo " failed!"
@@ -105,11 +103,10 @@ function link_macros {
         fi
     done
     echo " complete!"
-    echo
 }
 
 function copy_examples {
-    echo -n "[INSTALL] Copying in examples to Klipper..."
+    echo -n "[INSTALL] Copy in examples to Klipper..."
     for file in "${INSTALL_PATH}"/examples/*.cfg; do
         if ! cp -n ${file} "${CONFIG_PATH}"/; then
             echo " failed!"
@@ -117,18 +114,16 @@ function copy_examples {
         fi
     done
     echo " complete!"
-    echo
 }
 
 function add_updater {
     if [ ! -f "${CONFIG_PATH}"/moonraker.conf ]; then
         echo "[INSTALL] No moonraker config found."
-        echo
         return
     fi
 
     if [ "$(grep -c "$(head -n1 "${INSTALL_PATH}"/scripts/moonraker_update.txt | sed -e 's/\[/\\\[/' -e 's/\]/\\\]/')" "${CONFIG_PATH}"/moonraker.conf || true)" -eq 0 ]; then
-        echo -n "[INSTALL] Adding update manager to moonraker.conf..."
+        echo -n "[INSTALL] Add update manager to moonraker.conf..."
         echo -e "\n" >> "${CONFIG_PATH}"/moonraker.conf
         while read -r line; do
             echo -e "${line}" >> "${CONFIG_PATH}"/moonraker.conf
@@ -141,13 +136,12 @@ function add_updater {
     fi
 
     if ! grep ToolChanger "${CONFIG_PATH}"/../moonraker.asvc; then
-        echo -n "[INSTALL] Adding update manager to moonraker.conf..."
+        echo -n "[INSTALL] Add update manager to moonraker.conf..."
         echo -e "\nToolChanger" >> "${CONFIG_PATH}"/../moonraker.asvc
         echo " complete!"
     else
         echo "[INSTALL] ToolChanger service authorized in moonraker. [SKIPPED]"
     fi
-    echo
 }
 
 function install_service {
@@ -157,7 +151,7 @@ function install_service {
         return
     fi
 
-    echo -n "[INSTALL] Installing Service..."
+    echo -n "[INSTALL] Install Service..."
 
     S=$(<"${INSTALL_PATH}"/scripts/ToolChanger.service)
 
@@ -166,11 +160,10 @@ function install_service {
     echo "$S" | sudo tee "${SERVICE}" > /dev/null
 
     echo " complete!"
-    echo
 }
 
 function check_includes {
-    echo -n "[CHECK-INSTALL] Checking for missing includes..."
+    echo -n "[CHECK-INSTALL] Check for missing includes..."
     found=0
     for file in "${INSTALL_PATH}"/macros/*.cfg; do
         filename=$(basename ${file});
@@ -185,17 +178,15 @@ function check_includes {
     if [ $found -lt 1 ]; then
         echo " complete!"
     fi
-    echo
 }
 
 function restart_klipper {
-    echo -n "[POST-INSTALL] Restarting Klipper..."
+    echo -n "[POST-INSTALL] Restart Klipper..."
     if ! sudo systemctl restart klipper; then
         echo " failed!"
         exit -1
     fi
     echo " complete!"
-    echo
 }
 
 printf "\n======================================\n"
@@ -226,7 +217,7 @@ remove_links
 if [ $doinstall -gt 0 ]; then
     link_extension
     link_macros
-    copy_examples
+    # copy_examples
     # add_updater
     # install_service
     check_includes
