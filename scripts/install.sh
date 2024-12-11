@@ -1,8 +1,11 @@
 #!/bin/bash
-
+#
 # Original written by Viesturs Zarins
 # Modified by Justin F. Hallett
 # Modified by Chinh Nhan Vo, Dec 2024
+#
+
+## Global variables -------------------------------------------------
 REPO="VIN-y/klipper-toolchanger.git"
 BRANCH="test-machine"
 SERVICE="/etc/systemd/system/ToolChanger.service"
@@ -10,6 +13,7 @@ KLIPPER_PATH="${HOME}/klipper"
 INSTALL_PATH="${HOME}/klipper-toolchanger"
 CONFIG_PATH="${HOME}/printer_data/config"
 
+### Functions -------------------------------------------------------
 set -eu
 export LC_ALL=C
 
@@ -30,7 +34,6 @@ function check_download {
     local installdirname installbasename
     installdirname="$(dirname ${INSTALL_PATH})"
     installbasename="$(basename ${INSTALL_PATH})"
-
     doclone=0
     if [ ! -d "${INSTALL_PATH}" ]; then
         doclone=1
@@ -41,7 +44,6 @@ function check_download {
             exit -1
         fi
     fi
-
     if [ $doclone -gt 0 ]; then
         echo -n "[DOWNLOAD] Clone repository..."
         if git -C $installdirname clone -b ${BRANCH} https://github.com/${REPO} $installbasename; then
@@ -110,26 +112,27 @@ function link_macros {
     echo " complete!"
 }
 
-# function copy_examples {
-#     echo -n "[INSTALL] Copy in examples to Klipper..."
-#     for file in "${INSTALL_PATH}"/examples/*.cfg; do
-#         if ! cp -n ${file} "${CONFIG_PATH}"/; then
-#             echo " failed!"
-#             exit -1
-#         fi
-#     done
-#     echo " complete!"
-# }
+function copy_examples {
+    echo -n "[INSTALL] Copy in examples to Klipper..."
+    for file in "${INSTALL_PATH}"/examples/*.cfg; do
+        if ! cp -n ${file} "${CONFIG_PATH}"/; then
+            echo " failed!"
+            exit -1
+        fi
+    done
+    echo " complete!"
+}
 
 function copy_settings {
-    echo -n "[INSTALL] Copy in examples to Klipper..."
+    echo -n "[INSTALL] Copy setting template to user's config..."
     if [ ! -d "${INSTALL_PATH}"/scripts/misschanger_settings.cfg ]; then
         if ! cp -n "${INSTALL_PATH}"/scripts/misschanger_settings.cfg "${CONFIG_PATH}"/; then
             echo " failed!"
             exit -1
         fi
+        echo " complete!"
     fi
-    echo " complete!"
+    echo " skip!"
 }
 
 function add_updater {
@@ -137,7 +140,6 @@ function add_updater {
         echo "[INSTALL] No moonraker config found."
         return
     fi
-
     if [ "$(grep -c "$(head -n1 "${INSTALL_PATH}"/scripts/moonraker_update.cfg | sed -e 's/\[/\\\[/' -e 's/\]/\\\]/')" "${CONFIG_PATH}"/moonraker.conf || true)" -eq 0 ]; then
         echo -n "[INSTALL] Add update manager to moonraker.conf..."
         echo -e "\n" >> "${CONFIG_PATH}"/moonraker.conf
@@ -150,7 +152,6 @@ function add_updater {
     else
         echo "[INSTALL] Moonraker update entry found. [SKIPPED]"
     fi
-
     if ! grep ToolChanger "${CONFIG_PATH}"/../moonraker.asvc; then
         echo -n "[INSTALL] Add update manager to moonraker.conf..."
         echo -e "\nToolChanger" >> "${CONFIG_PATH}"/../moonraker.asvc
@@ -199,10 +200,11 @@ function restart_klipper {
     echo " complete!"
 }
 
+### Run the script --------------------------------------------------
 printf "\n======================================\n"
 echo "- Klipper toolchanger install script -"
 printf "======================================\n\n"
-
+## 
 doinstall=1;
 withklipper=1;
 if [ $# -gt 0 ]; then
@@ -213,17 +215,14 @@ if [ $# -gt 0 ]; then
         withklipper=0;
     fi
 fi
-
-# Run steps
+## Run steps
 if [ $doinstall -gt 0 ]; then
     if [ $withklipper -gt 0 ]; then
         preflight_checks
     fi
     check_download
 fi
-
 remove_links
-
 if [ $doinstall -gt 0 ]; then
     link_extension
     link_macros
@@ -235,7 +234,6 @@ if [ $doinstall -gt 0 ]; then
     if [ $withklipper -gt 0 ]; then
         restart_klipper
     fi
-
     printf "======================================\n"
     echo "- If you are upgrading maybe sure to -"
     echo "- you check for changes in the user  -"
