@@ -8,7 +8,7 @@
 ## Global variables -------------------------------------------------
 REPO="VIN-y/klipper-toolchanger.git"
 BRANCH="test-machine"
-SERVICE="/etc/systemd/system/ToolChanger.service"
+MACRODIR="misschanger_macros"
 KLIPPER_PATH="${HOME}/klipper"
 INSTALL_PATH="${HOME}/klipper-toolchanger"
 CONFIG_PATH="${HOME}/printer_data/config"
@@ -100,11 +100,11 @@ function remove_links {
 
 function link_macros {
     echo -n "[INSTALL] Link macros to Klipper..."
-    if [ ! -d "${CONFIG_PATH}"/misschanger_macros ]; then
-        mkdir "${CONFIG_PATH}"/misschanger_macros
+    if [ ! -d "${CONFIG_PATH}"/${MACRODIR} ]; then
+        mkdir "${CONFIG_PATH}"/${MACRODIR}
     fi
     for file in "${INSTALL_PATH}"/macros/*.cfg; do
-        if ! ln -sfn ${file} "${CONFIG_PATH}"/misschanger_macros/; then
+        if ! ln -sfn ${file} "${CONFIG_PATH}"/${MACRODIR}/; then
             echo " failed!"
             exit -1
         fi
