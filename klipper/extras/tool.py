@@ -1,10 +1,8 @@
-# Support for toolchangers
+# Support for toolchnagers
 #
 # Copyright (C) 2023 Viesturs Zarins <viesturz@gmail.com>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-#
-# Contribution 2024 by Justin F. Hallett <thesin@southofheaven.org>
 
 from . import toolchanger
 
@@ -122,7 +120,7 @@ class Tool:
                     "SYNC_EXTRUDER_MOTION EXTRUDER='%s' MOTION_QUEUE=" % (hotend_extruder, ))
                 gcode.run_script_from_command(
                     "SYNC_EXTRUDER_MOTION EXTRUDER='%s' MOTION_QUEUE='%s'" % (self.extruder_stepper_name, hotend_extruder, ))
-        if self.fan_name[:9] == 'multi_fan':
+        if self.fan:
             gcode.run_script_from_command(
                 "ACTIVATE_FAN FAN='%s'" % (self.fan.name,))
     def deactivate(self):
