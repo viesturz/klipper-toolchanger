@@ -91,11 +91,6 @@ function remove_links {
         done
     done
     echo " complete!"
-    # if [ -f ${SERVICE} ]; then
-    #     echo -n "[UNINSTALL] Service..."
-    #     sudo rm ${SERVICE}
-    #     echo " complete!"
-    # fi
 }
 
 function link_macros {
@@ -152,26 +147,7 @@ function add_updater {
     else
         echo "[INSTALL] Moonraker update entry found. [SKIPPED]"
     fi
-    if ! grep ToolChanger "${CONFIG_PATH}"/../moonraker.asvc; then
-        echo -n "[INSTALL] Add update manager to moonraker.conf..."
-        echo -e "\nToolChanger" >> "${CONFIG_PATH}"/../moonraker.asvc
-        echo " complete!"
-    else
-        echo "[INSTALL] ToolChanger service authorized in moonraker. [SKIPPED]"
-    fi
 }
-
-# function install_service {
-#     if [ -f "${SERVICE}" ]; then
-#         echo "[INSTALL] Service already installed. [SKIPPED]"
-#         return
-#     fi
-#     echo -n "[INSTALL] Install Service..."
-#     S=$(<"${INSTALL_PATH}"/scripts/ToolChanger.service)
-#     S=$(sed "s/TC_USER/$(whoami)/g" <<< $S)
-#     echo "$S" | sudo tee "${SERVICE}" > /dev/null
-#     echo " complete!"
-# }
 
 function check_includes {
     echo -n "[CHECK-INSTALL] Check for missing includes..."
