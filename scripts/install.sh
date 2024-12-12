@@ -182,7 +182,7 @@ function check_includes {
     found=0
     for file in "${INSTALL_PATH}"/macros/*.cfg; do
         filename=$(basename ${file});
-        if ! grep -qE "^([/s|/t]+)?.include ${filename}.$" "${CONFIG_PATH}"/printer.cfg; then
+        if ! grep -qE "^([/s|/t]+)?.include ${MACRODIR}/${filename}.$" "${CONFIG_PATH}"/printer.cfg; then
             if [ $found -lt 1 ]; then
                 echo " found!"
                 found=1
