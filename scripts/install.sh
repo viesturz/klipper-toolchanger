@@ -91,6 +91,11 @@ function remove_links {
         done
     done
     echo " complete!"
+    # if [ -f ${SERVICE} ]; then
+    #     echo -n "[UNINSTALL] Service..."
+    #     sudo rm ${SERVICE}
+    #     echo " complete!"
+    # fi
 }
 
 function link_macros {
@@ -156,17 +161,17 @@ function add_updater {
     fi
 }
 
-function install_service {
-    if [ -f "${SERVICE}" ]; then
-        echo "[INSTALL] Service already installed. [SKIPPED]"
-        return
-    fi
-    echo -n "[INSTALL] Install Service..."
-    S=$(<"${INSTALL_PATH}"/scripts/ToolChanger.service)
-    S=$(sed "s/TC_USER/$(whoami)/g" <<< $S)
-    echo "$S" | sudo tee "${SERVICE}" > /dev/null
-    echo " complete!"
-}
+# function install_service {
+#     if [ -f "${SERVICE}" ]; then
+#         echo "[INSTALL] Service already installed. [SKIPPED]"
+#         return
+#     fi
+#     echo -n "[INSTALL] Install Service..."
+#     S=$(<"${INSTALL_PATH}"/scripts/ToolChanger.service)
+#     S=$(sed "s/TC_USER/$(whoami)/g" <<< $S)
+#     echo "$S" | sudo tee "${SERVICE}" > /dev/null
+#     echo " complete!"
+# }
 
 function check_includes {
     echo -n "[CHECK-INSTALL] Check for missing includes..."
