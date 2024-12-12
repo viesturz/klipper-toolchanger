@@ -9,6 +9,7 @@
 REPO="VIN-y/klipper-toolchanger.git"
 BRANCH="test-machine"
 MACRODIR="misschanger_macros"
+SERVICE="/etc/systemd/system/ToolChanger.service"
 KLIPPER_PATH="${HOME}/klipper"
 INSTALL_PATH="${HOME}/klipper-toolchanger"
 CONFIG_PATH="${HOME}/printer_data/config"
@@ -80,17 +81,16 @@ function link_extension {
 
 function remove_links {
     echo -n "[UNINSTALL] Remove old links..."
-    for path in "${KLIPPER_PATH}"/klippy/extras/ "${CONFIG_PATH}"/; do
-        for file in $(find "${path}" -type l); do
-            if readlink -f "${file}" | grep -q "${INSTALL_PATH}"; then
-                if ! rm ${file}; then
-                    echo " failed!"
-                    exit -1
-                fi
-            fi
-        done
-    done
+    if ! rm -rf ${CONFIG_PATH}/${MACRODIR}; then
+        echo " failed!"
+        exit -1
+    fi
     echo " complete!"
+    if [ -f "${SERVICE}" ]; then
+        echo -n "[UNINSTALL] Service..."
+        sudo rm "${SERVICE}"
+        echo " complete!"
+    fi
 }
 
 function link_macros {
@@ -149,6 +149,25 @@ function add_updater {
     fi
 }
 
+function install_service {
+    if [ -f "${SERVICE}" ]; then
+        echo "[INSTALL] Service already installed. [SKIPPED]"
+        echo
+        return
+    fi
+
+    echo -n "[INSTALL] Installing Service..."
+
+    S=$(<"${INSTALL_PATH}"/scripts/ToolChanger.service)
+
+    S=$(sed "s/TC_USER/$(whoami)/g" <<< $S)
+
+    echo "$S" | sudo tee "${SERVICE}" > /dev/null
+
+    echo " complete!"
+    echo
+}
+
 function check_includes {
     echo -n "[CHECK-INSTALL] Check for missing includes..."
     found=0
@@ -205,7 +224,7 @@ if [ $doinstall -gt 0 ]; then
     # copy_examples
     copy_settings
     add_updater
-    # install_service
+    install_service
     check_includes
     if [ $withklipper -gt 0 ]; then
         restart_klipper
