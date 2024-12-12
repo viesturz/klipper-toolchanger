@@ -91,11 +91,6 @@ function remove_links {
         done
     done
     echo " complete!"
-    if [ -f ${SERVICE} ]; then
-        echo -n "[UNINSTALL] Service..."
-        sudo rm ${SERVICE}
-        echo " complete!"
-    fi
 }
 
 function link_macros {
