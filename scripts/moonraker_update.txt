@@ -1,4 +1,4 @@
-[update_manager toolchanger]
+[update_manager ToolChanger]
 type: git_repo
 path: ~/klipper-toolchanger
 origin: https://github.com/VIN-y/klipper-toolchanger.git
