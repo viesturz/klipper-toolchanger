@@ -87,6 +87,7 @@ class RoundedPath:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.mm_per_arc_segment = config.getfloat('resolution', 1., above=0.0)
+        self.disable = config.getboolean('disable', False)
 
         self.gcode_move = self.printer.load_object(config, 'gcode_move')
         self.gcode = self.printer.lookup_object('gcode')
@@ -97,11 +98,14 @@ class RoundedPath:
         self.buffer = []
         self.lastg0 = []
 
-        if config.getboolean('replace_g0', False):
+        if config.getboolean('replace_g0', False) and not self.disable:
             self.gcode.register_command("G0", None)
             self.gcode.register_command("G0", self.cmd_ROUNDED_G0)
 
     def cmd_ROUNDED_G0(self, gcmd):
+        if self.disable:
+            self.real_G0(gcmd)
+            return
         d = gcmd.get_float("D", 0.0)
         if d <= 0.0 and len(self.buffer) < 2:
             self.real_G0(gcmd)
