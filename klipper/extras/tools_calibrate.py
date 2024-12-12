@@ -213,7 +213,7 @@ class PrinterProbeMultiAxis:
         self.sample_count = config.getint('samples', 1, minval=1)
         self.sample_retract_dist = config.getfloat('sample_retract_dist', 2.,
                                                    above=0.)
-        atypes = ['median', 'average']
+        atypes = {'median': 'median', 'average': 'average'}
         self.samples_result = config.getchoice('samples_result', atypes,
                                                'average')
         self.samples_tolerance = config.getfloat('samples_tolerance', 0.100,
@@ -378,7 +378,6 @@ class ProbeEndstopWrapper:
 
     def get_position_endstop(self):
         return 0.
-
 
 def load_config(config):
     return ToolsCalibrate(config)
