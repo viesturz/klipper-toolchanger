@@ -5,7 +5,7 @@
 # Modified by Chinh Nhan Vo, Dec 2024
 #
 
-## Global variables -------------------------------------------------
+## Global variables ------------------------------------------
 REPO="VIN-y/klipper-toolchanger.git"
 BRANCH="test-machine"
 MACRODIR="misschanger_macros"
@@ -14,7 +14,7 @@ KLIPPER_PATH="${HOME}/klipper"
 INSTALL_PATH="${HOME}/klipper-toolchanger"
 CONFIG_PATH="${HOME}/printer_data/config"
 
-### Functions -------------------------------------------------------
+### Functions ------------------------------------------------
 set -eu
 export LC_ALL=C
 
@@ -68,17 +68,6 @@ function check_download {
     fi
 }
 
-function link_extension {
-    echo -n "[INSTALL] Link extension to Klipper..."
-    for file in "${INSTALL_PATH}"/klipper/extras/*.py; do
-        if ! ln -sfn ${file} "${KLIPPER_PATH}"/klippy/extras/; then
-            echo " failed!"
-            exit -1
-        fi
-    done
-    echo " complete!"
-}
-
 function remove_links {
     echo -n "[UNINSTALL] Remove old links..."
     if ! rm -rf ${CONFIG_PATH}/${MACRODIR}; then
@@ -93,11 +82,24 @@ function remove_links {
     fi
 }
 
+function link_extension {
+    echo -n "[INSTALL] Link extension to Klipper..."
+    for file in "${INSTALL_PATH}"/klipper/extras/*.py; do
+        if ! ln -sfn ${file} "${KLIPPER_PATH}"/klippy/extras/; then
+            echo " failed!"
+            exit -1
+        fi
+    done
+    echo " complete!"
+}
+
 function link_macros {
     echo -n "[INSTALL] Link macros to Klipper..."
+    ## make sure macro folder exist
     if [ ! -d "${CONFIG_PATH}"/${MACRODIR} ]; then
         mkdir "${CONFIG_PATH}"/${MACRODIR}
     fi
+    ## symbolically link files into macro folder
     for file in "${INSTALL_PATH}"/macros/*.cfg; do
         if ! ln -sfn ${file} "${CONFIG_PATH}"/${MACRODIR}/; then
             echo " failed!"
@@ -108,6 +110,7 @@ function link_macros {
 }
 
 function copy_examples {
+    ## This function is current not in use for MissChanger
     echo -n "[INSTALL] Copy in examples to Klipper..."
     for file in "${INSTALL_PATH}"/examples/*.cfg; do
         if ! cp -n ${file} "${CONFIG_PATH}"/; then
@@ -126,27 +129,19 @@ function copy_settings {
             exit -1
         fi
         echo " complete!"
+    else
+        echo " skip!"
+        echo -n "    Existing user's config detected..."
     fi
-    echo " skip!"
 }
 
 function add_updater {
     if [ ! -f "${CONFIG_PATH}"/moonraker.conf ]; then
         echo "[INSTALL] No moonraker config found."
+        echo
         return
     fi
-    # if [ "$(grep -c "$(head -n1 "${INSTALL_PATH}"/scripts/moonraker_update.cfg | sed -e 's/\[/\\\[/' -e 's/\]/\\\]/')" "${CONFIG_PATH}"/moonraker.conf || true)" -eq 0 ]; then
-    #     echo -n "[INSTALL] Add update manager to moonraker.conf..."
-    #     echo -e "\n" >> "${CONFIG_PATH}"/moonraker.conf
-    #     while read -r line; do
-    #         echo -e "${line}" >> "${CONFIG_PATH}"/moonraker.conf
-    #     done < "${INSTALL_PATH}"/scripts/moonraker_update.cfg
-    #     echo -e "\n" >> "${CONFIG_PATH}"/moonraker.conf
-    #     echo " complete!"
-    #     sudo systemctl restart moonraker
-    # else
-    #     echo "[INSTALL] Moonraker update entry found. [SKIPPED]"
-    # fi
+
     if [ "$(grep -c "$(head -n1 "${INSTALL_PATH}"/scripts/moonraker_update.txt | sed -e 's/\[/\\\[/' -e 's/\]/\\\]/')" "${CONFIG_PATH}"/moonraker.conf || true)" -eq 0 ]; then
         echo -n "[INSTALL] Adding update manager to moonraker.conf..."
         echo -e "\n" >> "${CONFIG_PATH}"/moonraker.conf
@@ -159,6 +154,7 @@ function add_updater {
     else
         echo "[INSTALL] Moonraker update entry found. [SKIPPED]"
     fi
+
     if ! grep ToolChanger "${CONFIG_PATH}"/../moonraker.asvc; then
         echo -n "[INSTALL] Adding update manager to moonraker.conf..."
         echo -e "\nToolChanger" >> "${CONFIG_PATH}"/../moonraker.asvc
@@ -166,25 +162,19 @@ function add_updater {
     else
         echo "[INSTALL] ToolChanger service authorized in moonraker. [SKIPPED]"
     fi
+    echo
 }
 
 function install_service {
     if [ -f "${SERVICE}" ]; then
         echo "[INSTALL] Service already installed. [SKIPPED]"
-        echo
         return
     fi
-
-    echo -n "[INSTALL] Installing Service..."
-
+    echo -n "[INSTALL] Install Service..."
     S=$(<"${INSTALL_PATH}"/scripts/ToolChanger.service)
-
     S=$(sed "s/TC_USER/$(whoami)/g" <<< $S)
-
     echo "$S" | sudo tee "${SERVICE}" > /dev/null
-
     echo " complete!"
-    echo
 }
 
 function check_includes {
@@ -197,7 +187,7 @@ function check_includes {
                 echo " found!"
                 found=1
             fi
-            echo " - Missing [include ${filename}] in printer.cfg"
+            echo " - Missing [include ${MACRODIR}/${filename}] in printer.cfg"
         fi
     done
     if [ $found -lt 1 ]; then
@@ -214,13 +204,14 @@ function restart_klipper {
     echo " complete!"
 }
 
-### Run the script --------------------------------------------------
+### Run the script -------------------------------------------
 printf "\n======================================\n"
 echo "- Klipper toolchanger install script -"
 printf "======================================\n\n"
-## 
+## Variables
 doinstall=1;
 withklipper=1;
+## Runtime flags
 if [ $# -gt 0 ]; then
     if [ "$1" == "uninstall" ]; then
         doinstall=0;
@@ -230,14 +221,14 @@ if [ $# -gt 0 ]; then
     fi
 fi
 ## Run steps
-if [ $doinstall -gt 0 ]; then
-    if [ $withklipper -gt 0 ]; then
+if [ $doinstall -gt 0 ]; then            # if the is 'uninstall' flag
+    if [ $withklipper -gt 0 ]; then      # if the is 'skipklipper' flag
         preflight_checks
     fi
     check_download
 fi
 remove_links
-if [ $doinstall -gt 0 ]; then
+if [ $doinstall -gt 0 ]; then            # if the is 'uninstall' flag
     link_extension
     link_macros
     # copy_examples
@@ -245,7 +236,7 @@ if [ $doinstall -gt 0 ]; then
     add_updater
     install_service
     check_includes
-    if [ $withklipper -gt 0 ]; then
+    if [ $withklipper -gt 0 ]; then      # if the is 'skipklipper' flag
         restart_klipper
     fi
     printf "======================================\n"
