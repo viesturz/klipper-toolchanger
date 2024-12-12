@@ -159,6 +159,13 @@ function add_updater {
     else
         echo "[INSTALL] Moonraker update entry found. [SKIPPED]"
     fi
+    if ! grep ToolChanger "${CONFIG_PATH}"/../moonraker.asvc; then
+        echo -n "[INSTALL] Adding update manager to moonraker.conf..."
+        echo -e "\nToolChanger" >> "${CONFIG_PATH}"/../moonraker.asvc
+        echo " complete!"
+    else
+        echo "[INSTALL] ToolChanger service authorized in moonraker. [SKIPPED]"
+    fi
 }
 
 function install_service {
