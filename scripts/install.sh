@@ -181,8 +181,8 @@ function check_includes {
     echo -n "[CHECK-INSTALL] Check for missing includes..."
     found=0
     for file in "${INSTALL_PATH}"/macros/*.cfg; do
-        filename=$(basename ${file});
-        if ! grep -qE "^([/s|/t]+)?.include $.${filename}.$" "${CONFIG_PATH}"/printer.cfg; then
+        filename="${MACRODIR}/$(basename ${file})";
+        if ! grep -qE "^([/s|/t]+)?.include ${filename}.$" "${CONFIG_PATH}"/printer.cfg; then
             if [ $found -lt 1 ]; then
                 echo " found!"
                 found=1
