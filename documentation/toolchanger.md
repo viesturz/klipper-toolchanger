@@ -41,6 +41,8 @@ and will provide a default value for all of its tools.
 
 ```
 [toolchanger]
+# t_command_restore_axis: XYZ
+   # Which axis to restore with the T<n> command, see SELECT_TOOL for command for more info.    
 # save_current_tool: false
   #  If set, saves currently selected tool and makes it available for 
   # initialize gcode.
