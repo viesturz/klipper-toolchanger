@@ -1,3 +1,7 @@
+# Copyright (C) 2024 Chinh Nhan Vo <nhanvo29@proton.me>
+#
+# This file may be distributed under the terms of the GNU GPLv3 license.
+#
 import os
 import logging
 
@@ -19,7 +23,7 @@ class ConfigSwitch:
         ## Variables
         home_dir = os.path.expanduser("~")
         destination = ""
-        record = False
+        record = False      # Indicator for starting config recording
 
         printer_config = os.path.join(home_dir, "printer_data/config/printer.cfg")
         config_dir = os.path.join(home_dir, "printer_data/config/config")
@@ -40,7 +44,7 @@ class ConfigSwitch:
                     elif "False" in line.strip():
                         destination = config_no_dock
                     else:
-                        raise gcmd.error("[variable_dock: ] must be 'True' or 'False'")
+                        raise gcmd.error("[variable_dock] must be 'True' or 'False'")
         
         ## Save session variables
         with open(printer_config) as file:
@@ -87,7 +91,7 @@ class ConfigSwitch:
                     elif "False" in line.strip():
                         source = config_wt_dock
                     else:
-                        raise gcmd.error("[variable_dock: ] must be 'True' or 'False'")
+                        raise gcmd.error("[variable_dock] must be 'True' or 'False'")
         
         ## Compile new printer.cfg in printer.temp
         if source != "":
@@ -127,7 +131,7 @@ class ConfigSwitch:
                     self.gcode.respond_info("Remove config/printer.temp ...")
                     os.remove(config_temp)
             else:
-                raise gcmd.error("Missing file:\n" + source)
+                raise gcmd.error("Missing file: [" + source + "]")
 
 
 def load_config(config):
