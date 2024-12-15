@@ -86,7 +86,7 @@ class ToolsCalibrate:
     def locate_sensor(self, gcmd):
         toolhead = self.printer.lookup_object('toolhead')
         position = toolhead.get_position()
-        downPos = self.probe_multi_axis.run_probe("z-", gcmd, samples=1, max_distance=20.0)
+        downPos = self.probe_multi_axis.run_probe("z-", gcmd, samples=1, max_distance=self.max_z_locate)
         center_x, center_y = self.calibrate_xy(toolhead, downPos, gcmd,
                                                samples=1)
 
