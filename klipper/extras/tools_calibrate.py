@@ -42,7 +42,6 @@ class ToolsCalibrate:
         self.last_result = [0., 0., 0.]
         self.last_probe_offset = 0.
         self.calibration_probe_inactive = True
-        self.max_z_locate = config.getfloat('max_z_locate', 20.0)
 
         # Register commands
         self.gcode = self.printer.lookup_object('gcode')
@@ -86,7 +85,7 @@ class ToolsCalibrate:
     def locate_sensor(self, gcmd):
         toolhead = self.printer.lookup_object('toolhead')
         position = toolhead.get_position()
-        downPos = self.probe_multi_axis.run_probe("z-", gcmd, samples=1, max_distance=self.max_z_locate)
+        downPos = self.probe_multi_axis.run_probe("z-", gcmd, samples=1)
         center_x, center_y = self.calibrate_xy(toolhead, downPos, gcmd,
                                                samples=1)
 
