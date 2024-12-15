@@ -42,7 +42,7 @@ class ToolsCalibrate:
         self.last_result = [0., 0., 0.]
         self.last_probe_offset = 0.
         self.calibration_probe_inactive = True
-        self.max_z_locate = config.getfloat('max_z_locate', 20.0)
+        self.max_z_locate = 20.0
 
         # Register commands
         self.gcode = self.printer.lookup_object('gcode')
