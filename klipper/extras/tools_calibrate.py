@@ -289,7 +289,7 @@ class PrinterProbeMultiAxis:
         return self._calc_mean(axis_sorted[middle - 1:middle + 1])
 
     def run_probe(self, direction, gcmd, speed_ratio=1.0, samples=None,
-                  max_distance=20.0):
+                  max_distance=100.0):
         speed = gcmd.get_float("PROBE_SPEED", self.speed,
                                above=0.) * speed_ratio
         if direction not in direction_types:
