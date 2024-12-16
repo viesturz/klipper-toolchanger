@@ -306,13 +306,15 @@ class Toolchanger:
                 gcode_position, 'xyz', tool)
         }
 
+        self.gcode.run_script_from_command("SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0")
+
         self.gcode.run_script_from_command(
             "SAVE_GCODE_STATE NAME=_toolchange_state")
 
         if not force_pickup:
            before_change_gcode = self.active_tool.before_change_gcode if self.active_tool and self.active_tool.before_change_gcode else self.default_before_change_gcode
            self.run_gcode('before_change_gcode', before_change_gcode, extra_context)
-        self.gcode.run_script_from_command("SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0")
+        # self.gcode.run_script_from_command("SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0")
 
         if not force_pickup and self.active_tool:
            self.run_gcode('tool.dropoff_gcode',
