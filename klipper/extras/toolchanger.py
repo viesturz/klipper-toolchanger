@@ -295,7 +295,7 @@ class Toolchanger:
         self.status = STATUS_CHANGING
         toolhead_position = self.gcode_move.get_status()['position']
 
-        self.gcode.run_script_from_command("SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0")
+        self.gcode.run_script_from_command("SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0 MOVE=1")
 
         gcode_position = self.gcode_move.get_status()['gcode_position']
         extra_z_offset = toolhead_position[2] - gcode_position[2] - self.active_tool.gcode_z_offset if self.active_tool else 0.0
