@@ -311,7 +311,7 @@ class Toolchanger:
 
         if not force_pickup:
            before_change_gcode = self.active_tool.before_change_gcode if self.active_tool and self.active_tool.before_change_gcode else self.default_before_change_gcode
-           self.run_gcode('before_change_gcode', before_change_gcode, extra_context)     
+           self.run_gcode('before_change_gcode', before_change_gcode, extra_context)
         self.gcode.run_script_from_command("SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0")
 
         if not force_pickup and self.active_tool:
