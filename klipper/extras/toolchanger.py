@@ -5,6 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 import ast, bisect
+from unittest.mock import sentinel
 
 STATUS_UNINITALIZED = 'uninitialized'
 STATUS_INITIALIZING = 'initializing'
@@ -18,7 +19,9 @@ ON_AXIS_NOT_HOMED_ABORT = 0
 ON_AXIS_NOT_HOMED_HOME = 1
 XYZ_TO_INDEX = {'x': 0, 'X': 0, 'y': 1, 'Y': 1, 'z': 2, 'Z': 2}
 INDEX_TO_XYZ = 'XYZ'
-
+DETECT_UNAVAILABLE = -1
+DETECT_ABSENT = 0
+DETECT_PRESENT = 1
 
 class Toolchanger:
     def __init__(self, config):
@@ -34,6 +37,7 @@ class Toolchanger:
                         'manual': INIT_MANUAL, 'first-use': INIT_FIRST_USE}
         self.initialize_on = config.getchoice(
             'initialize_on', init_options, 'first-use')
+        self.verify_tool_pickup = config.getboolean('verify_tool_pickup', True)
         self.uses_axis = config.get('uses_axis', 'xyz').lower()
         home_options = {'abort': ON_AXIS_NOT_HOMED_ABORT,
                         'home': ON_AXIS_NOT_HOMED_HOME}
@@ -60,6 +64,8 @@ class Toolchanger:
 
         self.status = STATUS_UNINITALIZED
         self.active_tool = None
+        self.detected_tool = None
+        self.has_detection = False
         self.tools = {}
         self.tool_numbers = []  # Ordered list of registered tool numbers.
         self.tool_names = []  # Tool names, in the same order as numbers.
@@ -95,10 +101,12 @@ class Toolchanger:
                                     self.cmd_RESET_TOOL_PARAMETER)
         self.gcode.register_command("SAVE_TOOL_PARAMETER",
                                     self.cmd_SAVE_TOOL_PARAMETER)
+        self.gcode.register_command("VERIFY_TOOL_DETECTED",
+                                    self.cmd_VERIFY_TOOL_DETECTED)
 
     def _handle_home_rails_begin(self, homing_state, rails):
         if self.initialize_on == INIT_ON_HOME and self.status == STATUS_UNINITALIZED:
-            self.initialize()
+            self.initialize(self.detected_tool)
 
     def _handle_connect(self):
         self.status = STATUS_UNINITALIZED
@@ -114,8 +122,11 @@ class Toolchanger:
                 'status': self.status,
                 'tool': self.active_tool.name if self.active_tool else None,
                 'tool_number': self.active_tool.tool_number if self.active_tool else -1,
+                'detected_tool': self.detected_tool.name if self.detected_tool else None,
+                'detected_tool_number': self.detected_tool.tool_number if self.detected_tool else -1,
                 'tool_numbers': self.tool_numbers,
                 'tool_names': self.tool_names,
+                'has_detection': self.has_detection,
                 }
 
     def assign_tool(self, tool, number, prev_number, replace=False):
@@ -130,18 +141,18 @@ class Toolchanger:
         self.tool_numbers.insert(position, number)
         self.tool_names.insert(position, tool.name)
 
+        self.has_detection = any([t.detect_state != DETECT_UNAVAILABLE for t in self.tools.values()])
+        all_detection = all([t.detect_state != DETECT_UNAVAILABLE for t in self.tools.values()])
+        if self.has_detection and not all_detection:
+            config = self.printer.lookup_object('configfile')
+            raise config.error("Some tools missing detection pin")
+
     cmd_INITIALIZE_TOOLCHANGER_help = "Initialize the toolchanger"
 
     def cmd_INITIALIZE_TOOLCHANGER(self, gcmd):
-        tool_name = gcmd.get('TOOL', None)
-        tool_number = gcmd.get_int('T', None)
-        tool = None
-        if tool_name:
-            tool = self.printer.lookup_object(tool_name)
-        if tool_number is not None:
-            tool = self.lookup_tool(tool_number)
-            if not tool:
-                raise gcmd.error('Tool #%d is not assigned' % (tool_number))
+        tool = self._gcmd_tool(gcmd, None)
+        if tool is None and self.has_detection:
+            tool = self.require_detected_tool(gcmd)
         self.initialize(tool)
 
     cmd_SELECT_TOOL_help = 'Select active tool'
@@ -257,7 +268,7 @@ class Toolchanger:
 
     def select_tool(self, gcmd, tool, restore_axis):
         if self.status == STATUS_UNINITALIZED and self.initialize_on == INIT_FIRST_USE:
-            self.initialize()
+            self.initialize(self.detected_tool)
         if self.status != STATUS_READY:
             raise gcmd.error(
                 "Cannot select tool, toolchanger status is " + self.status)
@@ -297,6 +308,8 @@ class Toolchanger:
         if tool is not None:
             self.run_gcode('tool.pickup_gcode',
                            tool.pickup_gcode, extra_context)
+            if self.has_detection and self.verify_tool_pickup:
+                self.validate_detected_tool(tool, gcmd)
             self.run_gcode('after_change_gcode',
                            tool.after_change_gcode, extra_context)
 
@@ -350,6 +363,48 @@ class Toolchanger:
 
     def get_selected_tool(self):
         return self.active_tool
+
+    def note_detect_change(self, tool):
+        detected = None
+        detected_count = 0
+        for tool in self.tools.values():
+            if tool.detect_state == DETECT_PRESENT:
+                detected = tool
+                detected_count += 1
+        if detected_count > 1:
+            # multiple tools detected
+            detected = None
+        self.detected_tool = detected
+
+    def require_detected_tool(self, gcmd):
+        if self.detected_tool is not None:
+            return self.detected_tool
+        detected = None
+        detected_names = []
+        for tool in self.tools.values():
+            if tool.detect_state == DETECT_PRESENT:
+                detected = tool
+                detected_names.add(tool.name)
+        if len(detected_names) > 1:
+            raise gcmd.error("Multiple tools detected: %s" % detected_names)
+        if detected is None:
+            raise gcmd.error("No tool detected")
+        return detected
+
+    def validate_detected_tool(self, expected, gcmd):
+        actual = self.require_detected_tool(gcmd)
+        if actual != expected:
+            expected_name = expected.name if expected else "None"
+            actual_name = actual.name if actual else "None"
+            raise gcmd.error("Expected tool %s but got %s", expected_name, actual_name)
+
+    def cmd_VERIFY_TOOL_DETECTED(self, gcmd):
+        expected = self._gcmd_tool(gcmd, self.active_tool)
+        if not self.has_detection:
+            return
+        toolhead = self.printer.lookup_object('toolhead')
+        toolhead.wait_moves()
+        self.validate_detected_tool(expected, gcmd)
 
     def _configure_toolhead_for_tool(self, tool):
         if self.active_tool:
@@ -481,6 +536,23 @@ class Toolchanger:
                 "Cannot perform toolchange, required axis still not homed after homing move. Required: %s, homed: %s" % (
                     self.uses_axis, homed))
 
+    class sentinel: pass
+
+    def _gcmd_tool(self, gcmd, default=sentinel):
+        tool_name = gcmd.get('TOOL', None)
+        tool_number = gcmd.get_int('T', None)
+        tool = None
+        if tool_name:
+            tool = self.printer.lookup_object(tool_name)
+        if tool_number is not None:
+            tool = self.lookup_tool(tool_number)
+            if not tool:
+                raise gcmd.error('Tool #%d is not assigned' % (tool_number))
+        if tool is None:
+            if default == sentinel:
+                raise gcmd.error('Missing TOOL=<name> or T=<number>')
+            tool = default
+        return tool
 
 def get_params_dict(config):
     result = {}

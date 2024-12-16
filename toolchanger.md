@@ -52,6 +52,8 @@ and will provide a default value for all of its tools.
   #  - manual: only when INITIALIZE_TOOLCHANGER is called.
   #  - home: when homing the printer.
   #  - first-use: on first toolchange command.
+# verify_tool_pickup: True
+  # If tool detection is available, will verify tool presence after pickp_gcode
 # uses_axis: xyz 
   # Axis used by the tool change process
 # on_axis_not_homed: abort
@@ -117,6 +119,8 @@ All gcode macros below have the following context available:
 # fan: 
   # Name of the fan to use as print cooling fan when this tool is selected.
   # If not set, uses parent fan or does nothing.
+# detection_pin: 
+  # Pin to use for tool presence detection.
 # tool_number: 
   # Tool number to register this tool as.
   # When set, creates the T<n> macro and changes M104/M109 T<n> to target this tool.
@@ -200,6 +204,11 @@ remaining tool change steps and put the toolchanger starting the selection in
 Performs only the first part of select tool, leaving the printer with no tool 
 selected.
 
+### VERIFY_TOOL_DETECTED
+`VERIFY_TOOL_DETECTED [TOOL=<name>] [T=<number>]`: Check if detected tool 
+matches the expected tool. Shutdown Klipper if not. 
+Does nothing if tool detection pin is not configured.
+
 ### SET_TOOL_TEMPERATURE
 `SET_TOOL_TEMPERATURE [TOOL=<name>] [T=<number>]  TARGET=<temp> [WAIT=0]`: Set tool temperature.
 
@@ -247,5 +256,7 @@ The following information is available in the `toolchanger` object:
  - `status`: One of 'uninitialized', 'ready', 'changing', 'error'.
  - `tool`: Name of currently selected/changed tool, or empty.
  - `tool_number`: Number of the currently selected tool, or -1.
+ - `detected_tool`: Name of currently detected tool, or empty.
+ - `detected_tool_number`: Number of the currently detected tool, or -1.
  - `tool_numbers`: List of assigned tool numbers, eg [0,1,2].
  - `tool_names`: List of tool names corresponding the assigned numbers.

@@ -34,6 +34,11 @@ class Tool:
         self.params = {**self.toolchanger.params, **toolchanger.get_params_dict(config)}
         self.original_params = {}
         self.extruder_name = self._config_get(config, 'extruder', None)
+        detect_pin_name = config.get('detection_pin', None)
+        self.detect_state = toolchanger.DETECT_UNAVAILABLE
+        if detect_pin_name:
+            self.printer.load_object(config, 'buttons').register_buttons([detect_pin_name], self._handle_detect)
+            self.detect_state = toolchanger.DETECT_ABSENT
         self.extruder_stepper_name = self._config_get(config, 'extruder_stepper', None)
         self.extruder = None
         self.extruder_stepper = None
@@ -60,6 +65,10 @@ class Tool:
             self.fan_name) if self.fan_name else None
         if self.tool_number >= 0:
             self.assign_tool(self.tool_number)
+
+    def _handle_detect(self, eventtime, is_triggered):
+        self.detect_state = toolchanger.DETECT_PRESENT if is_triggered else toolchanger.DETECT_ABSENT
+        self.toolchanger.note_detect_change(self)
 
     def get_status(self, eventtime):
         return {**self.params,
