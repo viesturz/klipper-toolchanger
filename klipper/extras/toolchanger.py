@@ -66,6 +66,7 @@ class Toolchanger:
         config.get('extruder', None)
         config.get('fan', None)
         config.get_prefix_options('params_')
+        self.probe_name = config.get('probe', 'probe')
 
         self.status = STATUS_UNINITALIZED
         self.active_tool = None
@@ -338,7 +339,7 @@ class Toolchanger:
             self.status = STATUS_READY
         if tool:
             gcmd.respond_info(
-                'Selected tool %s (%s)' % (str(tool.tool_number), tool.name))
+                'Selected tool %s (%s) - %f' % (str(tool.tool_number), tool.name, self.probe_name.active_tool_probe_z_offset))
         else:
             gcmd.respond_info('Tool unselected')
 
