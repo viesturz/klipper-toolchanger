@@ -295,7 +295,8 @@ class Toolchanger:
         self.status = STATUS_CHANGING
         toolhead_position = self.gcode_move.get_status()['position']
         gcode_position = self.gcode_move.get_status()['gcode_position']
-        extra_z_offset = toolhead_position[2] - gcode_position[2] - self.active_tool.gcode_z_offset if self.active_tool else 0.0
+        # extra_z_offset = toolhead_position[2] - gcode_position[2] - self.active_tool.gcode_z_offset if self.active_tool else 0.0
+        extra_z_offset = toolhead_position[2] - gcode_position[2]
 
         extra_context = {
             'dropoff_tool': self.active_tool.name if self.active_tool else None,
@@ -331,8 +332,10 @@ class Toolchanger:
         self.gcode.run_script_from_command(
             "RESTORE_GCODE_STATE NAME=_toolchange_state MOVE=0")
         # Restore state sets old gcode offsets, fix that.
+        
         if tool is not None:
-            self._set_tool_gcode_offset(tool, extra_z_offset)
+            self.gcode.run_script_from_command("SET_GCODE_VARIABLE MACRO=_print_time VARIABLE=restore_z VALUE=%f" % (extra_z_offset,))
+            # self._set_tool_gcode_offset(tool, extra_z_offset)
 
         if not force_pickup:
             self.status = STATUS_READY
