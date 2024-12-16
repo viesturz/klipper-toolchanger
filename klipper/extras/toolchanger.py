@@ -57,7 +57,7 @@ class Toolchanger:
         config.get('t_command_restore_axis', None)
         self.homing_current = config.getfloat('homing_current', 0.5)
         self.stepper_driver = config.get('stepper_driver', 'tmc5160')
-        self.sensorless_x = config.getboolean('sensorless_x', True)
+        self.sensorless_x = config.getboolean('sensorless_x', False)
         self.sensorless_y = config.getboolean('sensorless_y', False)
         self.homing_usetap = config.getboolean('homing_usetap', True)
         self.homing_toolless = config.getboolean('homing_toolless', False)
@@ -66,6 +66,7 @@ class Toolchanger:
         config.get('extruder', None)
         config.get('fan', None)
         config.get_prefix_options('params_')
+        self.probe_name = config.get('probe', 'probe')
 
         self.status = STATUS_UNINITALIZED
         self.active_tool = None
@@ -295,7 +296,7 @@ class Toolchanger:
         self.status = STATUS_CHANGING
         toolhead_position = self.gcode_move.get_status()['position']
         gcode_position = self.gcode_move.get_status()['gcode_position']
-        extra_z_offset = toolhead_position[2] - gcode_position[2] - self.active_tool.gcode_z_offset if self.active_tool else 0.0
+        extra_z_offset = toolhead_position[2] - gcode_position[2] - self.probe_name.active_tool_probe_z_offset if self.active_tool_probe_z_offset else 0.0
 
         extra_context = {
             'dropoff_tool': self.active_tool.name if self.active_tool else None,
