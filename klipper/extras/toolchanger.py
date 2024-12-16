@@ -301,7 +301,7 @@ class Toolchanger:
             'dropoff_tool': self.active_tool.name if self.active_tool else None,
             'pickup_tool': tool.name if tool else None,
             'restore_position': self._position_with_tool_offset(
-                toolhead_position, restore_axis, tool),
+                gcode_position, restore_axis, tool),
             'start_position': self._position_with_tool_offset(
                 gcode_position, 'xyz', tool)
         }
@@ -356,7 +356,7 @@ class Toolchanger:
             'dropoff_tool': self.active_tool.name if self.active_tool else None,
             'pickup_tool': tool.name if tool else None,
             'restore_position': self._position_with_tool_offset(
-                toolhead_position, restore_axis, None),
+                gcode_position, restore_axis, None),
             'start_position': self._position_with_tool_offset(
                 gcode_position, 'xyz', tool)
         }
