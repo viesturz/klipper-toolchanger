@@ -339,7 +339,7 @@ class Toolchanger:
             self.status = STATUS_READY
         if tool:
             gcmd.respond_info(
-                'Selected tool %s (%s) - %f' % (str(tool.tool_number), tool.name, self.probe_name.active_tool_probe_z_offset))
+                'Selected tool %s (%s) - %s' % (str(tool.tool_number), tool.name, str(self.probe_name.active_tool_probe_z_offset)))
         else:
             gcmd.respond_info('Tool unselected')
 
