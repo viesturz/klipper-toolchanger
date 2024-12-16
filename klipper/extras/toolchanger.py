@@ -334,8 +334,9 @@ class Toolchanger:
         # Restore state sets old gcode offsets, fix that.
         
         if tool is not None:
-            self.gcode.run_script_from_command("SET_GCODE_VARIABLE MACRO=_print_time VARIABLE=restore_z VALUE=%f" % (extra_z_offset,))
+            self.gcode.run_script_from_command("SET_GCODE_VARIABLE MACRO=_TOOLCHANGER_VARS VARIABLE=total_z_offset VALUE=%f" % (extra_z_offset,))
             # self._set_tool_gcode_offset(tool, extra_z_offset)
+            self._set_tool_gcode_offset(tool)
 
         if not force_pickup:
             self.status = STATUS_READY
@@ -388,7 +389,8 @@ class Toolchanger:
         if self.active_tool:
             self.active_tool.activate()
 
-    def _set_tool_gcode_offset(self, tool, extra_z_offset):
+    # def _set_tool_gcode_offset(self, tool, extra_z_offset):
+    def _set_tool_gcode_offset(self, tool):
         if tool is None:
             return
         if tool.gcode_x_offset is None and tool.gcode_y_offset is None and tool.gcode_z_offset is None:
@@ -399,7 +401,8 @@ class Toolchanger:
         if tool.gcode_y_offset is not None:
             cmd += ' Y=%f' % (tool.gcode_y_offset,)
         if tool.gcode_z_offset is not None:
-            cmd += ' Z=%f' % (tool.gcode_z_offset + extra_z_offset,)
+            # cmd += ' Z=%f' % (tool.gcode_z_offset + extra_z_offset,)
+            cmd += ' Z=%f' % (tool.gcode_z_offset,)
         self.gcode.run_script_from_command(cmd)
         mesh = self.printer.lookup_object('bed_mesh')
         if mesh and mesh.get_mesh():
