@@ -296,7 +296,6 @@ class Toolchanger:
         self.status = STATUS_CHANGING
         toolhead_position = self.gcode_move.get_status()['position']
         gcode_position = self.gcode_move.get_status()['gcode_position']
-        gcmd.respond_info('Active probe offset: %f ...' % (self.probe_name.active_tool_probe_z_offset,))
         extra_z_offset = toolhead_position[2] - gcode_position[2] - self.probe_name.active_tool_probe_z_offset if self.active_tool_probe_z_offset else 0.0
 
         extra_context = {
