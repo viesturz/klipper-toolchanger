@@ -295,8 +295,8 @@ class Toolchanger:
         self.status = STATUS_CHANGING
         toolhead_position = self.gcode_move.get_status()['position']
         gcode_position = self.gcode_move.get_status()['gcode_position']
-        # extra_z_offset = toolhead_position[2] - gcode_position[2] - self.active_tool.gcode_z_offset if self.active_tool else 0.0
-        extra_z_offset = 0.0        # Disable the use of extra_z_offset. This function will be handled on Klipper, moving forward.
+        extra_z_offset = toolhead_position[2] - gcode_position[2] - self.active_tool.gcode_z_offset if self.active_tool else 0.0
+        # extra_z_offset = 0.0        # Disable the use of extra_z_offset. This function will be handled on Klipper, moving forward.
 
         extra_context = {
             'dropoff_tool': self.active_tool.name if self.active_tool else None,
