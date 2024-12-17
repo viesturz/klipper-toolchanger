@@ -387,8 +387,8 @@ class Toolchanger:
         if self.active_tool:
             self.active_tool.activate()
 
-    # def _set_tool_gcode_offset(self, tool, extra_z_offset):
-    def _set_tool_gcode_offset(self, tool):
+    def _set_tool_gcode_offset(self, tool, extra_z_offset):
+    # def _set_tool_gcode_offset(self, tool):
         if tool is None:
             return
         if tool.gcode_x_offset is None and tool.gcode_y_offset is None and tool.gcode_z_offset is None:
