@@ -334,7 +334,6 @@ class Toolchanger:
         # Restore state sets old gcode offsets, fix that.
         
         if tool is not None:
-            self.gcode.run_script_from_command("SET_GCODE_VARIABLE MACRO=_TOOLCHANGER_VARS VARIABLE=total_z_offset VALUE=%f" % (extra_z_offset,))
             # self._set_tool_gcode_offset(tool, extra_z_offset)
             self._set_tool_gcode_offset(tool)
 
