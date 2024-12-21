@@ -396,7 +396,7 @@ class Toolchanger:
         if actual != expected:
             expected_name = expected.name if expected else "None"
             actual_name = actual.name if actual else "None"
-            raise gcmd.error("Expected tool %s but got %s", expected_name, actual_name)
+            raise gcmd.error("Expected tool %s but active is %s" % (expected_name, actual_name))
 
     def cmd_VERIFY_TOOL_DETECTED(self, gcmd):
         expected = self._gcmd_tool(gcmd, self.active_tool)
