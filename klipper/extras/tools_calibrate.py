@@ -294,7 +294,7 @@ class PrinterProbeMultiAxis:
         if direction not in direction_types:
             raise self.printer.command_error("Wrong value for DIRECTION.")
 
-        logging.info("run_probe direction = " + str(direction))
+        logging.info("run_probe direction = %s" % (direction,))
 
         (axis, sense) = direction_types[direction]
 

@@ -131,7 +131,7 @@ class Toolchanger:
 
     def assign_tool(self, tool, number, prev_number, replace=False):
         if number in self.tools and not replace:
-            raise Exception('Duplicate tools with number %s' % (str(number)))
+            raise Exception('Duplicate tools with number %s' % (number,))
         if prev_number in self.tools:
             del self.tools[prev_number]
             self.tool_numbers.remove(prev_number)
@@ -271,7 +271,7 @@ class Toolchanger:
             self.initialize(self.detected_tool)
         if self.status != STATUS_READY:
             raise gcmd.error(
-                "Cannot select tool, toolchanger status is " + self.status)
+                "Cannot select tool, toolchanger status is %s" % (self.status,))
 
         if self.active_tool == tool:
             gcmd.respond_info(
@@ -331,7 +331,7 @@ class Toolchanger:
     def test_tool_selection(self, gcmd, restore_axis):
         if self.status != STATUS_READY:
             raise gcmd.error(
-                "Cannot test tool, toolchanger status is " + self.status)
+                "Cannot test tool, toolchanger status is %s" % (self.status,))
         tool = self.active_tool
         if not tool:
             raise gcmd.error("Cannot test tool, no active tool")
