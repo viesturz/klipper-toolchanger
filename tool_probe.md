@@ -28,8 +28,8 @@ samples_tolerance: 0.02
 samples_tolerance_retries: 3    
 ```
 
-As an **experimental** option, can use the same probe pin as a X or Y endstop by. 
-Please note this is currently limited to using **same pin** for all probes (yes this works), 
+As an **experimental** option, can use the same probe pin as a X or Y endstop. 
+Please note this is currently limited to using a **single pin** per tool for all endstops (yes this works), 
 per-axis endstop pins might be implemented some day. 
 
 ```
