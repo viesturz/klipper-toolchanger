@@ -6,7 +6,7 @@ A per-tool Z endstop and crash detection support. Allows using any tool to home 
 
 ```
 [stepper_z]
-endstop_pin: probe:z_virtual_endstop
+endstop_pin: tool_probe_endstop:z_virtual_endstop
 
 [tool_probe_endstop]
 crash_mintime: 0.5 # seconds to wait before announcing a crash, if the probe stops 
@@ -26,6 +26,21 @@ samples_result: median
 sample_retract_dist: 2.0
 samples_tolerance: 0.02
 samples_tolerance_retries: 3    
+```
+
+As an **experimental** option, can use the same probe pin as a X or Y endstop by. 
+Please note this is currently limited to using **same pin** for all probes (yes this works), 
+per-axis endstop pins might be implemented some day. 
+
+```
+[stepper_z]
+endstop_pin: tool_probe_endstop:z_virtual_endstop
+
+[stepper_y]
+endstop_pin: tool_probe_endstop:y_virtual_endstop
+
+[stepper_x]
+endstop_pin: tool_probe_endstop:x_virtual_endstop
 ```
 
 # Status

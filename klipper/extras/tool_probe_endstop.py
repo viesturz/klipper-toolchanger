@@ -4,9 +4,10 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 from . import probe
+import pins
 
 # Virtual endstop, using a tool attached Z probe in a toolchanger setup.
-# Tool endstop change may be done either via SET_ACTIVE_TOOL_PROBE TOOL=99
+# Tool endstop change may be done either via SET_ACTIVE_TOOL_PROBE TOOL=1
 # Or via auto-detection of single open tool probe via DETECT_ACTIVE_TOOL_PROBE
 class ToolProbeEndstop:
     def __init__(self, config):
@@ -20,9 +21,13 @@ class ToolProbeEndstop:
         self.gcode_macro = self.printer.load_object(config, 'gcode_macro')
         self.crash_detection_active = False
         self.crash_lasttime = 0.
-        self.mcu_probe = EndstopRouter(self.printer)
+        self.mcu_probe = ProbeRouter(self.printer)
         self.homing_helper = probe.HomingViaProbeHelper(config, self.mcu_probe)
         self.cmd_helper = probe.ProbeCommandHelper(config, self, self.mcu_probe.query_endstop)
+        self.mcu_endstop = EndstopRouter(self.mcu_probe)
+
+        # Register x_virtual_endstop, y_virtual_endstop and z_virtual_endstop pins
+        self.printer.lookup_object('pins').register_chip('tool_probe_endstop', self)
 
         # Emulate the probe object, since others rely on this.
         if self.printer.lookup_object('probe', default=None):
@@ -43,6 +48,21 @@ class ToolProbeEndstop:
                                     desc=self.cmd_START_TOOL_PROBE_CRASH_DETECTION_help)
         self.gcode.register_command('STOP_TOOL_PROBE_CRASH_DETECTION', self.cmd_STOP_TOOL_PROBE_CRASH_DETECTION,
                                     desc=self.cmd_STOP_TOOL_PROBE_CRASH_DETECTION_help)
+
+    # Handles pin resolution
+    def setup_pin(self, pin_type, pin_params):
+        if pin_type != 'endstop':
+            raise pins.error("Probe virtual endstop only useful as endstop pin")
+        if pin_params['invert'] or pin_params['pullup']:
+            raise pins.error("Can not pullup/invert virtual endstop")
+        name = pin_params['pin']
+        if name == 'z_virtual_endstop':
+            # probe with a z offset
+            return self.mcu_probe
+        if name == 'x_virtual_endstop' or name == 'y_virtual_endstop':
+            # just a dumb endstop
+            return self.mcu_endstop
+        raise pins.error("Unknown pin name: %s" % (name,))
 
     def _handle_connect(self):
         self.toolhead = self.printer.lookup_object('toolhead')
@@ -77,6 +97,7 @@ class ToolProbeEndstop:
         else:
             self.mcu_probe.set_active_mcu(None)
             self.active_tool_number = -1
+        self.mcu_endstop.update_routing(self.mcu_probe)
 
     def _query_open_tools(self):
         print_time = self.toolhead.get_last_move_time()
@@ -184,8 +205,8 @@ class ToolProbeEndstop:
             self.crash_detection_active = False
             self.crash_gcode.run_gcode_from_command()
 
-# Routes commands to the selected tool probe endstop.
-class EndstopRouter:
+# Routes probe and endstop commands to the selected tool probe endstop, this one behaves like a Z probe with offset.
+class ProbeRouter:
     def __init__(self, printer):
         self.active_mcu = None
         self.set_active_mcu(None)
@@ -239,6 +260,19 @@ class EndstopRouter:
             # Report 0 and fix up in the homing sequence
             return 0.0
         return self.active_mcu.get_position_endstop()
+
+# Routes endstop commands to the selected tool probe, this one behaves like an endstop pin, for X, Y.
+class EndstopRouter:
+    def __init__(self, endstop):
+        self.update_routing(endstop)
+
+    def update_routing(self, endstop):
+        self.get_mcu = endstop.get_mcu
+        self.add_stepper = endstop.add_stepper
+        self.get_steppers = endstop.get_steppers
+        self.home_start = endstop.home_start
+        self.home_wait = endstop.home_wait
+        self.query_endstop = endstop.query_endstop
 
 def load_config(config):
     return ToolProbeEndstop(config)
