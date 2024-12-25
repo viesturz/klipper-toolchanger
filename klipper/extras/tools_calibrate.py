@@ -4,6 +4,7 @@
 # Sourced from https://github.com/ben5459/Klipper_ToolChanger/blob/master/probe_multi_axis.py
 
 import logging
+import os
 
 direction_types = {'x+': [0, +1], 'x-': [0, -1], 'y+': [1, +1], 'y-': [1, -1],
                    'z+': [2, +1], 'z-': [2, -1]}
@@ -51,6 +52,9 @@ class ToolsCalibrate:
         self.gcode.register_command('TOOL_CALIBRATE_TOOL_OFFSET',
                                     self.cmd_TOOL_CALIBRATE_TOOL_OFFSET,
                                     desc=self.cmd_TOOL_CALIBRATE_TOOL_OFFSET_help)
+        self.gcode.register_command('TOOL_CALIBRATE_STORE_TOOL_OFFSET',
+                                    self.cmd_TOOL_CALIBRATE_STORE_TOOL_OFFSET,
+                                    desc=self.cmd_TOOL_CALIBRATE_STORE_TOOL_OFFSET_help)
         self.gcode.register_command('TOOL_CALIBRATE_SAVE_TOOL_OFFSET',
                                     self.cmd_TOOL_CALIBRATE_SAVE_TOOL_OFFSET,
                                     desc=self.cmd_TOOL_CALIBRATE_SAVE_TOOL_OFFSET_help)
@@ -131,6 +135,31 @@ class ToolsCalibrate:
         self.gcode.respond_info("Tool offset is %.6f,%.6f,%.6f"
                                 % (self.last_result[0], self.last_result[1],
                                    self.last_result[2]))
+
+    cmd_TOOL_CALIBRATE_STORE_TOOL_OFFSET_help = "Calibrate current tool offset relative to tool 0 and save results"
+    
+    def cmd_TOOL_CALIBRATE_STORE_TOOL_OFFSET(self, gcmd):
+        tool_number = gcmd.get_int('TOOL_NUMBER')
+        if not self.sensor_location:
+            raise gcmd.error("No recorded sensor location, please run TOOL_LOCATE_SENSOR first")
+        
+        location = self.locate_sensor(gcmd)
+        self.last_result = [loc - sensor_loc for loc, sensor_loc in zip(location, self.sensor_location)]
+        
+        tool_offset_info = "Tool offset for tool {} is {:.6f},{:.6f},{:.6f}".format(
+            tool_number, *self.last_result)
+        self.gcode.respond_info(tool_offset_info)
+        
+        home_dir = os.path.expanduser("~")
+        results_dir = os.path.join(home_dir, "printer_data/config/tools_calibrate_results")
+        
+        os.makedirs(results_dir, exist_ok=True)
+        
+        filename = os.path.join(results_dir, f"tool_{tool_number}_offset.txt")
+        
+        with open(filename, "a") as f:
+            f.write("Tool {} offset is {:.6f},{:.6f},{:.6f}\n".format(
+                tool_number, *self.last_result))
 
     cmd_TOOL_CALIBRATE_SAVE_TOOL_OFFSET_help = "Save tool offset calibration to config"
 
