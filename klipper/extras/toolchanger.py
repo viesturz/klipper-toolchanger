@@ -317,6 +317,7 @@ class Toolchanger:
         if not force_pickup and self.active_tool:
            self.run_gcode('tool.dropoff_gcode',
                           self.active_tool.dropoff_gcode, extra_context)
+        self.gcode.run_script_from_command("DETECT_ACTIVE_TOOL_PROBE")
 
         self._configure_toolhead_for_tool(tool)
         if tool is not None:
