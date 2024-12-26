@@ -366,7 +366,6 @@ class Toolchanger:
 
         self.run_gcode('tool.dropoff_gcode',
                        self.active_tool.dropoff_gcode, extra_context)
-        self.gcode.run_script_from_command("DETECT_ACTIVE_TOOL_PROBE")
         self.run_gcode('tool.pickup_gcode',
                        tool.pickup_gcode, extra_context)
 
