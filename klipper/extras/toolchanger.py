@@ -57,7 +57,7 @@ class Toolchanger:
         config.get('t_command_restore_axis', None)
         self.homing_current = config.getfloat('homing_current', 0.5)
         self.stepper_driver = config.get('stepper_driver', 'tmc5160')
-        self.sensorless_x = config.getboolean('sensorless_x', True)
+        self.sensorless_x = config.getboolean('sensorless_x', False)
         self.sensorless_y = config.getboolean('sensorless_y', False)
         self.homing_usetap = config.getboolean('homing_usetap', True)
         self.homing_toolless = config.getboolean('homing_toolless', False)
