@@ -219,12 +219,13 @@ printf "======================================\n\n"
 ## Variables
 doinstall=1;
 withklipper=1;
-## Runtime flags
 
+## Runtime flags
 while getopts 'c:' OPTION; do
     case "$OPTION" in
         c)
-            echo " clean..."
+            echo "Clean..."
+            exit 1
             ;;
     esac
 done
