@@ -262,28 +262,28 @@ class ProbeCommandHelper(ProbeCommandHelper):
                           % (pos[0], pos[1], pos[2],
                              sample_count, params['sample_retract_dist'],
                              params['probe_speed'], params['lift_speed']))
-#         # Create dummy gcmd with SAMPLES=1
-#         fo_params = dict(gcmd.get_command_parameters())
-#         fo_params['SAMPLES'] = '1'
-#         gcode = self.printer.lookup_object('gcode')
-#         fo_gcmd = gcode.create_gcode_command("", "", fo_params)
-#         # Probe bed sample_count times
-#         probe_session = self.probe.start_probe_session(fo_gcmd)
-#         probe_num = 0
-#         drop = probe_session.drop_first_result
-#         while probe_num < sample_count:
-#             # Probe position
-#             probe_session.run_probe(fo_gcmd, drop)
-#             if drop:
-#                 drop = False
-#             else:
-#                 probe_num += 1
-#             # Retract
-#             pos = toolhead.get_position()
-#             liftpos = [None, None, pos[2] + params['sample_retract_dist']]
-#             self._move(liftpos, params['lift_speed'])
-#         positions = probe_session.pull_probed_results()
-#         probe_session.end_probe_session()
+        # Create dummy gcmd with SAMPLES=1
+        fo_params = dict(gcmd.get_command_parameters())
+        fo_params['SAMPLES'] = '1'
+        gcode = self.printer.lookup_object('gcode')
+        fo_gcmd = gcode.create_gcode_command("", "", fo_params)
+        # Probe bed sample_count times
+        probe_session = self.probe.start_probe_session(fo_gcmd)
+        probe_num = 0
+        drop = probe_session.drop_first_result
+        # while probe_num < sample_count:
+        #     # Probe position
+        #     probe_session.run_probe(fo_gcmd, drop)
+        #     if drop:
+        #         drop = False
+        #     else:
+        #         probe_num += 1
+        #     # Retract
+        #     pos = toolhead.get_position()
+        #     liftpos = [None, None, pos[2] + params['sample_retract_dist']]
+        #     self._move(liftpos, params['lift_speed'])
+        # positions = probe_session.pull_probed_results()
+        # probe_session.end_probe_session()
 #         # Calculate maximum, minimum and average values
 #         max_value = max([p[2] for p in positions])
 #         min_value = min([p[2] for p in positions])
