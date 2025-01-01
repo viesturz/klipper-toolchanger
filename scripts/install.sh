@@ -219,17 +219,7 @@ printf "======================================\n\n"
 ## Variables
 doinstall=1;
 withklipper=1;
-
 ## Runtime flags
-while getopts 'c:' OPTION; do
-    case "$OPTION" in
-        c)
-            echo "Clean..."
-            exit 1
-            ;;
-    esac
-done
-
 if [ $# -gt 0 ]; then
     if [ "$1" == "uninstall" ]; then
         doinstall=0;
@@ -238,7 +228,6 @@ if [ $# -gt 0 ]; then
         withklipper=0;
     fi
 fi
-
 ## Run steps
 if [ $doinstall -gt 0 ]; then            # if the is 'uninstall' flag
     if [ $withklipper -gt 0 ]; then      # if the is 'skipklipper' flag
