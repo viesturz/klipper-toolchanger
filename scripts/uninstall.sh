@@ -15,21 +15,21 @@ CONFIG_PATH="${HOME}/printer_data/config"
 
 ### Functions ------------------------------------------------
 function remove_links {
-    echo -n "[UNINSTALL] old links..."
+    echo -n "[UNINSTALL] Old links..."
     if ! rm -rf ${CONFIG_PATH}/${MACRODIR}; then
         echo " failed!"
         exit -1
     fi
     echo " complete!"
     if [ -f "${SERVICE}" ]; then
-        echo -n "[UNINSTALL] service..."
+        echo -n "[UNINSTALL] Service..."
         sudo rm "${SERVICE}"
         echo " complete!"
     fi
 }
 
 function remove_root {
-    echo -n "[UNINSTALL] old files..."
+    echo -n "[UNINSTALL] Old files..."
     if ! rm -rf "${INSTALL_PATH}"/; then
         echo " failed!"
         exit -1
