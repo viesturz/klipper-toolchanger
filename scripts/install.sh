@@ -69,7 +69,7 @@ function check_download {
 }
 
 function remove_links {
-    echo -n "[UNINSTALL] Remove old links..."
+    echo -n "[UNINSTALL] Old links..."
     if ! rm -rf ${CONFIG_PATH}/${MACRODIR}; then
         echo " failed!"
         exit -1
