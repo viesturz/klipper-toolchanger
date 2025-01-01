@@ -82,6 +82,14 @@ function remove_links {
     fi
 }
 
+function remove_root {
+    echo -n "[UNINSTALL] Purging old files..."
+    if ! rm -rf ${INSTALL_PATH}}; then
+        echo " failed!"
+        exit -1
+    fi
+}
+
 function link_extension {
     echo -n "[INSTALL] Link extension to Klipper..."
     for file in "${INSTALL_PATH}"/klipper/extras/*.py; do
@@ -208,40 +216,10 @@ function restart_klipper {
 printf "\n======================================\n"
 echo "- Klipper toolchanger install script -"
 printf "======================================\n\n"
-## Variables
-doinstall=1;
-withklipper=1;
-## Runtime flags
-if [ $# -gt 0 ]; then
-    if [ "$1" == "uninstall" ]; then
-        doinstall=0;
-    fi
-    if [ "$1" == "skipklipper" ]; then
-        withklipper=0;
-    fi
-fi
-## Run steps
-if [ $doinstall -gt 0 ]; then            # if the is 'uninstall' flag
-    if [ $withklipper -gt 0 ]; then      # if the is 'skipklipper' flag
-        preflight_checks
-    fi
-    check_download
-fi
 remove_links
-if [ $doinstall -gt 0 ]; then            # if the is 'uninstall' flag
-    link_extension
-    link_macros
-    # copy_examples
-    copy_settings
-    add_updater
-    install_service
-    check_includes
-    if [ $withklipper -gt 0 ]; then      # if the is 'skipklipper' flag
-        restart_klipper
-    fi
-    printf "======================================\n"
-    echo "- If you are upgrading maybe sure to -"
-    echo "- you check for changes in the user  -"
-    echo "- config files                       -"
-    printf "======================================\n\n"
-fi
+remove_root
+printf "======================================\n"
+echo "- If you are upgrading maybe sure to -"
+echo "- you check for changes in the user  -"
+echo "- config files                       -"
+printf "======================================\n\n"
