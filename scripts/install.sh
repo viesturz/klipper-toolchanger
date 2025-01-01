@@ -7,7 +7,7 @@
 
 ## Global variables ------------------------------------------
 REPO="VIN-y/klipper-toolchanger.git"
-BRANCH="alpha"
+BRANCH="test-machine"
 MACRODIR="misschanger_macros"
 SERVICE="/etc/systemd/system/ToolChanger.service"
 KLIPPER_PATH="${HOME}/klipper"
@@ -79,6 +79,14 @@ function remove_links {
         echo -n "[UNINSTALL] Service..."
         sudo rm "${SERVICE}"
         echo " complete!"
+    fi
+}
+
+function remove_root {
+    echo -n "[UNINSTALL] Purging old files..."
+    if ! rm -rf ${INSTALL_PATH}}; then
+        echo " failed!"
+        exit -1
     fi
 }
 
