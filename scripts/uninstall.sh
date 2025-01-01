@@ -214,13 +214,13 @@ function restart_klipper {
 }
 
 ### Run the script -------------------------------------------
-printf "\n======================================\n"
+printf "\n========================================\n"
 echo "- Klipper toolchanger uninstall script -"
-printf "======================================\n\n"
+printf "========================================\n\n"
 remove_links
 remove_root
-printf "\n======================================\n"
+printf "\n========================================\n"
 echo "- Some files are not removed           -"
 echo "- please delete the user config files  -"
 echo "- manually.                            -"
-printf "======================================\n\n"
+printf "========================================\n\n"
