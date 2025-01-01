@@ -83,10 +83,12 @@ function remove_links {
 }
 
 function remove_root {
-    echo -n "[UNINSTALL] Purging old files..."
+    echo -n "[UNINSTALL] Purge old files..."
     if ! rm -rf "${INSTALL_PATH}"/; then
         echo " failed!"
+        exit -1
     fi
+    echo " complete!"
 }
 
 function link_extension {
@@ -213,12 +215,12 @@ function restart_klipper {
 
 ### Run the script -------------------------------------------
 printf "\n======================================\n"
-echo "- Klipper toolchanger install script -"
+echo "- Klipper toolchanger uninstall script -"
 printf "======================================\n\n"
 remove_links
 remove_root
 printf "\n======================================\n"
-echo "- If you are upgrading maybe sure to -"
-echo "- you check for changes in the user  -"
-echo "- config files                       -"
+echo "- Some files are not removed           -"
+echo "- please delete the user config files  -"
+echo "- manually.                            -"
 printf "======================================\n\n"
