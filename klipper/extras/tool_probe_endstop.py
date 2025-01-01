@@ -250,18 +250,18 @@ class EndstopRouter:
         return self.active_mcu.get_position_endstop()
 
 
-# class ProbeCommandHelper(ProbeCommandHelper):
-#     def cmd_PROBE_ACCURACY(self, gcmd):
-#         params = self.probe.get_probe_params(gcmd)
-#         sample_count = gcmd.get_int("SAMPLES", 10, minval=1)
-#         toolhead = self.printer.lookup_object('toolhead')
-#         pos = toolhead.get_position()
-#         gcmd.respond_info("PROBE_ACCURACY at X:%.3f Y:%.3f Z:%.3f"
-#                           " (samples=%d retract=%.3f"
-#                           " speed=%.1f lift_speed=%.1f)\n"
-#                           % (pos[0], pos[1], pos[2],
-#                              sample_count, params['sample_retract_dist'],
-#                              params['probe_speed'], params['lift_speed']))
+class ProbeCommandHelper(ProbeCommandHelper):
+    def cmd_PROBE_ACCURACY(self, gcmd):
+        params = self.probe.get_probe_params(gcmd)
+        sample_count = gcmd.get_int("SAMPLES", 10, minval=1)
+        toolhead = self.printer.lookup_object('toolhead')
+        pos = toolhead.get_position()
+        gcmd.respond_info("PROBE_ACCURACY at X:%.3f Y:%.3f Z:%.3f"
+                          " (samples=%d retract=%.3f"
+                          " speed=%.1f lift_speed=%.1f)\n"
+                          % (pos[0], pos[1], pos[2],
+                             sample_count, params['sample_retract_dist'],
+                             params['probe_speed'], params['lift_speed']))
 #         # Create dummy gcmd with SAMPLES=1
 #         fo_params = dict(gcmd.get_command_parameters())
 #         fo_params['SAMPLES'] = '1'
