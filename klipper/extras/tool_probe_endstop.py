@@ -264,9 +264,9 @@ class ProbeCommandHelper(ProbeCommandHelper):
                              params['probe_speed'], params['lift_speed']))
         # Create dummy gcmd with SAMPLES=1
         fo_params = dict(gcmd.get_command_parameters())
-        # fo_params['SAMPLES'] = '1'
-        # gcode = self.printer.lookup_object('gcode')
-        # fo_gcmd = gcode.create_gcode_command("", "", fo_params)
+        fo_params['SAMPLES'] = '1'
+        gcode = self.printer.lookup_object('gcode')
+        fo_gcmd = gcode.create_gcode_command("", "", fo_params)
         # # Probe bed sample_count times
         # probe_session = self.probe.start_probe_session(fo_gcmd)
         # probe_num = 0
