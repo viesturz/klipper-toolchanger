@@ -12,7 +12,7 @@ To install this plugin, run the installation script using the following command 
 wget -O - https://raw.githubusercontent.com/VIN-y/klipper-toolchanger/alpha/install.sh | bash
 ```
 
-*Note 1: You will need a `FIRMWARE_RESTART` whenever there is an update for the add-on.* *Note 2: This command can also be used for a clean install of the extension.*
+*Note 1: You will need a `FIRMWARE_RESTART` whenever there is an update for the add-on.*
 
 # Components
 
