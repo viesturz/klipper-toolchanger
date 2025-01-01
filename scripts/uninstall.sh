@@ -7,7 +7,6 @@
 
 ## Global variables ------------------------------------------
 REPO="VIN-y/klipper-toolchanger.git"
-BRANCH="test-machine"
 MACRODIR="misschanger_macros"
 SERVICE="/etc/systemd/system/ToolChanger.service"
 KLIPPER_PATH="${HOME}/klipper"
@@ -16,21 +15,21 @@ CONFIG_PATH="${HOME}/printer_data/config"
 
 ### Functions ------------------------------------------------
 function remove_links {
-    echo -n "[UNINSTALL] Remove old links..."
+    echo -n "[UNINSTALL] old links..."
     if ! rm -rf ${CONFIG_PATH}/${MACRODIR}; then
         echo " failed!"
         exit -1
     fi
     echo " complete!"
     if [ -f "${SERVICE}" ]; then
-        echo -n "[UNINSTALL] Service..."
+        echo -n "[UNINSTALL] service..."
         sudo rm "${SERVICE}"
         echo " complete!"
     fi
 }
 
 function remove_root {
-    echo -n "[UNINSTALL] Purge old files..."
+    echo -n "[UNINSTALL] old files..."
     if ! rm -rf "${INSTALL_PATH}"/; then
         echo " failed!"
         exit -1
