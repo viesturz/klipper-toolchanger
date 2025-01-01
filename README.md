@@ -1,33 +1,21 @@
 # klipper-toolchanger
 
-This repository is a fork of [klipper-toolchanger](https://github.com/viesturz/klipper-toolchanger), for [Tapchanger](https://github.com/viesturz/tapchanger).
+This repository is a fork of [viesturz/klipper-toolchanger](https://github.com/viesturz/klipper-toolchanger), for [Tapchanger](https://github.com/viesturz/tapchanger), and [DraftShift/klipper-toolchanger](https://github.com/DraftShift/klipper-toolchanger), for DraftShift.
 
-It contains all the lastest codes that is compatible with [MissChanger](https://github.com/VIN-y/MissChanger). For further documentation, please go to that repository.
+It contains all the latest codes that is compatible with [MissChanger](https://github.com/VIN-y/MissChanger). For further documentation, please go to that repository.
 
 # Installation
 
 To install this plugin, run the installation script using the following command over SSH. This script will download this GitHub repository to your RaspberryPi home directory, and symlink the files in the Klipper extra folder.
 
 ```
-wget -O - https://raw.githubusercontent.com/VIN-y/klipper-toolchanger/main/install.sh | bash
+wget -O - https://raw.githubusercontent.com/VIN-y/klipper-toolchanger/alpha/install.sh | bash
 ```
 
-Then, add the following to your moonraker.conf to enable automatic updates:
-
-```
-[update_manager klipper-toolchanger]
-type: git_repo
-channel: dev
-path: ~/klipper-toolchanger
-origin: https://github.com/VIN-y/klipper-toolchanger.git
-managed_services: klipper
-primary_branch: main
-install_script: install.sh
-```
+*Note 1: You will need a `FIRMWARE_RESTART` whenever there is an update for the add-on.* *Note 2: This command can also be used for a clean install of the extension.*
 
 # Components
 
-* [multi fan](/descriptions/multi_fan.md) - multiple primary part fans.
 * [toolchanger](/descriptions/toolchanger.md) - tool management support.
 * [tool probe](/descriptions/tool_probe.md) - per tool Z probe.
 * [rounded path](/descriptions/rounded_path.md) - rounds the travel path corners for fast non-print moves.
