@@ -338,7 +338,7 @@ class Toolchanger:
             self.status = STATUS_READY
         if tool:
             gcmd.respond_info(
-                'Selected %s' % (tool.name))
+                'Selected tool %s (%s)' % (str(tool.tool_number), tool.name))
         else:
             gcmd.respond_info('Tool unselected')
 
