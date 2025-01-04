@@ -128,7 +128,8 @@ class ToolsCalibrate:
         location = self.locate_sensor(gcmd)
         self.last_result = [location[i] - self.sensor_location[i] for i in
                             range(3)]
-        self.gcode.respond_info("Tool offset is %.6f,%.6f,%.6f"
+
+        self.gcode.respond_info("Paste into your config file for tool:\n\ngcode_x_offset: %.6f\ngcode_y_offset: %.6f\ngcode_z_offset: %.6f\n"
                                 % (self.last_result[0], self.last_result[1],
                                    self.last_result[2]))
 
@@ -191,6 +192,7 @@ class ToolsCalibrate:
         endstop_states = [probe.query_endstop(print_time) for probe in self.probe_multi_axis.mcu_probe] # Check the state of each axis probe (x, y, z)
         self.calibration_probe_inactive = any(endstop_states)
         gcmd.respond_info("Calibration Probe: %s" % (["open", "TRIGGERED"][any(endstop_states)]))
+        return self.calibration_probe_inactive
 
 class PrinterProbeMultiAxis:
     def __init__(self, config, mcu_probe_x, mcu_probe_y, mcu_probe_z):
@@ -212,7 +214,7 @@ class PrinterProbeMultiAxis:
         self.sample_count = config.getint('samples', 1, minval=1)
         self.sample_retract_dist = config.getfloat('sample_retract_dist', 2.,
                                                    above=0.)
-        atypes = {'median': 'median', 'average': 'average'}
+        atypes = ['median', 'average']
         self.samples_result = config.getchoice('samples_result', atypes,
                                                'average')
         self.samples_tolerance = config.getfloat('samples_tolerance', 0.100,
@@ -294,7 +296,7 @@ class PrinterProbeMultiAxis:
         if direction not in direction_types:
             raise self.printer.command_error("Wrong value for DIRECTION.")
 
-        logging.info("run_probe direction = %s" % (direction,))
+        logging.info("run_probe direction = " + str(direction))
 
         (axis, sense) = direction_types[direction]
 
