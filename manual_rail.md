@@ -64,8 +64,8 @@ position_max:
 
 #### MANUAL_RAIL
 `MANUAL_RAIL RAIL=config_name [ENABLE=[0|1]]
-[SET_POSITION=<pos>] [SPEED=<speed>] [ACCEL=<accel>] [MOVE=<pos>
-[HOME=1] [SYNC=0]]`: This command will alter the
+[SET_POSITION=<pos>] [SPEED=<speed>] [ACCEL=<accel>] [MOVE=<pos>]
+[HOME=1] [SYNC=0]`: This command will alter the
 state of the rail. Use the ENABLE parameter to enable/disable the
 steppers. Use the SET_POSITION parameter to force the rail to think
 it is at the given position. Use the MOVE parameter to request a
