@@ -19,9 +19,14 @@ path: ~/klipper-toolchanger
 origin: https://github.com/viesturz/klipper-toolchanger.git
 managed_services: klipper
 primary_branch: main
-install_script: install.sh
 ```
 Add the [macros.cfg](/macros.cfg) to your printer config.
+
+Note that if an update has new klipper files, they **will not** be automatically installed into Klipper.
+You will need to run the intall script manualy to add them:
+```commandline
+bash ~/klipper-toolchanger/main/install.sh
+```
 
 # Components
 
