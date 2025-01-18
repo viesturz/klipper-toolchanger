@@ -22,6 +22,8 @@ primary_branch: main
 ```
 Add the [macros.cfg](/macros.cfg) to your printer config.
 
+## Updates that add new files
+
 Note that if an update has new klipper files, they **will not** be automatically installed into Klipper.
 You will need to run the intall script manualy to add them:
 ```commandline
