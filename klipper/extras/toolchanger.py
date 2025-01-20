@@ -493,11 +493,11 @@ class Toolchanger:
         offset_z = gcmd.get("Z", None)
         if toolnr != -1:
             if offset_x != None:
-                tools[toolnr].gcode_x_offset = offset_x
+                self.tools[toolnr].gcode_x_offset = offset_x
             if offset_y != None:
-                tools[toolnr].gcode_y_offset = offset_z
+                self.tools[toolnr].gcode_y_offset = offset_z
             if offset_z != None:
-                tools[toolnr].gcode_z_offset = offset_z
+                self.tools[toolnr].gcode_z_offset = offset_z
 
     cmd_RESTORE_TOOL_OFFSETS_help = 'Restores the the given X, Y and/or Z offesets. Parameter are tool T and offesets:X,Y,Z'        
 
