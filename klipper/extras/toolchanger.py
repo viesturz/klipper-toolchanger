@@ -103,6 +103,9 @@ class Toolchanger:
                                     self.cmd_SAVE_TOOL_PARAMETER)
         self.gcode.register_command("VERIFY_TOOL_DETECTED",
                                     self.cmd_VERIFY_TOOL_DETECTED)
+        self.gcode.register_command("RESTORE_TOOL_OFFSETS",
+                                    self.cmd_RESTORE_TOOL_OFFSETS, 
+                                    desc=self.cmd_RESTORE_TOOL_OFFSETS_help)
 
     def _handle_home_rails_begin(self, homing_state, rails):
         if self.initialize_on == INIT_ON_HOME and self.status == STATUS_UNINITALIZED:
