@@ -488,16 +488,16 @@ class Toolchanger:
 
     def cmd_RESTORE_TOOL_OFFSETS(self, gcmd):
         tool = self._get_tool_from_gcmd(gcmd)
-        offset_x = gcmd.getfloat("X", None)
+        offset_x = gcmd.get("X", None)
         offset_y = gcmd.getfloat("Y", None)
         offset_z = gcmd.getfloat("Z", None)
         if tool != None:
             if offset_x != None:
-                tool.gcode_x_offset = offset_x
+                tool.gcode_x_offset = float(offset_x)
             if offset_y != None:
-                tool.gcode_y_offset = offset_z
+                tool.gcode_y_offset = float(offset_z)
             if offset_z != None:
-                tool.code_z_offset = offset_z
+                tool.code_z_offset = float(offset_z)
 
     cmd_RESTORE_TOOL_OFFSETS_help = 'Restores the the given X, Y and/or Z offesets. Parameter are tool # or name and offesets:X,Y,Z'        
 
