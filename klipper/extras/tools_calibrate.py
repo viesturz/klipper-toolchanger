@@ -146,9 +146,8 @@ class ToolsCalibrate:
                                 z=self.last_result[2])
         configfile = self.printer.lookup_object('configfile')
         configfile.set(section_name, param_name, value)
-
+        
     cmd_TOOL_CALIBRATE_PROBE_OFFSET_help = "Calibrate the tool probe offset to nozzle tip"
-
     def cmd_TOOL_CALIBRATE_PROBE_OFFSET(self, gcmd):
         toolhead = self.printer.lookup_object('toolhead')
         probe = self.printer.lookup_object(self.probe_name)

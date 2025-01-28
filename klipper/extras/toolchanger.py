@@ -104,7 +104,7 @@ class Toolchanger:
         self.gcode.register_command("VERIFY_TOOL_DETECTED",
                                     self.cmd_VERIFY_TOOL_DETECTED)
         self.gcode.register_command("RESTORE_TOOL_OFFSETS",
-                                    self.cmd_RESTORE_TOOL_OFFSETS, 
+                                    self.cmd_RESTORE_TOOL_OFFSETS,
                                     desc=self.cmd_RESTORE_TOOL_OFFSETS_help)
 
     def _handle_home_rails_begin(self, homing_state, rails):
@@ -495,11 +495,11 @@ class Toolchanger:
             if offset_x != None:
                 tool.gcode_x_offset = float(offset_x)
             if offset_y != None:
-                tool.gcode_y_offset = float(offset_z)
+                tool.gcode_y_offset = float(offset_y)
             if offset_z != None:
-                tool.code_z_offset = float(offset_z)
+                tool.gcode_z_offset = float(offset_z)
 
-    cmd_RESTORE_TOOL_OFFSETS_help = 'Restores the the given X, Y and/or Z offesets. Parameter are tool # or name and offesets:X,Y,Z'        
+    cmd_RESTORE_TOOL_OFFSETS_help = 'Restores the the given X, Y and/or Z offesets. Parameter are tool # or name and offesets:X,Y,Z'
 
     def cmd_RESET_TOOL_PARAMETER(self, gcmd):
         tool = self._get_tool_from_gcmd(gcmd)
