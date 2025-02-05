@@ -132,7 +132,7 @@ class ProbeSessionHelper:
         self.printer.send_event("probe:update_results", epos)
         # Report results
         gcode = self.printer.lookup_object('gcode')
-        gcode.respond_info("probe at %.3f,%.3f is z=%.6f"
+        gcode.respond_info("probe at X=%.3f Y=%.3f is z=%.6f"
                            % (epos[0], epos[1], epos[2]))
         return epos[:3]
     def run_probe(self, gcmd):
@@ -144,23 +144,32 @@ class ProbeSessionHelper:
         retries = 0
         positions = []
         sample_count = params['samples']
-        while len(positions) < sample_count:
+        sample_retries = params['samples_tolerance_retries']
+        while len(positions) < (sample_count * sample_retries):
             # Probe position
             pos = self._probe(params['probe_speed'])
             positions.append(pos)
-            # Check samples tolerance
-            z_positions = [p[2] for p in positions]
-            if max(z_positions)-min(z_positions) > params['samples_tolerance']:
-                if retries >= params['samples_tolerance_retries']:
-                    raise gcmd.error("Probe samples exceed samples_tolerance")
-                gcmd.respond_info("Probe samples exceed tolerance. Retrying...")
-                retries += 1
-                positions = []
+            more_ok = len(positions) < (sample_count * sample_retries)
+            peaks = self.find_sample_peak(gcmd, positions, params['samples_tolerance'], params['samples'])
+            if len(peaks) == 1:
+                peak = peaks[0]
+                if len(peak) >= params['samples']:
+                    gcmd.respond_info(f"Peak in data found: {explain_peak(peak)}")
+                    positions = list(pos for pos in positions if peak[0] <= pos[2] <= peak[-1])
+                    break
+            else:
+                best_peak, next_best_peak = peaks
+                best_text = explain_peak(best_peak)
+                next_best_text = explain_peak(next_best_peak)
+                next_step = "need more data..." if more_ok else "giving up"
+                gcmd.respond_info(f"Found {best_text}; but also {next_best_text}; {next_step}")
             # Retract
-            if len(positions) < sample_count:
-                toolhead.manual_move(
-                    probexy + [pos[2] + params['sample_retract_dist']],
-                    params['lift_speed'])
+            toolhead.manual_move(
+                probexy + [pos[2] + params['sample_retract_dist']],
+                params['lift_speed'],
+            )
+            if not more_ok:
+                raise gcmd.error(f"Results too scattered even after {len(positions)} sample(s): {','.join(pos[2].__format__('.6f') for pos in positions)}")
         # Calculate result
         epos = probe.calc_probe_z_average(positions, params['samples_result'])
         self.results.append(epos)
@@ -168,6 +177,79 @@ class ProbeSessionHelper:
         res = self.results
         self.results = []
         return res
+    def find_sample_peak(self, gcmd, positions, window, margin):
+        """Finds a significant "peak" within the list of positions.
+
+        This is a brute force approach to find a peak, which could probably be
+        replaced by something like a K shortest path routing tree with the
+        probe positions, which should allow there to always be a result, with
+        just the tolerance narrowing and without the O(N^2) loop here.  Or at
+        least preserve the computed results in this function and only recalculate
+        the windows within the tolerance of the new probe value.
+
+        Parameters:
+
+        :param positions: the list of position objects from each sample
+
+        :param window: samples must be within this window to be considered towards
+                       the same peak
+
+        :param margin: the window must have the most measurements in it vs any
+                       other (non–overlapping) window, by this many samples
+
+        Returns:
+
+        List[List[float]] - one list, too short: insufficient data
+                            one list, 'margin' or longer: winner found!
+                            two lists: would-be winner found (position 0), but
+                              runner-up (position 1) too many for it to win
+        """
+        top_window = []
+        all_windows = []
+        windows = []
+
+        def shift_windows(pos_z):
+            while len(windows) > 0 and windows[0][0] < (pos_z - window):
+                shifted_window, windows[:] = windows[0], windows[1:]
+                #gcmd.respond_info("find_sample_peak: shifting window: %s" % (shifted_window,))
+                all_windows.append(shifted_window)
+
+        for position in sorted(positions, key=lambda pos: pos[2]):
+            pos_z = position[2]
+            # every point starts a new window, unless it is the same as the previous reading
+            if not windows or (windows and windows[-1][-1] < pos_z):
+                windows.append([pos_z])
+            shift_windows(pos_z)
+            for nearby_window in windows[:-1]:
+                nearby_window.append(pos_z)
+
+        shift_windows(pos_z + window + 0.01)
+
+        all_windows.sort(key=lambda w: -len(w))
+        top_window = all_windows[0]
+        top_start = top_window[0]
+        top_end = top_start + window
+        top_count = len(top_window)
+        for runner_up_window in all_windows[1:]:
+            if top_count - len(runner_up_window) >= margin:
+                break
+            window_start = runner_up_window[0]
+            if window_start > top_end:
+                return [top_window, runner_up_window]
+            window_end = window_start + window
+            if window_end < top_start:
+                return [top_window, runner_up_window]
+        return [top_window]
+
+
+def explain_peak(z_positions):
+    if len(z_positions) == 1:
+        return f"1 result at {z_positions[0]:.6f}"
+    if len(z_positions) == 2:
+        return f"2 results at {z_positions[0]:.6f} and {z_positions[1]:.6f}"
+    return f"{len(z_positions)} results between {z_positions[0]:.6f} and {z_positions[-1]:.6f}"
+
+
 
 def load_config_prefix(config):
     return ToolProbe(config)
