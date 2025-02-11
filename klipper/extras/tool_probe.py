@@ -132,7 +132,7 @@ class ProbeSessionHelper:
         self.printer.send_event("probe:update_results", epos)
         # Report results
         gcode = self.printer.lookup_object('gcode')
-        gcode.respond_info("probe at X=%.3f Y=%.3f is z=%.6f"
+        gcode.respond_info("probe at X=%.3f Y=%.3f is z=%.3f"
                            % (epos[0], epos[1], epos[2]))
         return epos[:3]
     def run_probe(self, gcmd):
@@ -162,14 +162,28 @@ class ProbeSessionHelper:
                 best_text = explain_peak(best_peak)
                 next_best_text = explain_peak(next_best_peak)
                 next_step = "need more data..." if more_ok else "giving up"
-                gcmd.respond_info(f"Found {best_text}; but also {next_best_text}; {next_step}")
+                num_others = len(positions) - len(best_peak) - len(next_best_peak)
+                and_more = f" and {num_others} more results" if num_others > 0 else ""
+                gcmd.respond_info(f"Found {best_text}; but also {next_best_text}{and_more}; {next_step}")
             # Retract
             toolhead.manual_move(
                 probexy + [pos[2] + params['sample_retract_dist']],
                 params['lift_speed'],
             )
             if not more_ok:
-                raise gcmd.error(f"Results too scattered even after {len(positions)} sample(s): {','.join(pos[2].__format__('.6f') for pos in positions)}")
+                for x in (1.5, 2, 2.5, 3, 5, 8, 10):
+                    wider_tolerance = x * params['samples_tolerance']
+                    peaks = self.find_sample_peak(gcmd, positions, wider_tolerance, params['samples'])
+                    if len(peaks) == 1:
+                        peak = peaks[0]
+                        gcmd.respond_info(f"With a wider tolerance of {wider_tolerance:.3f}, peak in data found: {explain_peak(peak)}")
+                        positions = list(pos for pos in positions if peak[0] <= pos[2] <= peak[-1])
+                        break
+                    else:
+                        gcmd.respond_info(f"Wider tolerance of {wider_tolerance:.3f}: best {len(peaks[0])} vs next {len(peaks[1])}")
+                        if x == 10:
+                            raise gcmd.error(f"Check probe: results are wild")
+                break
         # Calculate result
         epos = probe.calc_probe_z_average(positions, params['samples_result'])
         self.results.append(epos)
@@ -244,10 +258,10 @@ class ProbeSessionHelper:
 
 def explain_peak(z_positions):
     if len(z_positions) == 1:
-        return f"1 result at {z_positions[0]:.6f}"
+        return f"1 result at {z_positions[0]:.3f}"
     if len(z_positions) == 2:
-        return f"2 results at {z_positions[0]:.6f} and {z_positions[1]:.6f}"
-    return f"{len(z_positions)} results between {z_positions[0]:.6f} and {z_positions[-1]:.6f}"
+        return f"2 results at {z_positions[0]:.3f} and {z_positions[1]:.3f}"
+    return f"{len(z_positions)} results between {z_positions[0]:.3f} and {z_positions[-1]:.3f}"
 
 
 
