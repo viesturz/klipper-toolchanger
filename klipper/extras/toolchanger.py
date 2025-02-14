@@ -144,8 +144,7 @@ class Toolchanger:
         self.has_detection = any([t.detect_state != DETECT_UNAVAILABLE for t in self.tools.values()])
         all_detection = all([t.detect_state != DETECT_UNAVAILABLE for t in self.tools.values()])
         if self.has_detection and not all_detection:
-            config = self.printer.lookup_object('configfile')
-            raise config.error("Some tools missing detection pin")
+            raise self.config.error("Some tools missing detection pin")
 
     cmd_INITIALIZE_TOOLCHANGER_help = "Initialize the toolchanger"
 
