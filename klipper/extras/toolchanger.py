@@ -383,9 +383,9 @@ class Toolchanger:
         for tool in self.tools.values():
             if tool.detect_state == DETECT_PRESENT:
                 detected = tool
-                detected_names.add(tool.name)
+                detected_names.append(tool.name)
         if len(detected_names) > 1:
-            raise gcmd.error("Multiple tools detected: %s" % detected_names)
+            raise gcmd.error("Multiple tools detected: %s" % (detected_names,))
         if detected is None:
             raise gcmd.error("No tool detected")
         return detected
