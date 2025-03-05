@@ -63,8 +63,9 @@ class Tool:
             self.extruder_name) if self.extruder_name else None
         self.extruder_stepper = self.printer.lookup_object(
             self.extruder_stepper_name) if self.extruder_stepper_name else None
-        self.fan = self.printer.lookup_object(
-            self.fan_name) if self.fan_name else None
+        if self.fan_name:
+            self.fan = self.printer.lookup_object(self.fan_name,
+                      self.printer.lookup_object("fan_generic " + self.fan_name))
         if self.tool_number >= 0:
             self.assign_tool(self.tool_number)
 
