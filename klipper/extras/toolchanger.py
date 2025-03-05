@@ -103,7 +103,11 @@ class Toolchanger:
                                     self.cmd_SAVE_TOOL_PARAMETER)
         self.gcode.register_command("VERIFY_TOOL_DETECTED",
                                     self.cmd_VERIFY_TOOL_DETECTED)
-        self.fan_switcher = FanSwitcher(config)
+        self.fan_switcher = None
+
+    def require_fan_switcher(self):
+        if not self.fan_switcher:
+            self.fan_switcher = FanSwitcher(self.config)
 
     def _handle_home_rails_begin(self, homing_state, rails):
         if self.initialize_on == INIT_ON_HOME and self.status == STATUS_UNINITALIZED:
@@ -563,6 +567,8 @@ class FanSwitcher:
         self.has_printer_fan = bool(config.has_section('fan'))
         self.speed = 0
         self.active_fan = ''
+        if self.has_printer_fan:
+            raise config.error("Cannot use tool fans together with [fan], use [fan_generic] for tool fans.")
         if not self.has_multi_fan and not self.has_printer_fan:
             self.gcode.register_command("M106", self.cmd_M106)
             self.gcode.register_command("M107", self.cmd_M107)

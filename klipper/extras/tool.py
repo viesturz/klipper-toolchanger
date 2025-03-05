@@ -44,8 +44,8 @@ class Tool:
         self.extruder_stepper = None
         self.fan_name = self._config_get(config, 'fan', None)
         self.fan = None
-        if self.fan_name and self.toolchanger.fan_switcher.has_printer_fan:
-            raise config.error("Cannot use tool fans together with [fan], use [fan_generic] for tool fans.")
+        if self.fan_name:
+            self.toolchanger.require_fan_switcher()
         self.t_command_restore_axis = self._config_get(
             config, 't_command_restore_axis', 'XYZ')
         self.tool_number = config.getint('tool_number', -1, minval=0)
