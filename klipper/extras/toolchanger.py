@@ -103,6 +103,7 @@ class Toolchanger:
                                     self.cmd_SAVE_TOOL_PARAMETER)
         self.gcode.register_command("VERIFY_TOOL_DETECTED",
                                     self.cmd_VERIFY_TOOL_DETECTED)
+        self.fan_switcher = FanSwitcher(config)
 
     def _handle_home_rails_begin(self, homing_state, rails):
         if self.initialize_on == INIT_ON_HOME and self.status == STATUS_UNINITALIZED:
@@ -552,6 +553,44 @@ class Toolchanger:
                 raise gcmd.error('Missing TOOL=<name> or T=<number>')
             tool = default
         return tool
+
+class FanSwitcher:
+    def __init__(self, config):
+        self.printer = config.get_printer()
+        self.gcode = self.printer.lookup_object('gcode')
+        self.config = config
+        self.has_multi_fan = bool(config.get_prefix_sections('multi_fan'))
+        self.has_printer_fan = bool(config.has_section('fan'))
+        self.speed = 0
+        self.active_fan = ''
+        if not self.has_multi_fan and not self.has_printer_fan:
+            self.gcode.register_command("M106", self.cmd_M106)
+            self.gcode.register_command("M107", self.cmd_M107)
+
+    def activate(self, fan_name):
+        if self.has_multi_fan:
+            # Legacy multi-fan support
+            self.gcode.run_script_from_command("ACTIVATE_FAN FAN='%s'" % (fan_name,))
+
+        short_name = fan_name.split()[-1] if fan_name else ''
+        if self.active_fan != short_name:
+            if self.active_fan:
+                self.gcode.run_script_from_command("SET_FAN_SPEED FAN='%s' SPEED=%s" % (self.active_fan, 0.0))
+            self.active_fan = short_name
+            if self.active_fan:
+                self.gcode.run_script_from_command("SET_FAN_SPEED FAN='%s' SPEED=%s" % (self.active_fan, self.speed))
+
+    def cmd_M106(self, gcmd):
+        self.set_speed(gcmd.get_float('S', 255., minval=0.) / 255.)
+    def cmd_M107(self, gcmd):
+        self.set_speed(0.0)
+    def set_speed(self, speed):
+        if speed == self.speed:
+            return
+        self.speed = speed
+        if self.active_fan:
+            self.gcode.run_script_from_command("SET_FAN_SPEED FAN='%s' SPEED=%s" % (self.active_fan, self.speed))
+
 
 def get_params_dict(config):
     result = {}

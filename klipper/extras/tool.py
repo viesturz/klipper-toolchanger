@@ -44,6 +44,8 @@ class Tool:
         self.extruder_stepper = None
         self.fan_name = self._config_get(config, 'fan', None)
         self.fan = None
+        if self.fan_name and self.toolchanger.fan_switcher.has_printer_fan:
+            raise config.error("Cannot use tool fans together with [fan], use [fan_generic] for tool fans.")
         self.t_command_restore_axis = self._config_get(
             config, 't_command_restore_axis', 'XYZ')
         self.tool_number = config.getint('tool_number', -1, minval=0)
@@ -130,8 +132,7 @@ class Tool:
                 gcode.run_script_from_command(
                     "SYNC_EXTRUDER_MOTION EXTRUDER='%s' MOTION_QUEUE='%s'" % (self.extruder_stepper_name, hotend_extruder, ))
         if self.fan:
-            gcode.run_script_from_command(
-                "ACTIVATE_FAN FAN='%s'" % (self.fan.name,))
+            self.toolchanger.fan_switcher.activate_fan(self.fan_name)
     def deactivate(self):
         if self.extruder_stepper:
             toolhead = self.printer.lookup_object('toolhead')

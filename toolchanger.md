@@ -239,7 +239,7 @@ The following information is available in the `tool` object:
  - `tool_number`: The assigned tool number or -1 if not assigned.
  - `toolchanger`: The name of the toolchanger this tool is attached to. 
  - `extruder`: Name of the extruder used for this tool.
- - `fan`: Name of the part fan used for this tool.
+ - `fan`: Full name of the fan to be used as part cooling fan for this tool, use [fan_generic] fans.
  - `active`: If this tool is currently the selected tool.
  - `mounted`: If this tool is currently mounted, the tool may be mounted but
    not selected. Some reasons for that can be that a child tool is selected, or
