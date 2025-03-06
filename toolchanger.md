@@ -209,6 +209,7 @@ selected.
 matches the expected tool. Shutdown Klipper if not. 
 Does nothing if tool detection pin is not configured.
 
+
 ### SET_TOOL_TEMPERATURE
 `SET_TOOL_TEMPERATURE [TOOL=<name>] [T=<number>]  TARGET=<temp> [WAIT=0]`: Set tool temperature.
 
@@ -229,6 +230,18 @@ Defaults to current tool if tool not specified.
 `RESET_TOOL_PARAMETER [TOOL=<name>] [T=<number>]  PARAMETER=parameter_<name> VALUE=<value>`: 
 Resets a parameter to its original value.
 Defaults to current tool if tool not specified.
+
+# Gcodes if *fan* is specified for any of tools
+
+### M106 
+`M106 S<speed> [P<tool number>] [T<tool number>] [TOOL=<tool name>] `: Set fan speed. 
+If P not specified sets speed for the current tool fan and the speed is automatically transferred over on tool change.
+When P or T or TOOL is set, sets the fan speed for that tool and is NOT transferred over on tool change.
+
+### M107 
+`M107 [P<tool number>] [T<tool number>] [TOOL=<tool name>] `: Stop fan.
+With no parameters stops the current tool fan.
+When P or T or TOOL is set, stops the specified tool fan, or nothing if no fan is configured.
 
 # Status
 

@@ -133,7 +133,7 @@ class Tool:
                 gcode.run_script_from_command(
                     "SYNC_EXTRUDER_MOTION EXTRUDER='%s' MOTION_QUEUE='%s'" % (self.extruder_stepper_name, hotend_extruder, ))
         if self.fan:
-            self.toolchanger.fan_switcher.activate(self.fan_name)
+            self.toolchanger.fan_switcher.activate_fan(self.fan)
     def deactivate(self):
         if self.extruder_stepper:
             toolhead = self.printer.lookup_object('toolhead')
