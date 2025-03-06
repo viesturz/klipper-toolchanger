@@ -284,17 +284,18 @@ class Toolchanger:
 
         self.ensure_homed(gcmd)
         self.status = STATUS_CHANGING
-        toolhead_position = self.gcode_move.get_status()['position']
-        gcode_position = self.gcode_move.get_status()['gcode_position']
-        extra_z_offset = toolhead_position[2] - gcode_position[2] - self.active_tool.gcode_z_offset if self.active_tool else 0.0
+        gcode_status = self.gcode_move.get_status()
+        gcode_position = gcode_status['gcode_position']
+        current_z_offset = gcode_status['homing_origin'][2]
+        extra_z_offset = current_z_offset - (self.active_tool.gcode_z_offset if self.active_tool else 0.0)
 
         extra_context = {
             'dropoff_tool': self.active_tool.name if self.active_tool else None,
             'pickup_tool': tool.name if tool else None,
             'restore_position': self._position_with_tool_offset(
-                gcode_position, restore_axis, tool),
+                gcode_position, restore_axis, tool, extra_z_offset),
             'start_position': self._position_with_tool_offset(
-                gcode_position, 'xyz', tool)
+                gcode_position, 'xyz', tool, extra_z_offset)
         }
 
         self.gcode.run_script_from_command(
@@ -437,7 +438,7 @@ class Toolchanger:
                 (-tool.gcode_x_offset, -tool.gcode_y_offset,
                  -tool.gcode_z_offset))
 
-    def _position_with_tool_offset(self, position, axis, tool):
+    def _position_with_tool_offset(self, position, axis, tool, extra_z_offset = 0.0):
         result = {}
         for i in axis:
             index = XYZ_TO_INDEX[i]
@@ -449,7 +450,7 @@ class Toolchanger:
                 elif index == 1:
                     offset = tool.gcode_y_offset
                 elif index == 2:
-                    offset = tool.gcode_z_offset
+                    offset = tool.gcode_z_offset + extra_z_offset
                 v += offset
             result[INDEX_TO_XYZ[index]] = v
         return result
