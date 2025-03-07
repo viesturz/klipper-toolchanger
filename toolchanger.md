@@ -146,7 +146,9 @@ All gcode macros below have the following context available:
   #  params_input_shaper_freq_x: 100
   #  params_retract_mm: 8 
 # t_command_restore_axis: XYZ
-   # Which axis to restore with the T<n> command, see SELECT_TOOL for command for more info.    
+   # Which axis to restore with the T<n> command, see SELECT_TOOL for command for more info.
+# transfer_fan_speed: True
+  # When tre, fan speed is transferred during toolchange. When false, fan speeds are not changed during toolchange.
 ```
 
 # Gcodes
@@ -235,13 +237,12 @@ Defaults to current tool if tool not specified.
 
 ### M106 
 `M106 S<speed> [P<tool number>] [T<tool number>] [TOOL=<tool name>] `: Set fan speed. 
-If P not specified sets speed for the current tool fan and the speed is automatically transferred over on tool change.
-When P or T or TOOL is set, sets the fan speed for that tool and is NOT transferred over on tool change.
+If P not specified sets speed for the current tool fan.
+If `toolchanger.transfer_fan_speed` is enabled, current tool fan speed is transferred to the new tool on tool change.
 
 ### M107 
 `M107 [P<tool number>] [T<tool number>] [TOOL=<tool name>] `: Stop fan.
 With no parameters stops the current tool fan.
-When P or T or TOOL is set, stops the specified tool fan, or nothing if no fan is configured.
 
 # Status
 

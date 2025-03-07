@@ -38,6 +38,7 @@ class Toolchanger:
         self.initialize_on = config.getchoice(
             'initialize_on', init_options, 'first-use')
         self.verify_tool_pickup = config.getboolean('verify_tool_pickup', True)
+        self.transfer_fan_speed = config.getboolean('transfer_fan_speed', True)
         self.uses_axis = config.get('uses_axis', 'xyz').lower()
         home_options = {'abort': ON_AXIS_NOT_HOMED_ABORT,
                         'home': ON_AXIS_NOT_HOMED_HOME}
@@ -571,7 +572,7 @@ class FanSwitcher:
         self.has_printer_fan = bool(config.has_section('fan'))
         self.pending_speed = None
         self.active_fan = None
-        self.speed_is_transferable = True
+        self.transfer_fan_speed = toolchanger.transfer_fan_speed
         if self.has_printer_fan:
             raise config.error("Cannot use tool fans together with [fan], use [fan_generic] for tool fans.")
         if not self.has_multi_fan and not self.has_printer_fan:
@@ -583,9 +584,7 @@ class FanSwitcher:
             # Legacy multi-fan support
             self.gcode.run_script_from_command("ACTIVATE_FAN FAN='%s'" % (fan.name,))
             return
-        if self.active_fan == fan:
-            return
-        if not self.speed_is_transferable:
+        if self.active_fan == fan or not self.transfer_fan_speed:
             return
 
         speed_to_set = self.pending_speed
@@ -593,27 +592,24 @@ class FanSwitcher:
             speed_to_set = self.active_fan.get_status(0)['speed']
             self.gcode.run_script_from_command("SET_FAN_SPEED FAN='%s' SPEED=%s" % (self.active_fan.fan_name, 0.0))
         self.active_fan = fan
-        if self.active_fan and speed_to_set is not None:
-            self.pending_speed = None
-            self.gcode.run_script_from_command("SET_FAN_SPEED FAN='%s' SPEED=%s" % (self.active_fan.fan_name, speed_to_set))
+        if speed_to_set is not None:
+            if self.active_fan:
+                self.pending_speed = None
+                self.gcode.run_script_from_command("SET_FAN_SPEED FAN='%s' SPEED=%s" % (self.active_fan.fan_name, speed_to_set))
+            else:
+                self.pending_speed = speed_to_set
 
     def cmd_M106(self, gcmd):
-        tool = self.toolchanger.gcmd_tool(gcmd, default=None, extra_number_arg='P')
+        tool = self.toolchanger.gcmd_tool(gcmd, default=self.toolchanger.active_tool, extra_number_arg='P')
         speed = gcmd.get_float('S', 255., minval=0.) / 255.
         self.set_speed(speed, tool)
     def cmd_M107(self, gcmd):
-        tool = self.toolchanger.gcmd_tool(gcmd, default=None, extra_number_arg='P')
+        tool = self.toolchanger.gcmd_tool(gcmd, default=self.toolchanger.active_tool, extra_number_arg='P')
         self.set_speed(0.0, tool)
-    def set_speed(self, speed, tool=None):
-        self.speed_is_transferable = tool is None
-        if tool:
-            if tool.fan:
-                self.gcode.run_script_from_command("SET_FAN_SPEED FAN='%s' SPEED=%s" % (tool.fan.fan_name, speed))
-        elif self.active_fan:
-            self.gcode.run_script_from_command("SET_FAN_SPEED FAN='%s' SPEED=%s" % (self.active_fan.fan_name, speed))
-            self.pending_speed = None
+    def set_speed(self, speed, tool):
+        if tool and tool.fan:
+            self.gcode.run_script_from_command("SET_FAN_SPEED FAN='%s' SPEED=%s" % (tool.fan.fan_name, speed))
         else:
-            # Will set on next activate_fan
             self.pending_speed = speed
 
 def get_params_dict(config):
