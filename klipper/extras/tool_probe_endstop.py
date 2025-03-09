@@ -227,7 +227,7 @@ class EndstopRouter:
     def get_steppers(self):
         return list(self._steppers)
 
-    def on_error(self, *args):
+    def on_error(self, *args, **kwargs):
         raise self.printer.command_error("Cannot interact with probe - no active tool probe.")
     def query_endstop(self, print_time):
         if not self.active_mcu:
