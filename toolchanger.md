@@ -83,7 +83,9 @@ and will provide a default value for all of its tools.
   # How to unmount parent when the tool is deselected:
   # - child-first - unmount child and then parent
   # - parent-first - unmount parent and then child
-  # - lazy - no dot unmount the child unless a needed to mount a sibling   
+  # - lazy - no dot unmount the child unless a needed to mount a sibling
+# transfer_fan_speed: True
+  # When tre, fan speed is transferred during toolchange. When false, fan speeds are not changed during toolchange.     
 ```
 
 ### [tool]
@@ -147,8 +149,6 @@ All gcode macros below have the following context available:
   #  params_retract_mm: 8 
 # t_command_restore_axis: XYZ
    # Which axis to restore with the T<n> command, see SELECT_TOOL for command for more info.
-# transfer_fan_speed: True
-  # When tre, fan speed is transferred during toolchange. When false, fan speeds are not changed during toolchange.
 ```
 
 # Gcodes
