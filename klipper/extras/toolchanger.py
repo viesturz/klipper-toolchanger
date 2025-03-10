@@ -270,12 +270,9 @@ class Toolchanger:
         if should_run_initialize:
             if self.status == STATUS_INITIALIZING:
                 self.status = STATUS_READY
-                self.gcode.respond_info('%s initialized, active %s' %
-                                        (self.name,
-                                         self.active_tool.name if self.active_tool else None))
+                self.gcode.respond_info('%s initialized, active %s' %(self.name, self.active_tool.name if self.active_tool else None))
             else:
-                raise self.gcode.error('%s failed to initialize, error: %s' %
-                                       (self.name, self.error_message))
+                raise self.gcode.error('%s failed to initialize, error: %s' %(self.name, self.error_message))
 
     def select_tool(self, gcmd, tool, restore_axis, force_pickup=None):
         if not force_pickup:
