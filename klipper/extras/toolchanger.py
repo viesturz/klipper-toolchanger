@@ -280,12 +280,10 @@ class Toolchanger:
                 self.initialize()
 
             if self.status != STATUS_READY:
-                raise gcmd.error(
-                    "Cannot select tool, toolchanger status is " + self.status)
+                raise gcmd.error("Cannot select tool, toolchanger status is " + self.status)
 
             if self.active_tool == tool:
-                gcmd.respond_info(
-                'Tool %s already selected' % tool.name if tool else None)
+                gcmd.respond_info('Tool %s already selected' % tool.name if tool else None)
                 return
 
         self.ensure_homed(gcmd)
