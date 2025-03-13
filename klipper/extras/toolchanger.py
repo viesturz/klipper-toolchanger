@@ -270,12 +270,9 @@ class Toolchanger:
         if should_run_initialize:
             if self.status == STATUS_INITIALIZING:
                 self.status = STATUS_READY
-                self.gcode.respond_info('%s initialized, active %s' %
-                                        (self.name,
-                                         self.active_tool.name if self.active_tool else None))
+                self.gcode.respond_info('%s initialized, active %s' %(self.name, self.active_tool.name if self.active_tool else None))
             else:
-                raise self.gcode.error('%s failed to initialize, error: %s' %
-                                       (self.name, self.error_message))
+                raise self.gcode.error('%s failed to initialize, error: %s' %(self.name, self.error_message))
 
     def select_tool(self, gcmd, tool, restore_axis, force_pickup=None):
         if not force_pickup:
@@ -283,12 +280,10 @@ class Toolchanger:
                 self.initialize()
 
             if self.status != STATUS_READY:
-                raise gcmd.error(
-                    "Cannot select tool, toolchanger status is " + self.status)
+                raise gcmd.error("Cannot select tool, toolchanger status is " + self.status)
 
             if self.active_tool == tool:
-                gcmd.respond_info(
-                'Tool %s already selected' % tool.name if tool else None)
+                gcmd.respond_info('Tool %s already selected' % tool.name if tool else None)
                 return
 
         self.ensure_homed(gcmd)
@@ -300,37 +295,36 @@ class Toolchanger:
         extra_context = {
             'dropoff_tool': self.active_tool.name if self.active_tool else None,
             'pickup_tool': tool.name if tool else None,
-            'restore_position': self._position_with_tool_offset(
-                gcode_position, restore_axis, tool),
-            'start_position': self._position_with_tool_offset(
-                gcode_position, 'xyz', tool)
+            'restore_position': self._position_with_tool_offset(gcode_position, restore_axis, tool),
+            'start_position': self._position_with_tool_offset(gcode_position, 'xyz', tool)
         }
 
-        self.gcode.run_script_from_command(
-            "SAVE_GCODE_STATE NAME=_toolchange_state")
+        self.gcode.run_script_from_command("SAVE_GCODE_STATE NAME=_toolchange_state")
+        self.gcode.run_script_from_command("SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0 MOVE=0")
+        # self.gcode.run_script_from_command("_fan_speed TOOL=%d" %(tool.tool_number))
 
         if not force_pickup:
-           before_change_gcode = self.active_tool.before_change_gcode if self.active_tool and self.active_tool.before_change_gcode else self.default_before_change_gcode
-           self.run_gcode('before_change_gcode', before_change_gcode, extra_context)
-        self.gcode.run_script_from_command("SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0")
+            before_change_gcode = self.active_tool.before_change_gcode if self.active_tool and self.active_tool.before_change_gcode else self.default_before_change_gcode
+            self.run_gcode('before_change_gcode', before_change_gcode, extra_context)
 
         if not force_pickup and self.active_tool:
-           self.run_gcode('tool.dropoff_gcode',
-                          self.active_tool.dropoff_gcode, extra_context)
+            self.gcode.run_script_from_command("STOP_TOOL_PROBE_CRASH_DETECTION")
+            self.run_gcode('tool.dropoff_gcode', self.active_tool.dropoff_gcode, extra_context)
+            self.gcode.run_script_from_command("DETECT_ACTIVE_TOOL_PROBE")
+
 
         self._configure_toolhead_for_tool(tool)
         if tool is not None:
-            self.run_gcode('tool.pickup_gcode',
-                           tool.pickup_gcode, extra_context)
+            self.run_gcode('tool.pickup_gcode',tool.pickup_gcode, extra_context)
+            self.gcode.run_script_from_command("DETECT_ACTIVE_TOOL_PROBE")
             after_change_gcode = tool.after_change_gcode if tool.after_change_gcode else self.default_after_change_gcode
-            self.run_gcode('after_change_gcode',
-                           after_change_gcode, extra_context)
+            self.run_gcode('after_change_gcode', after_change_gcode, extra_context)
 
         self._restore_axis(gcode_position, restore_axis, tool)
 
-        self.gcode.run_script_from_command(
-            "RESTORE_GCODE_STATE NAME=_toolchange_state MOVE=0")
+        self.gcode.run_script_from_command("RESTORE_GCODE_STATE NAME=_toolchange_state MOVE=0")
         # Restore state sets old gcode offsets, fix that.
+
         if tool is not None:
             self._set_tool_gcode_offset(tool, extra_z_offset)
 
@@ -362,11 +356,10 @@ class Toolchanger:
         }
 
         self.gcode.run_script_from_command("SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0")
-
-        self.run_gcode('tool.dropoff_gcode',
-                       self.active_tool.dropoff_gcode, extra_context)
-        self.run_gcode('tool.pickup_gcode',
-                       tool.pickup_gcode, extra_context)
+        self.run_gcode('tool.dropoff_gcode', self.active_tool.dropoff_gcode, extra_context)
+        self.gcode.run_script_from_command("DETECT_ACTIVE_TOOL_PROBE")
+        self.run_gcode('tool.pickup_gcode', tool.pickup_gcode, extra_context)
+        self.gcode.run_script_from_command("DETECT_ACTIVE_TOOL_PROBE")
 
         self._restore_axis(gcode_position, restore_axis, None)
         self.status = STATUS_READY
