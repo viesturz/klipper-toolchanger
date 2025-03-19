@@ -410,6 +410,8 @@ class Toolchanger:
             return
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.wait_moves()
+        # Wait some to allow tool sensors to update
+        toolhead.dwell(.2)
         self.validate_detected_tool(expected, gcmd)
 
     def _configure_toolhead_for_tool(self, tool):
