@@ -31,10 +31,10 @@ class SaveBabies:
                     if "#*# z_offset =" in line.strip():
                         for word in line.split():
                             if word != "#*# z_offset = ":
-                                z_offset = word
+                                z_offset = float(word)
 
                         with open(destination, 'a') as savefile:
-                            savefile.writeline(z_offset)
+                            savefile.writeline(string(z_offset))
 
         self.gcode.respond_info("stuff_0...")
 
