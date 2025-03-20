@@ -18,7 +18,7 @@ class SaveBabies:
         home_dir = os.path.expanduser("~")
         printer_config = os.path.join(home_dir, "printer_data/config/printer.cfg")
         destination = os.path.join(home_dir, "printer_data/config/printer_test.cfg")
-        z_offset = 0
+        z_offset = 0.0
 
         ## Save session variables
         with open(printer_config) as file:
@@ -31,7 +31,7 @@ class SaveBabies:
                     if "#*# z_offset =" in line.strip():
                         for word in line.split():
                             if word != "#*# z_offset = ":
-                                z_offset == float(input(word))
+                                z_offset = float(input(word))
 
                         with open(destination, 'a') as savefile:
                             savefile.writeline(z_offset)
