@@ -5,7 +5,7 @@
 import os
 import logging
 
-class ConfigSwitch:
+class SaveBabies:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.gcode = self.printer.lookup_object('gcode')
@@ -31,4 +31,4 @@ class ConfigSwitch:
                             savefile.write(line)
 
 def load_config(config):
-    return ConfigSwitch(config)
+    return SaveBabies(config)
