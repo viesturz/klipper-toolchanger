@@ -31,21 +31,14 @@ class Toolchanger:
 
         self.name = config.get_name()
         self.params = get_params_dict(config)
-        init_options = {'home': INIT_ON_HOME,
-                        'manual': INIT_MANUAL, 'first-use': INIT_FIRST_USE}
-        self.initialize_on = config.getchoice(
-            'initialize_on', init_options, 'first-use')
+        init_options = {'home': INIT_ON_HOME, 'manual': INIT_MANUAL, 'first-use': INIT_FIRST_USE}
+        self.initialize_on = config.getchoice('initialize_on', init_options, 'first-use')
         self.uses_axis = config.get('uses_axis', 'xyz').lower()
-        home_options = {'abort': ON_AXIS_NOT_HOMED_ABORT,
-                        'home': ON_AXIS_NOT_HOMED_HOME}
-        self.on_axis_not_homed = config.getchoice('on_axis_not_homed',
-                                                  home_options, 'abort')
-        self.initialize_gcode = self.gcode_macro.load_template(
-            config, 'initialize_gcode', '')
-        self.default_before_change_gcode = self.gcode_macro.load_template(
-            config, 'before_change_gcode', '')
-        self.default_after_change_gcode = self.gcode_macro.load_template(
-            config, 'after_change_gcode', '')
+        home_options = {'abort': ON_AXIS_NOT_HOMED_ABORT, 'home': ON_AXIS_NOT_HOMED_HOME}
+        self.on_axis_not_homed = config.getchoice('on_axis_not_homed', home_options, 'abort')
+        self.initialize_gcode = self.gcode_macro.load_template(config, 'initialize_gcode', '')
+        self.default_before_change_gcode = self.gcode_macro.load_template(config, 'before_change_gcode', '')
+        self.default_after_change_gcode = self.gcode_macro.load_template(config, 'after_change_gcode', '')
 
         # Read all the fields that might be defined on toolchanger.
         # To avoid throwing config error when no tools configured.
