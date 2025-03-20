@@ -28,9 +28,11 @@ class SaveBabies:
                 for line in file:
                     ## Record point begin / end
                     if "#*# z_offset =" in line.strip():
-                        numbers = [float(word) for word in line.split() if word.isdigit()]
+                        for word in line.split():
+                            if word != "#*# z_offset = ":
+                                z_offset = word
                         with open(destination, 'a') as savefile:
-                            savefile.write(numbers)
+                            savefile.write(z_offset)
 
         self.gcode.respond_info("stuff_0...")
 
