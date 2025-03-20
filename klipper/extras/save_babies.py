@@ -30,11 +30,11 @@ class SaveBabies:
                     ## Record point begin / end
                     if "#*# z_offset =" in line.strip():
                         for word in line.split():
-                            if word != "#*# z_offset = ":
+                            if word != "#*#" and word != "z_offset" and word != "=":
                                 z_offset = float(word)
 
                         with open(destination, 'a') as savefile:
-                            savefile.writeline(string(z_offset))
+                            savefile.writeline(z_offset)
 
         self.gcode.respond_info("stuff_0...")
 
