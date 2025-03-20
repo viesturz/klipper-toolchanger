@@ -18,7 +18,8 @@ class SaveBabies:
         home_dir = os.path.expanduser("~")
         printer_config = os.path.join(home_dir, "printer_data/config/printer.cfg")
         destination = os.path.join(home_dir, "printer_data/config/printer_test.cfg")
-        
+        z_offset = 0
+
         ## Save session variables
         with open(printer_config) as file:
             if destination != "":
@@ -30,10 +31,11 @@ class SaveBabies:
                     if "#*# z_offset =" in line.strip():
                         for word in line.split():
                             if word != "#*# z_offset = ":
-                                z_offset = word
+                                z_offset = int(word)
                         
-                    with open(destination, 'a') as savefile:
-                        savefile.write(z_offset)
+                    if z_offset != "#*# z_offset = ":
+                        with open(destination, 'a') as savefile:
+                            savefile.write(z_offset)
 
         self.gcode.respond_info("stuff_0...")
 
