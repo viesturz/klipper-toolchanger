@@ -33,7 +33,7 @@ class SaveBabies:
                             if word != "#*#" and word != "z_offset" and word != "=":
                                 z_offset = float(word)
 
-                    self.gcode.respond_info("%f" % z_offset)
+                        self.gcode.respond_info("%f" % z_offset)
 
                     # ## Start / Stop record
                     # if z_offset != "":
