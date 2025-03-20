@@ -32,11 +32,8 @@ class SaveBabies:
                         for word in line.split():
                             if word != "#*#" and word != "z_offset" and word != "=":
                                 z_offset = float(word)
-                                
-                        with open(destination, 'a') as savefile:
-                            savefile.write(z_offset)
+                                self.gcode.respond_info("%f", z_offset)
 
-        self.gcode.respond_info("stuff_0...")
 
 def load_config(config):
     return SaveBabies(config)
