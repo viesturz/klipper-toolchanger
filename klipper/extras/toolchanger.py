@@ -5,7 +5,9 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 #
 # Contribution 2024 by Justin F. Hallett <thesin@southofheaven.org>
-
+#
+# Contribution 2024 by Chinh Nhan Vo <nhanvo29@proton.me>
+#
 import ast, bisect
 
 STATUS_UNINITALIZED = 'uninitialized'

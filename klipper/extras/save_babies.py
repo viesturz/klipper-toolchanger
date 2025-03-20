@@ -9,9 +9,10 @@ class SaveBabies:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.gcode = self.printer.lookup_object('gcode')
-        config.getfloat('gcode_z_offset', None)
         ## Register Commands
-        self.gcode.register_command('SAVE_BABYSTEPS', self.cmd_SAVE_BABYSTEPS, desc=self.cmd_SAVE_BABYSTEPS_help)
+        self.gcode.register_command('SAVE_BABYSTEPS', 
+                                    self.cmd_SAVE_BABYSTEPS,
+                                    desc=self.cmd_SAVE_BABYSTEPS_help)
 
     cmd_SAVE_BABYSTEPS_help = "Save z-babysteps to printer.cfg"
     def cmd_SAVE_BABYSTEPS(self, gcmd):
