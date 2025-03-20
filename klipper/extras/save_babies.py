@@ -17,18 +17,20 @@ class SaveBabies:
         ## Variables
         home_dir = os.path.expanduser("~")
         destination = os.path.join(home_dir, "printer_data/config/printer_test.cfg")
+        
+        self.gcode.respond_info("stuff_0...")
 
-        ## Save session variables
-        with open(printer_config) as file:
-            if destination != "":
-                with open(destination, 'w'):
-                    pass
+        # ## Save session variables
+        # with open(printer_config) as file:
+        #     if destination != "":
+        #         with open(destination, 'w'):
+        #             pass
                 
-                for line in file:
-                    ## Record point begin / end
-                    if "#*# z_offset =" in line.strip():
-                        with open(destination, 'a') as savefile:
-                            savefile.write(line)
+        #         for line in file:
+        #             ## Record point begin / end
+        #             if "#*# z_offset =" in line.strip():
+        #                 with open(destination, 'a') as savefile:
+        #                     savefile.write(line)
 
 def load_config(config):
     return SaveBabies(config)
