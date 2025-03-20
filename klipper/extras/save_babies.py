@@ -33,8 +33,8 @@ class SaveBabies:
                             if word != "#*#" and word != "z_offset" and word != "=":
                                 z_offset = float(word)
 
-                            # with open(destination, 'a') as savefile:
-                            #     savefile.writeline(z_offset)
+                            with open(destination, 'a') as savefile:
+                                savefile.write(z_offset)
 
         self.gcode.respond_info("stuff_0...")
 
