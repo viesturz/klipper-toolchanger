@@ -33,12 +33,12 @@ class SaveBabies:
                             if word != "#*#" and word != "z_offset" and word != "=":
                                 z_offset = float(word)
 
-                        self.gcode.respond_info("%f" % z_offset)
+                    self.gcode.respond_info("%f" % z_offset)
 
                     ## Start / Stop record
                     if z_offset != "":
                         with open(destination, 'a') as savefile:
-                            savefile.write(line)
+                            savefile.write(z_offset)
 
 def load_config(config):
     return SaveBabies(config)
