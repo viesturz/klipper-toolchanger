@@ -10,21 +10,20 @@ class SaveBabies:
         self.printer = config.get_printer()
         self.gcode = self.printer.lookup_object('gcode')
         ## Register Commands
-        self.gcode.register_command('SAVE_BABYSTEPS', 
-                                    self.cmd_SAVE_BABYSTEPS,
-                                    desc=self.cmd_SAVE_BABYSTEPS_help)
+        self.gcode.register_command('SAVE_BABYSTEPS', self.cmd_SAVE_BABYSTEPS, desc=self.cmd_SAVE_BABYSTEPS_help)
 
     cmd_SAVE_BABYSTEPS_help = "Save z-babysteps to printer.cfg"
     def cmd_SAVE_BABYSTEPS(self, gcmd):
         ## Variables
         home_dir = os.path.expanduser("~")
-        destination = os.path.join(home_dir, "printer_data/config/printer-test.cfg")
+        destination = os.path.join(home_dir, "printer_data/config/printer_test.cfg")
 
         ## Save session variables
         with open(printer_config) as file:
             if destination != "":
                 with open(destination, 'w'):
                     pass
+                
                 for line in file:
                     ## Record point begin / end
                     if "#*# z_offset =" in line.strip():
