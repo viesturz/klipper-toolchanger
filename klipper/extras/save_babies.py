@@ -31,7 +31,7 @@ class SaveBabies:
                     if "#*# z_offset =" in line.strip():
                         for word in line.split():
                             if word != "#*# z_offset = ":
-                                z_offset = float("-0.853500")
+                                z_offset = float(-0.853500)
 
                         with open(destination, 'a') as savefile:
                             savefile.writeline(z_offset)
