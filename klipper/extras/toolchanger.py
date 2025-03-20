@@ -187,9 +187,7 @@ class Toolchanger:
         wait = gcmd.get_int('WAIT', 0) == 1
         tool = self._get_tool_from_gcmd(gcmd)
         if not tool.extruder:
-            raise gcmd.error(
-                "SET_TOOL_TEMPERATURE: No extruder specified for tool %s" % (
-                    tool.name))
+            raise gcmd.error("SET_TOOL_TEMPERATURE: No extruder specified for tool %s" % (tool.name))
         heaters = self.printer.lookup_object('heaters')
         heaters.set_temperature(tool.extruder.get_heater(), temp, wait)
 
@@ -201,13 +199,11 @@ class Toolchanger:
         elif tool_nr is not None:
             tool = self.lookup_tool(tool_nr)
             if not tool:
-                raise gcmd.error(
-                    "SET_TOOL_TEMPERATURE: T%d not found" % (tool_nr))
+                raise gcmd.error("SET_TOOL_TEMPERATURE: T%d not found" % (tool_nr))
         else:
             tool = self.active_tool
             if not tool:
-                raise gcmd.error(
-                    "SET_TOOL_TEMPERATURE: No tool specified and no active tool")
+                raise gcmd.error("SET_TOOL_TEMPERATURE: No tool specified and no active tool")
         return tool
 
 
@@ -226,8 +222,7 @@ class Toolchanger:
     def cmd_UNSELECT_TOOL(self, gcmd):
         if not self.active_tool:
             return
-        restore_axis = gcmd.get('RESTORE_AXIS',
-                                self.active_tool.t_command_restore_axis)
+        restore_axis = gcmd.get('RESTORE_AXIS', self.active_tool.t_command_restore_axis)
         self.select_tool(gcmd, None, restore_axis)
 
     cmd_TEST_TOOL_DOCKING_help = "Unselect active tool and select it again"
@@ -235,8 +230,7 @@ class Toolchanger:
     def cmd_TEST_TOOL_DOCKING(self, gcmd):
         if not self.active_tool:
             raise gcmd.error("Cannot test tool, no active tool")
-        restore_axis = gcmd.get('RESTORE_AXIS',
-                                self.active_tool.t_command_restore_axis)
+        restore_axis = gcmd.get('RESTORE_AXIS', self.active_tool.t_command_restore_axis)
         self.test_tool_selection(gcmd, restore_axis)
 
     def initialize(self, select_tool=None):
