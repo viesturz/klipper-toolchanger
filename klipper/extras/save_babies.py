@@ -27,13 +27,18 @@ class SaveBabies:
                     pass
                 
                 for line in file:
-                    ## Record point begin / end
+                    ## Calculate value
                     if "#*# z_offset =" in line.strip():
                         for word in line.split():
                             if word != "#*#" and word != "z_offset" and word != "=":
                                 z_offset = float(word)
 
-                        self.gcode.respond_info("%f..." % z_offset)
+                        self.gcode.respond_info("%f" % z_offset)
+
+                    ## Start / Stop record
+                    if z_offset != "":
+                        with open(destination, 'a') as savefile:
+                            savefile.write(line)
 
 def load_config(config):
     return SaveBabies(config)
