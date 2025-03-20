@@ -37,7 +37,7 @@ class SaveBabies:
 
                         ## Start / Stop record
                         with open(destination, 'a') as savefile:
-                            savefile.write(z_offset)
+                            savefile.write(str(z_offset) + "\n")
 
 def load_config(config):
     return SaveBabies(config)
