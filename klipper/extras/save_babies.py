@@ -33,7 +33,7 @@ class SaveBabies:
             with open(printer_config) as file:                    
                 for line in file:
                     if "#*# [tool_probe T" in line.strip():
-                        section = (line.replace("#*# [", "")).replace("]", "")
+                        section = str((str(line).replace("#*# [", "")).replace("]", ""))
  
                     ## Calculate value
                     if "#*# z_offset =" in line.strip():
@@ -41,7 +41,7 @@ class SaveBabies:
                             if word != "#*#" and word != "z_offset" and word != "=":
                                 z_offset = float(word)
 
-                        self.gcode.respond_info("%s | z_offset = %f" % (section, z_offset))
+                            self.gcode.respond_info("%s | z_offset = %f" % (section, z_offset))
 
             # self.gcode.run_script_from_command("_CURRENT_OFFSET")
             # self.gcode.run_script_from_command("TOOL_CALIBRATE_SAVE_TOOL_OFFSET SECTION="tool T{}" ATTRIBUTE=z_offset VALUE={}")
