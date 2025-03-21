@@ -24,25 +24,21 @@ class SaveBabies:
         ## Variables
         home_dir = os.path.expanduser("~")
         printer_config = os.path.join(home_dir, "printer_data/config/printer_test.cfg")
-        destination = os.path.join(home_dir, "printer_data/config/printer_test_temp.cfg")
+        # ## Input test
+        # self.gcode.respond_info("Active_tool = %d" % active_tool)
+        # self.gcode.respond_info("Babystep    = %f" % babystep)
+        ## offset calculation
+        if float(babystep) != 0.0:
+            ## Save session variables
+            with open(printer_config) as file:                    
+                for line in file:
+                    ## Calculate value
+                    if "#*# z_offset =" in line.strip():
+                        for word in line.split():
+                            if word != "#*#" and word != "z_offset" and word != "=":
+                                z_offset = float(word) 
 
-
-        self.gcode.respond_info("Active_tool = %d" % active_tool)
-        self.gcode.respond_info("Babystep    = %f" % babystep)
-
-        # if float(babystep) != 0.0:
-        #     # self.gcode.respond_info("#*# z_offset = %f" % z_offset)
-
-        #     ## Save session variables
-        #     with open(printer_config) as file:                    
-        #         for line in file:
-        #             ## Calculate value
-        #             if "#*# z_offset =" in line.strip():
-        #                 for word in line.split():
-        #                     if word != "#*#" and word != "z_offset" and word != "=":
-        #                         z_offset = float(word) 
-
-        #                 self.gcode.respond_info("#*# z_offset = %f" % z_offset)
+                        self.gcode.respond_info("#*# z_offset = %f" % z_offset)
 
 
 def load_config(config):

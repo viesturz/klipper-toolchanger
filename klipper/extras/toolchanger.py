@@ -378,10 +378,7 @@ class Toolchanger:
         self.gcode.run_script_from_command(cmd)
         mesh = self.printer.lookup_object('bed_mesh')
         if mesh and mesh.get_mesh():
-            self.gcode.run_script_from_command(
-                'BED_MESH_OFFSET X=%.6f Y=%.6f ZFADE=%.6f' %
-                (-tool.gcode_x_offset, -tool.gcode_y_offset,
-                 -tool.gcode_z_offset))
+            self.gcode.run_script_from_command('BED_MESH_OFFSET X=%.6f Y=%.6f ZFADE=%.6f' % (-tool.gcode_x_offset, -tool.gcode_y_offset, -tool.gcode_z_offset))
 
     def _position_with_tool_offset(self, position, axis, tool):
         result = {}
