@@ -38,8 +38,6 @@ class SaveBabies:
                         for word in line.split():
                             if word != "#*#" and word != "[tool_probe" and word != "]":
                                 tool = str(word)
-                        
-                        self.gcode.respond_info("Tool number = %s" % tool)
 
                     ## Calculate value
                     if "#*# z_offset =" in line.strip():
@@ -47,7 +45,7 @@ class SaveBabies:
                             if word != "#*#" and word != "z_offset" and word != "=":
                                 z_offset = float(word) 
 
-                        self.gcode.respond_info("#*# z_offset = %f" % z_offset)
+                        self.gcode.respond_info("Tool: %s | z_offset = %f" % (tool, z_offset))
 
         self.gcode.run_script_from_command("_CURRENT_OFFSET")
         # self.gcode.run_script_from_command("TOOL_CALIBRATE_SAVE_TOOL_OFFSET SECTION="tool T{}" ATTRIBUTE=z_offset VALUE={}")
