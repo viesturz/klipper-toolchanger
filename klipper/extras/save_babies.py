@@ -41,7 +41,6 @@ class SaveBabies:
                             if word != "#*#" and word != "z_offset" and word != "=":
                                 z_offset = float(word)
 
-                    if section and z_offset:
                         self.gcode.respond_info("%s | z_offset = %f" % (section, z_offset))
 
             # self.gcode.run_script_from_command("_CURRENT_OFFSET")
