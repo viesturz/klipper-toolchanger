@@ -15,7 +15,7 @@ class SaveBabies:
     cmd_SAVE_BABYSTEPS_help = "Save z-babysteps to printer.cfg"
     def cmd_SAVE_BABYSTEPS(self, gcmd):
         ## Variables
-        # offset = gcmd.get_float('OFFSET', 0.0)
+        offset = gcmd.get_float('OFFSET', 0.0)
 
         self.gcode.respond_info("#*# z_offset = %f" % z_offset)
 
