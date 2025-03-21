@@ -15,18 +15,20 @@ class SaveBabies:
     cmd_SAVE_BABYSTEPS_help = "Save z-babysteps to printer.cfg"
     def cmd_SAVE_BABYSTEPS(self, gcmd):
         ## Variables
+        cur_tool = gcmd.get_float('CURTOOL', -1)
         z_offset = gcmd.get_float('OFFSET', 0.0)
-        self.save_babysteps(gcmd, z_offset)
+        if cur_tool != -1 and z_offset != 0.0:
+            self.save_babysteps(gcmd, cur_tool, z_offset)
 
-    def save_babysteps(self, gcmd, babystep):
+    def save_babysteps(self, gcmd, active_tool, babystep):
         ## Variables
         home_dir = os.path.expanduser("~")
         printer_config = os.path.join(home_dir, "printer_data/config/printer_test.cfg")
         destination = os.path.join(home_dir, "printer_data/config/printer_test_temp.cfg")
 
-        active_tool_z_offset = self.active_tool.gcode_z_offset if self.active_tool else 0.0
-        
-        # self.gcode.respond_info("#*# active_tool gcode_z_offset = %f" % active_tool_z_offset)
+
+        self.gcode.respond_info("Active_tool = %d" % active_tool)
+        self.gcode.respond_info("Babystep    = %f" % babystep)
 
         # if float(babystep) != 0.0:
         #     # self.gcode.respond_info("#*# z_offset = %f" % z_offset)
