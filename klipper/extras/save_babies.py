@@ -16,8 +16,8 @@ class SaveBabies:
     def cmd_SAVE_BABYSTEPS(self, gcmd):
         ## Variables
         home_dir = os.path.expanduser("~")
-        printer_config = os.path.join(home_dir, "printer_data/config/printer.cfg")
-        destination = os.path.join(home_dir, "printer_data/config/printer_test.cfg")
+        printer_config = os.path.join(home_dir, "printer_data/config/printer_test.cfg")
+        destination = os.path.join(home_dir, "printer_data/config/printer_test_0.cfg")
         z_offset = 0.0
 
         ## Save session variables
@@ -33,11 +33,15 @@ class SaveBabies:
                             if word != "#*#" and word != "z_offset" and word != "=":
                                 z_offset = float(word)
 
-                        self.gcode.respond_info("%f" % z_offset)
+                        self.gcode.respond_info("#*# z_offset = %f" % z_offset)
 
                         ## Start / Stop record
                         with open(destination, 'a') as savefile:
                             savefile.write(str(z_offset) + "\n")
+
+                    else:
+                        with open(destination, 'a') as savefile:
+                            savefile.write(line)
 
 def load_config(config):
     return SaveBabies(config)
