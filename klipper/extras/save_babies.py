@@ -22,11 +22,14 @@ class SaveBabies:
 
     def save_babysteps(self, gcmd, active_tool, babystep):
         ## Variables
+        toolnumber = -1
         home_dir = os.path.expanduser("~")
         printer_config = os.path.join(home_dir, "printer_data/config/printer_test.cfg")
+
         # ## Input test
         # self.gcode.respond_info("Active_tool = %d" % active_tool)
         # self.gcode.respond_info("Babystep    = %f" % babystep)
+
         ## offset calculation
         if float(babystep) != 0.0:
             ## Save session variables
@@ -40,6 +43,8 @@ class SaveBabies:
 
                         self.gcode.respond_info("#*# z_offset = %f" % z_offset)
 
+    self.gcode.run_script_from_command("_CURRENT_OFFSET")
+    # self.gcode.run_script_from_command("TOOL_CALIBRATE_SAVE_TOOL_OFFSET SECTION="tool T{}" ATTRIBUTE=z_offset VALUE={}")
 
 def load_config(config):
     return SaveBabies(config)
