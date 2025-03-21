@@ -17,7 +17,7 @@ class SaveBabies:
         ## Variables
         offset = gcmd.get_float('OFFSET', 0.0)
 
-        self.gcode.respond_info("#*# z_offset = %f" % z_offset)
+        self.gcode.respond_info("#*# z_offset")
 
         # self.save_babysteps(gcmd)
 
