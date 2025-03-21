@@ -33,7 +33,7 @@ class SaveBabies:
             with open(printer_config) as file:                    
                 for line in file:
                     if "#*# [tool_probe T" in line.strip():
-                        section = (line.replace("#*# [", "")).replace("]", "")
+                        section = ((line.replace("#*# [", "")).replace("]", "")).replace("\n", "")
  
                     ## Calculate value
                     if "#*# z_offset =" in line.strip():
