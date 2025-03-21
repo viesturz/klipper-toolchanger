@@ -24,11 +24,11 @@ class SaveBabies:
         ## Variables
         home_dir = os.path.expanduser("~")
         printer_config = os.path.join(home_dir, "printer_data/config/printer_test.cfg")
-        
+        bbs = float(babystep)
         # ## Input test
         # self.gcode.respond_info("Babystep = %f" % babystep)
 
-        if float(babystep) != 0.0:
+        if bbs != 0.0:
             with open(printer_config) as file:                    
                 for line in file:
                     if "#*# [tool_probe T" in line.strip():
@@ -38,8 +38,8 @@ class SaveBabies:
                     if "#*# z_offset =" in line.strip():
                         for word in line.split():
                             if word != "#*#" and word != "z_offset" and word != "=":
-                                # z_offset = float(word)
-                                z_offset = float(babystep)
+                                current_z_offset = float(word)
+                                z_offset = current_z_offset + bbs
                         ## printer.cfg is always checked for error on start-up. Therefore, it can be reliably expected 
                         self.gcode.respond_info("TOOL_CALIBRATE_SAVE_TOOL_OFFSET SECTION=\"%s\" ATTRIBUTE=z_offset VALUE=%f" % (section, z_offset))
 
