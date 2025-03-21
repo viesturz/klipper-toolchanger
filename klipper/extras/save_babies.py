@@ -16,7 +16,7 @@ class SaveBabies:
     def cmd_SAVE_BABYSTEPS(self, gcmd):
         ## Variables
         z_offset = gcmd.get_float('OFFSET', 0.0)
-        self.gcode.respond_info("Babystep = %f" % z_offset)
+        ## Command
         if z_offset != 0.0:
             self.save_babysteps(gcmd, z_offset)
 
@@ -24,6 +24,7 @@ class SaveBabies:
         ## Variables
         home_dir = os.path.expanduser("~")
         printer_config = os.path.join(home_dir, "printer_data/config/printer_test.cfg")
+        
         # ## Input test
         # self.gcode.respond_info("Babystep = %f" % babystep)
 
@@ -41,7 +42,7 @@ class SaveBabies:
                             if word != "#*#" and word != "z_offset" and word != "=":
                                 z_offset = float(word)
 
-                    # if section and z_offset:
+                    if section and z_offset:
                         self.gcode.respond_info("TOOL_CALIBRATE_SAVE_TOOL_OFFSET SECTION=\"%s\" ATTRIBUTE=z_offset VALUE=%f" % (section, z_offset))
 
             # self.gcode.run_script_from_command("_CURRENT_OFFSET")
