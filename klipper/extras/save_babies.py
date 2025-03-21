@@ -42,7 +42,7 @@ class SaveBabies:
                             if word != "#*#" and word != "z_offset" and word != "=":
                                 z_offset = float(word)
 
-                    if section and z_offset:
+                    if section != None and z_offset != None:
                         self.gcode.respond_info("TOOL_CALIBRATE_SAVE_TOOL_OFFSET SECTION=\"%s\" ATTRIBUTE=z_offset VALUE=%f" % (section, z_offset))
 
             # self.gcode.run_script_from_command("_CURRENT_OFFSET")
