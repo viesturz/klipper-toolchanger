@@ -16,9 +16,7 @@ class SaveBabies:
     def cmd_SAVE_BABYSTEPS(self, gcmd):
         ## Variables
         z_offset = gcmd.get_float('OFFSET', 0.0)
-
         # self.gcode.respond_info("#*# z_offset = %f" % z_offset)
-
         self.save_babysteps(gcmd, z_offset)
 
     def save_babysteps(self, gcmd, babystep):
@@ -31,19 +29,19 @@ class SaveBabies:
         
         self.gcode.respond_info("#*# active_tool gcode_z_offset = %f" % active_tool_z_offset)
 
-        if float(babystep) != 0.0:
-            # self.gcode.respond_info("#*# z_offset = %f" % z_offset)
+        # if float(babystep) != 0.0:
+        #     # self.gcode.respond_info("#*# z_offset = %f" % z_offset)
 
-            ## Save session variables
-            with open(printer_config) as file:                    
-                for line in file:
-                    ## Calculate value
-                    if "#*# z_offset =" in line.strip():
-                        for word in line.split():
-                            if word != "#*#" and word != "z_offset" and word != "=":
-                                z_offset = float(word) 
+        #     ## Save session variables
+        #     with open(printer_config) as file:                    
+        #         for line in file:
+        #             ## Calculate value
+        #             if "#*# z_offset =" in line.strip():
+        #                 for word in line.split():
+        #                     if word != "#*#" and word != "z_offset" and word != "=":
+        #                         z_offset = float(word) 
 
-                        self.gcode.respond_info("#*# z_offset = %f" % z_offset)
+        #                 self.gcode.respond_info("#*# z_offset = %f" % z_offset)
 
 
 def load_config(config):
