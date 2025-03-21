@@ -42,7 +42,7 @@ class SaveBabies:
                                 current_z_offset = float(word)
                                 z_offset = current_z_offset + bbs
                         
-                        ## [printer.cfg] is always checked for error on start-up. It can be reliably expected that the "section" variable is figured
+                        ## [printer.cfg] always checked for error on start-up. It can be reliably expected that the "section" variable is figured
                         ## out before the "current_z_offset" is determined. Therefore, there is no need for further checking function... I think.
                         
                         # self.gcode.run_script_from_command("TOOL_CALIBRATE_SAVE_TOOL_OFFSET SECTION=\"%s\" ATTRIBUTE=z_offset VALUE=%f" % (section, z_offset))
