@@ -23,7 +23,6 @@ class SaveBabies:
         ## Variables
         home_dir = os.path.expanduser("~")
         printer_config = os.path.join(home_dir, "printer_data/config/printer_test.cfg")
-
         # ## Input test
         # self.gcode.respond_info("Active_tool = %d" % active_tool)
         # self.gcode.respond_info("Babystep    = %f" % babystep)
@@ -42,7 +41,7 @@ class SaveBabies:
                             if word != "#*#" and word != "z_offset" and word != "=":
                                 z_offset = float(word)
 
-                    if tool and z_offset:
+                    if section and z_offset:
                         self.gcode.respond_info("%s | z_offset = %f" % (section, z_offset))
 
             # self.gcode.run_script_from_command("_CURRENT_OFFSET")
