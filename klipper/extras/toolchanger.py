@@ -327,8 +327,7 @@ class Toolchanger:
 
     def test_tool_selection(self, gcmd, restore_axis):
         if self.status != STATUS_READY:
-            raise gcmd.error(
-                "Cannot test tool, toolchanger status is " + self.status)
+            raise gcmd.error("Cannot test tool, toolchanger status is " + self.status)
         tool = self.active_tool
         if not tool:
             raise gcmd.error("Cannot test tool, no active tool")

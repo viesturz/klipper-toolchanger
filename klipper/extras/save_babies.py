@@ -15,9 +15,17 @@ class SaveBabies:
     cmd_SAVE_BABYSTEPS_help = "Save z-babysteps to printer.cfg"
     def cmd_SAVE_BABYSTEPS(self, gcmd):
         ## Variables
+        offset = gcmd.get_float('OFFSET', 0.0)
+        self.select_tool(gcmd, offset)
+
+    def save_babysteps(self, gcmd, bstep):
+        ## Variables
         home_dir = os.path.expanduser("~")
         printer_config = os.path.join(home_dir, "printer_data/config/printer_test.cfg")
         destination = os.path.join(home_dir, "printer_data/config/printer_test_0.cfg")
+
+        active_tool_z_offset = self.active_tool.gcode_z_offset
+        babystep = float(bstep)
         z_offset = 0.0
 
         ## Save session variables
@@ -31,13 +39,13 @@ class SaveBabies:
                     if "#*# z_offset =" in line.strip():
                         for word in line.split():
                             if word != "#*#" and word != "z_offset" and word != "=":
-                                z_offset = float(word)
+                                z_offset = float(word) 
 
                         self.gcode.respond_info("#*# z_offset = %f" % z_offset)
 
                         ## Start / Stop record
                         with open(destination, 'a') as savefile:
-                            savefile.write(str(z_offset) + "\n")
+                            savefile.write("#*# z_offset = " + str(z_offset) + "\n")
 
                     else:
                         with open(destination, 'a') as savefile:
