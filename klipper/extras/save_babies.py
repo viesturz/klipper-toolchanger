@@ -22,7 +22,6 @@ class SaveBabies:
 
     def save_babysteps(self, gcmd, active_tool, babystep):
         ## Variables
-        toolnumber = -1
         home_dir = os.path.expanduser("~")
         printer_config = os.path.join(home_dir, "printer_data/config/printer_test.cfg")
 
@@ -35,6 +34,13 @@ class SaveBabies:
             ## Save session variables
             with open(printer_config) as file:                    
                 for line in file:
+                    if "#*# [tool_probe T" in line.strip():
+                        for word in line.split():
+                            if word != "#*#" and word != "[tool_probe" and word != "]":
+                                tool = str(word)
+                        
+                        self.gcode.respond_info("Tool number = %s" % tool)
+
                     ## Calculate value
                     if "#*# z_offset =" in line.strip():
                         for word in line.split():
