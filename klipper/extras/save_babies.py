@@ -17,7 +17,7 @@ class SaveBabies:
         ## Variables
         z_offset = gcmd.get_float('OFFSET', 0.0)
 
-        self.gcode.respond_info("#*# z_offset = %f" % z_offset)
+        # self.gcode.respond_info("#*# z_offset = %f" % z_offset)
 
         self.save_babysteps(gcmd, z_offset)
 
@@ -25,35 +25,26 @@ class SaveBabies:
         ## Variables
         home_dir = os.path.expanduser("~")
         printer_config = os.path.join(home_dir, "printer_data/config/printer_test.cfg")
-        destination = os.path.join(home_dir, "printer_data/config/printer_test_0.cfg")
+        destination = os.path.join(home_dir, "printer_data/config/printer_test_temp.cfg")
 
         active_tool_z_offset = self.active_tool.gcode_z_offset
-        z_offset = float(babystep)
+        
+        self.gcode.respond_info("#*# active_tool gcode_z_offset = %f" % active_tool_z_offset)
 
-        self.gcode.respond_info("#*# z_offset = %f" % z_offset)
+        if float(babystep) != 0.0:
+            # self.gcode.respond_info("#*# z_offset = %f" % z_offset)
 
-        # ## Save session variables
-        # with open(printer_config) as file:
-        #     if destination != "":
-        #         with open(destination, 'w'):
-        #             pass
-                
-        #         for line in file:
-        #             ## Calculate value
-        #             if "#*# z_offset =" in line.strip():
-        #                 for word in line.split():
-        #                     if word != "#*#" and word != "z_offset" and word != "=":
-        #                         z_offset = float(word) 
+            ## Save session variables
+            with open(printer_config) as file:                    
+                for line in file:
+                    ## Calculate value
+                    if "#*# z_offset =" in line.strip():
+                        for word in line.split():
+                            if word != "#*#" and word != "z_offset" and word != "=":
+                                z_offset = float(word) 
 
-        #                 self.gcode.respond_info("#*# z_offset = %f" % z_offset)
+                        self.gcode.respond_info("#*# z_offset = %f" % z_offset)
 
-        #                 ## Start / Stop record
-        #                 with open(destination, 'a') as savefile:
-        #                     savefile.write("#*# z_offset = " + str(z_offset) + "\n")
-
-        #             else:
-        #                 with open(destination, 'a') as savefile:
-        #                     savefile.write(line)
 
 def load_config(config):
     return SaveBabies(config)
