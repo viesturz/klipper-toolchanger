@@ -37,7 +37,7 @@ class SaveBabies:
                     if "#*# [tool_probe T" in line.strip():
                         for word in line.split():
                             if word != "#*#" and word != "[tool_probe" and word != "]":
-                                tool = str(word)
+                                tool = str(word).replace("]", "")
 
                     ## Calculate value
                     if "#*# z_offset =" in line.strip():
