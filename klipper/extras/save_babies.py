@@ -16,7 +16,7 @@ class SaveBabies:
     def cmd_SAVE_BABYSTEPS(self, gcmd):
         ## Variables
         offset = gcmd.get_float('OFFSET', 0.0)
-        self.select_tool(gcmd, offset)
+        self.save_babysteps(gcmd, offset)
 
     def save_babysteps(self, gcmd, bstep):
         ## Variables
