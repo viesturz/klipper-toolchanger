@@ -16,16 +16,16 @@ class SaveBabies:
     def cmd_SAVE_BABYSTEPS(self, gcmd):
         ## Variables
         offset = gcmd.get_float('OFFSET', 0.0)
-        self.save_babysteps(gcmd, offset)
+        self.save_babysteps(gcmd)
 
-    def save_babysteps(self, gcmd, bstep):
+    def save_babysteps(self, gcmd):
         ## Variables
         home_dir = os.path.expanduser("~")
         printer_config = os.path.join(home_dir, "printer_data/config/printer_test.cfg")
         destination = os.path.join(home_dir, "printer_data/config/printer_test_0.cfg")
 
         active_tool_z_offset = self.active_tool.gcode_z_offset
-        babystep = float(bstep)
+        # babystep = bstep
         z_offset = 0.0
 
         ## Save session variables
