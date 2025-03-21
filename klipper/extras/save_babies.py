@@ -43,8 +43,8 @@ class SaveBabies:
 
                         self.gcode.respond_info("#*# z_offset = %f" % z_offset)
 
-    self.gcode.run_script_from_command("_CURRENT_OFFSET")
-    # self.gcode.run_script_from_command("TOOL_CALIBRATE_SAVE_TOOL_OFFSET SECTION="tool T{}" ATTRIBUTE=z_offset VALUE={}")
+        self.gcode.run_script_from_command("_CURRENT_OFFSET")
+        # self.gcode.run_script_from_command("TOOL_CALIBRATE_SAVE_TOOL_OFFSET SECTION="tool T{}" ATTRIBUTE=z_offset VALUE={}")
 
 def load_config(config):
     return SaveBabies(config)
