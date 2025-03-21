@@ -28,7 +28,6 @@ class SaveBabies:
         destination = os.path.join(home_dir, "printer_data/config/printer_test_0.cfg")
 
         active_tool_z_offset = self.active_tool.gcode_z_offset
-        babystep = bstep
         z_offset = babystep
 
         self.gcode.respond_info("#*# z_offset = %f" % z_offset)
