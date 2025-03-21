@@ -38,7 +38,8 @@ class SaveBabies:
                     if "#*# z_offset =" in line.strip():
                         for word in line.split():
                             if word != "#*#" and word != "z_offset" and word != "=":
-                                z_offset = float(word) + float(babystep)
+                                z_offset = float(word)
+                                # z_offset = float(word) + float(babystep)
                         ## printer.cfg is always checked for error on start-up. Therefore, it can be reliably expected 
                         self.gcode.respond_info("TOOL_CALIBRATE_SAVE_TOOL_OFFSET SECTION=\"%s\" ATTRIBUTE=z_offset VALUE=%f" % (section, z_offset))
 
