@@ -28,9 +28,7 @@ class SaveBabies:
         # ## Input test
         # self.gcode.respond_info("Babystep = %f" % babystep)
 
-        ## offset calculation
         if float(babystep) != 0.0:
-            ## Save session variables
             with open(printer_config) as file:                    
                 for line in file:
                     if "#*# [tool_probe T" in line.strip():
@@ -40,9 +38,8 @@ class SaveBabies:
                     if "#*# z_offset =" in line.strip():
                         for word in line.split():
                             if word != "#*#" and word != "z_offset" and word != "=":
-                                z_offset = float(word)
-
-                    if section != None and z_offset != None:
+                                z_offset = float(word) + float(babystep)
+                        ## printer.cfg is always checked for error on start-up. Therefore, it can be reliably expected 
                         self.gcode.respond_info("TOOL_CALIBRATE_SAVE_TOOL_OFFSET SECTION=\"%s\" ATTRIBUTE=z_offset VALUE=%f" % (section, z_offset))
 
             # self.gcode.run_script_from_command("_CURRENT_OFFSET")
