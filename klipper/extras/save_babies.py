@@ -23,28 +23,30 @@ class SaveBabies:
     def save_babysteps(self, gcmd, babystep):
         ## Variables
         home_dir = os.path.expanduser("~")
-        printer_config = os.path.join(home_dir, "printer_data/config/printer_test.cfg")
+        printer_config = os.path.join(home_dir, "printer_data/config/printer.cfg")
         bbs = float(babystep)
         # ## Input test
         # self.gcode.respond_info("Babystep = %f" % babystep)
 
         if bbs != 0.0:
-            with open(printer_config) as file:                    
+            with open(printer_config) as file:
                 for line in file:
+                    ## find the section variable
                     if "#*# [tool_probe T" in line.strip():
                         section = ((line.replace("#*# [", "")).replace("]", "")).replace("\n", "")
- 
-                    ## Calculate value
+                    
+                    ## find the z_offset variable and apply the baby-step.
                     if "#*# z_offset =" in line.strip():
                         for word in line.split():
                             if word != "#*#" and word != "z_offset" and word != "=":
                                 current_z_offset = float(word)
                                 z_offset = current_z_offset + bbs
-                        ## printer.cfg is always checked for error on start-up. Therefore, it can be reliably expected 
+                        
+                        ## [printer.cfg] is always checked for error on start-up. It can be reliably expected that the "section" variable is figured
+                        ## out before the "current_z_offset" is determined. Therefore, there is no need for further checking function... I think.
+                        
+                        # self.gcode.run_script_from_command("TOOL_CALIBRATE_SAVE_TOOL_OFFSET SECTION=\"%s\" ATTRIBUTE=z_offset VALUE=%f" % (section, z_offset))
                         self.gcode.respond_info("TOOL_CALIBRATE_SAVE_TOOL_OFFSET SECTION=\"%s\" ATTRIBUTE=z_offset VALUE=%f" % (section, z_offset))
-
-            # self.gcode.run_script_from_command("_CURRENT_OFFSET")
-            # self.gcode.run_script_from_command("TOOL_CALIBRATE_SAVE_TOOL_OFFSET SECTION="tool T{}" ATTRIBUTE=z_offset VALUE={}")
 
 def load_config(config):
     return SaveBabies(config)
