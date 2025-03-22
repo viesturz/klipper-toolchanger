@@ -32,6 +32,9 @@ class SaveBabies:
             with open(printer_config) as file:
                 for line in file:
                     ## find the section variable
+                    if "#*# [tool_probe_endstop]" in line.strip():
+                        return
+
                     if "#*# [tool_probe T" in line.strip():
                         section = ((line.replace("#*# [", "")).replace("]", "")).replace("\n", "")
                     
