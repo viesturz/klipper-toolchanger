@@ -20,7 +20,7 @@ class SaveBabies:
         if z_offset != 0.0:
             self.save_babysteps(gcmd, z_offset)
         else:
-            # self.gcode.respond_info("No offset has been applied")
+            self.gcode.respond_info("No gcode_z_offset applied")
             pass
 
     def save_babysteps(self, gcmd, babystep):
@@ -46,7 +46,7 @@ class SaveBabies:
                         ## [printer.cfg] always checked for error on start-up. It can be reliably expected that the "section" variable is figured
                         ## out before the "current_z_offset" is determined. Therefore, there is no need for further checking function... I think.
                         self.gcode.run_script_from_command("TOOL_CALIBRATE_SAVE_TOOL_OFFSET SECTION=\"%s\" ATTRIBUTE=z_offset VALUE=%f" % (section, z_offset))
-                        # self.gcode.respond_info("TOOL_CALIBRATE_SAVE_TOOL_OFFSET SECTION=\"%s\" ATTRIBUTE=z_offset VALUE=%f" % (section, z_offset))
+                        self.gcode.respond_info("%s | z_offset = %f" % (section, z_offset))
 
 def load_config(config):
     return SaveBabies(config)
