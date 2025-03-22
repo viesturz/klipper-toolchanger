@@ -12,7 +12,7 @@ class SaveBabies:
         ## Register Commands
         self.gcode.register_command('SAVE_BABYSTEPS', self.cmd_SAVE_BABYSTEPS, desc=self.cmd_SAVE_BABYSTEPS_help)
 
-    cmd_SAVE_BABYSTEPS_help = "[OFFSET=<z_offset>] | Save z-babysteps to printer.cfg"
+    cmd_SAVE_BABYSTEPS_help = "[OFFSET=] | Save z-babysteps to config"
     def cmd_SAVE_BABYSTEPS(self, gcmd):
         ## Variables
         z_offset = gcmd.get_float('OFFSET', 0.0)
