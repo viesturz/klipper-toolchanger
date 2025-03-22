@@ -21,7 +21,6 @@ class SaveBabies:
             self.save_babysteps(gcmd, z_offset)
         else:
             self.gcode.respond_info("No gcode_z_offset applied")
-            pass
 
     def save_babysteps(self, gcmd, babystep):
         ## Variables
