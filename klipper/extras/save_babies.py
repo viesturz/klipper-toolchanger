@@ -19,14 +19,14 @@ class SaveBabies:
         ## Command
         if z_offset != 0.0:
             self.save_babysteps(gcmd, z_offset)
+        else:
+            self.gcode.respond_info("No offset has been applied")
 
     def save_babysteps(self, gcmd, babystep):
         ## Variables
         home_dir = os.path.expanduser("~")
         printer_config = os.path.join(home_dir, "printer_data/config/printer.cfg")
         bbs = float(babystep)
-        # ## Input test
-        # self.gcode.respond_info("Babystep = %f" % babystep)
 
         if bbs != 0.0:
             with open(printer_config) as file:
