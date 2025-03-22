@@ -41,7 +41,7 @@ class SaveBabies:
                         for word in line.split():
                             if word != "#*#" and word != "z_offset" and word != "=":
                                 current_z_offset = float(word)
-                                z_offset = bbs - current_z_offset
+                                z_offset = current_z_offset - bbs
                         
                         ## [printer.cfg] always checked for error on start-up. It can be reliably expected that the "section" variable is figured
                         ## out before the "current_z_offset" is determined. Therefore, there is no need for further checking function... I think.
