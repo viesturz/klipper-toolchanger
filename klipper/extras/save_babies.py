@@ -20,7 +20,8 @@ class SaveBabies:
         if z_offset != 0.0:
             self.save_babysteps(gcmd, z_offset)
         else:
-            self.gcode.respond_info("No offset has been applied")
+            # self.gcode.respond_info("No offset has been applied")
+            pass
 
     def save_babysteps(self, gcmd, babystep):
         ## Variables
