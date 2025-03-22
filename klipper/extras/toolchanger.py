@@ -5,7 +5,9 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 #
 # Contribution 2024 by Justin F. Hallett <thesin@southofheaven.org>
-
+#
+# Contribution 2024 by Chinh Nhan Vo <nhanvo29@proton.me>
+#
 import ast, bisect
 
 STATUS_UNINITALIZED = 'uninitialized'
@@ -31,21 +33,14 @@ class Toolchanger:
 
         self.name = config.get_name()
         self.params = get_params_dict(config)
-        init_options = {'home': INIT_ON_HOME,
-                        'manual': INIT_MANUAL, 'first-use': INIT_FIRST_USE}
-        self.initialize_on = config.getchoice(
-            'initialize_on', init_options, 'first-use')
+        init_options = {'home': INIT_ON_HOME, 'manual': INIT_MANUAL, 'first-use': INIT_FIRST_USE}
+        self.initialize_on = config.getchoice('initialize_on', init_options, 'first-use')
         self.uses_axis = config.get('uses_axis', 'xyz').lower()
-        home_options = {'abort': ON_AXIS_NOT_HOMED_ABORT,
-                        'home': ON_AXIS_NOT_HOMED_HOME}
-        self.on_axis_not_homed = config.getchoice('on_axis_not_homed',
-                                                  home_options, 'abort')
-        self.initialize_gcode = self.gcode_macro.load_template(
-            config, 'initialize_gcode', '')
-        self.default_before_change_gcode = self.gcode_macro.load_template(
-            config, 'before_change_gcode', '')
-        self.default_after_change_gcode = self.gcode_macro.load_template(
-            config, 'after_change_gcode', '')
+        home_options = {'abort': ON_AXIS_NOT_HOMED_ABORT, 'home': ON_AXIS_NOT_HOMED_HOME}
+        self.on_axis_not_homed = config.getchoice('on_axis_not_homed', home_options, 'abort')
+        self.initialize_gcode = self.gcode_macro.load_template(config, 'initialize_gcode', '')
+        self.default_before_change_gcode = self.gcode_macro.load_template(config, 'before_change_gcode', '')
+        self.default_after_change_gcode = self.gcode_macro.load_template(config, 'after_change_gcode', '')
 
         # Read all the fields that might be defined on toolchanger.
         # To avoid throwing config error when no tools configured.
@@ -192,9 +187,7 @@ class Toolchanger:
         wait = gcmd.get_int('WAIT', 0) == 1
         tool = self._get_tool_from_gcmd(gcmd)
         if not tool.extruder:
-            raise gcmd.error(
-                "SET_TOOL_TEMPERATURE: No extruder specified for tool %s" % (
-                    tool.name))
+            raise gcmd.error("SET_TOOL_TEMPERATURE: No extruder specified for tool %s" % (tool.name))
         heaters = self.printer.lookup_object('heaters')
         heaters.set_temperature(tool.extruder.get_heater(), temp, wait)
 
@@ -206,13 +199,11 @@ class Toolchanger:
         elif tool_nr is not None:
             tool = self.lookup_tool(tool_nr)
             if not tool:
-                raise gcmd.error(
-                    "SET_TOOL_TEMPERATURE: T%d not found" % (tool_nr))
+                raise gcmd.error("SET_TOOL_TEMPERATURE: T%d not found" % (tool_nr))
         else:
             tool = self.active_tool
             if not tool:
-                raise gcmd.error(
-                    "SET_TOOL_TEMPERATURE: No tool specified and no active tool")
+                raise gcmd.error("SET_TOOL_TEMPERATURE: No tool specified and no active tool")
         return tool
 
 
@@ -231,8 +222,7 @@ class Toolchanger:
     def cmd_UNSELECT_TOOL(self, gcmd):
         if not self.active_tool:
             return
-        restore_axis = gcmd.get('RESTORE_AXIS',
-                                self.active_tool.t_command_restore_axis)
+        restore_axis = gcmd.get('RESTORE_AXIS', self.active_tool.t_command_restore_axis)
         self.select_tool(gcmd, None, restore_axis)
 
     cmd_TEST_TOOL_DOCKING_help = "Unselect active tool and select it again"
@@ -240,8 +230,7 @@ class Toolchanger:
     def cmd_TEST_TOOL_DOCKING(self, gcmd):
         if not self.active_tool:
             raise gcmd.error("Cannot test tool, no active tool")
-        restore_axis = gcmd.get('RESTORE_AXIS',
-                                self.active_tool.t_command_restore_axis)
+        restore_axis = gcmd.get('RESTORE_AXIS', self.active_tool.t_command_restore_axis)
         self.test_tool_selection(gcmd, restore_axis)
 
     def initialize(self, select_tool=None):
@@ -299,9 +288,8 @@ class Toolchanger:
             'start_position': self._position_with_tool_offset(gcode_position, 'xyz', tool)
         }
 
-        self.gcode.run_script_from_command("SAVE_GCODE_STATE NAME=_toolchange_state")
         self.gcode.run_script_from_command("SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0 MOVE=0")
-        # self.gcode.run_script_from_command("_fan_speed TOOL=%d" %(tool.tool_number))
+        self.gcode.run_script_from_command("SAVE_GCODE_STATE NAME=_toolchange_state")
 
         if not force_pickup:
             before_change_gcode = self.active_tool.before_change_gcode if self.active_tool and self.active_tool.before_change_gcode else self.default_before_change_gcode
@@ -338,8 +326,7 @@ class Toolchanger:
 
     def test_tool_selection(self, gcmd, restore_axis):
         if self.status != STATUS_READY:
-            raise gcmd.error(
-                "Cannot test tool, toolchanger status is " + self.status)
+            raise gcmd.error("Cannot test tool, toolchanger status is " + self.status)
         tool = self.active_tool
         if not tool:
             raise gcmd.error("Cannot test tool, no active tool")
@@ -391,10 +378,7 @@ class Toolchanger:
         self.gcode.run_script_from_command(cmd)
         mesh = self.printer.lookup_object('bed_mesh')
         if mesh and mesh.get_mesh():
-            self.gcode.run_script_from_command(
-                'BED_MESH_OFFSET X=%.6f Y=%.6f ZFADE=%.6f' %
-                (-tool.gcode_x_offset, -tool.gcode_y_offset,
-                 -tool.gcode_z_offset))
+            self.gcode.run_script_from_command('BED_MESH_OFFSET X=%.6f Y=%.6f ZFADE=%.6f' % (-tool.gcode_x_offset, -tool.gcode_y_offset, -tool.gcode_z_offset))
 
     def _position_with_tool_offset(self, position, axis, tool):
         result = {}
