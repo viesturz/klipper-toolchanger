@@ -12,12 +12,14 @@ With that in mind, the following are rules that are to be strictly followed for 
 
 2. Can be reasonably verified that it does not do anything malicious.
 
-3. A `README.md` file with:
-   
-   + 1-2 paragraphs with description of expected use
-   
-   + Configuration sections and their parameters explained
-   
-   + Commands and their parameters explained
+3. Please put your custom files here, in a folder of your GitHub profile name i.e.: `[your-profile-name]`/`[files/folder]`
 
-4+ Optionally. Example configuration file.
+4. A `README.md` file with:
+   
+   - 1-2 paragraphs with description of expected use
+   
+   - Configuration sections and their parameters explained
+   
+   - Commands and their parameters explained Optionally.
+
+5. Example configuration file..
