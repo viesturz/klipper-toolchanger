@@ -31,10 +31,6 @@ class SaveBabies:
         if bbs != 0.0:
             with open(printer_config) as file:
                 for line in file:
-                    # ## do not save the last z_offset
-                    # if "#*# [tool_probe_endstop]" in line.strip():
-                    #     return
-
                     ## find the section variable
                     if "#*# [tool_probe" in line.strip():
                         section = ((line.replace("#*# [", "")).replace("]", "")).replace("\n", "")
