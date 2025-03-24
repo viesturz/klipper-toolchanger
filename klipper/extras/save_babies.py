@@ -31,12 +31,8 @@ class SaveBabies:
         if bbs != 0.0:
             with open(printer_config) as file:
                 for line in file:
-                    ## do not save the last z_offset
-                    if "#*# [tool_probe_endstop]" in line.strip():
-                        return
-
                     ## find the section variable
-                    if "#*# [tool_probe T" in line.strip():
+                    if "#*# [tool_probe" in line.strip():
                         section = ((line.replace("#*# [", "")).replace("]", "")).replace("\n", "")
                     
                     ## find the z_offset variable and apply the baby-step.
@@ -48,8 +44,9 @@ class SaveBabies:
                         
                         ## [printer.cfg] always checked for error on start-up. It can be reliably expected that the "section" variable is figured
                         ## out before the "current_z_offset" is determined. Therefore, there is no need for further checking function... I think.
-                        self.gcode.run_script_from_command("TOOL_CALIBRATE_SAVE_TOOL_OFFSET SECTION=\"%s\" ATTRIBUTE=z_offset VALUE=%f" % (section, z_offset))
-                        self.gcode.respond_info("%s | z_offset = %f" % (section, z_offset))
+                        if section != "tool_probe_endstop":
+                            self.gcode.run_script_from_command("TOOL_CALIBRATE_SAVE_TOOL_OFFSET SECTION=\"%s\" ATTRIBUTE=z_offset VALUE=%f" % (section, z_offset))
+                            self.gcode.respond_info("[%s] | z_offset = %f" % (section, z_offset))
 
 def load_config(config):
     return SaveBabies(config)
