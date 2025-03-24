@@ -8,13 +8,15 @@ It is important to make your proposed function understandable in what it is tryi
 
 With that in mind, the following are rules that are to be strictly followed for the Pull Request (PR) to be accepted:
 
-1. The added feature needs to be generally related to tool-changing.
+1. All PRs are to be submitted to the `alpha` branch.
 
-2. Can be reasonably verified that it does not do anything malicious.
+2. The added feature needs to be generally related to tool-changing.
 
-3. Please put your custom files here, in a folder of your Github profile name i.e.: `[your-profile-name]`/`[files/folder]`
+3. Can be reasonably verified that it does not do anything malicious.
 
-4. A `README.md` file with:
+4. Please put your custom files here, in a folder of your Github profile name i.e.: `[your-profile-name]`/`[files/folder]`
+
+5. A `README.md` file with:
    
    + 1-2 paragraphs with description of expected use
    
@@ -22,4 +24,4 @@ With that in mind, the following are rules that are to be strictly followed for 
    
    + Commands and their parameters explained Optionally. 
 
-5. Example configuration file.
+6. Example configuration file.
