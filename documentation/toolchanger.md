@@ -8,12 +8,12 @@ All the actual tool changing motions to be provided as gcode macros.
 
 # Status
 
- * Single toolchanger works well. 
+* Single toolchanger works well. 
 
 TODO: 
 
- * Cascading tools support.
- * Save current tool on restart.
+* Cascading tools support.
+* Save current tool on restart.
 
 # Lifecycle
 
@@ -22,10 +22,10 @@ This is the overall lifecycle of the toolchanger.
 The initialization can be done either manually from PRINT_START or automatically
 on home or first toolchange.
 
-![Lifecycle](/Lifecycle.png)
+![Lifecycle](./images/Lifecycle.png)
 
 The exact sequence how each step is executed:
-![Sequence](/Sequence.png)
+![Sequence](./images/Sequence.png)
 
 # Config
 
@@ -41,6 +41,8 @@ and will provide a default value for all of its tools.
 
 ```
 [toolchanger]
+# t_command_restore_axis: XYZ
+   # Which axis to restore with the T<n> command, see SELECT_TOOL for command for more info.    
 # save_current_tool: false
   #  If set, saves currently selected tool and makes it available for 
   # initialize gcode.
@@ -92,6 +94,7 @@ like pressure advance. But can be purely virtual, like slot in an MMU unit.
 See [command reference](G-Codes.md#toolchanger) for how to control tools.
 
 All gcode macros below have the following context available:
+
 * tool - currently active tool or None if no tool. This is the actual object, not a name, so can use directly, ie `tool.fan`.
 * toolchanger - same as printer.toolchanger.
 * dropoff_tool - name of the tool that is being dopped off, or None if not a dropoff operation.
@@ -152,6 +155,7 @@ All gcode macros below have the following context available:
 The following commands are available when toolchanger is loaded.
 
 ### INITIALIZE_TOOLCHANGER
+
 `INITIALIZE_TOOLCHANGER [TOOLCHANGER=toolchanger] [TOOL_NAME=<name>] [T=<number>]`: 
 Initializes or Re-initializes the toolchanger state. Sets toolchanger status to `ready`.
 
@@ -162,12 +166,14 @@ gcode. The after_change_gcode is always called. `TOOL_NAME` with empty name unse
 tool.
 
 ### ASSIGN_TOOL
+
 `ASSIGN_TOOL TOOL=<name> N=<number>`: Assign tool to specific tool number.
 Overrides any assignments set up by `tool.tool_number`.
 Sets up a corresponding T<n> and M104/M109 T<index> commands.
 Does *not* change the active tool.
 
 ### SELECT_TOOL
+
 `SELECT_TOOL TOOL=<name> [RESTORE_AXIS=xyz]`: Select the active tool.
 The toolhead will be moved to the previous position on any axis specified in
 `RESTORE_AXIS` value. Slicer Gcode normally use `T0`, `T1`, `T2`,... to select a tool.
@@ -189,34 +195,41 @@ The selection sequence is as follows:
 If the tools have parents, their corresponding dropoff/pickup gcode is also run.  
 
 ### SELECT_TOOL_ERROR
+
 `SELECT_TOOL_ERROR [MESSAGE=]`: Signals failure to select a tool. 
 Can be called from within tool macros during SELECT_TOOL and will abort any
 remaining tool change steps and put the toolchanger starting the selection in
 `ERROR` state.
 
 ### UNSELECT_TOOL
+
 `UNSELECT_TOOL [RESTORE_AXIS=]`: Unselect active tool without selecting a new one.
 
 Performs only the first part of select tool, leaving the printer with no tool 
 selected.
 
 ### SET_TOOL_TEMPERATURE
+
 `SET_TOOL_TEMPERATURE [TOOL=<name>] [T=<number>]  TARGET=<temp> [WAIT=0]`: Set tool temperature.
 
 ### TEST_TOOL_DOCKING
+
 `TEST_TOOL_DOCKING`: Dock and undock current tool.
 
 ### SET_TOOL_PARAMETER
+
 `SET_TOOL_PARAMETER [TOOL=<name>] [T=<number>]  PARAMETER=parameter_<name> VALUE=<value>`: 
 Change tool parameter in runtime.
 Defaults to current tool if tool not specified.
 
 ### SAVE_TOOL_PARAMETER
+
 `SAVE_TOOL_PARAMETER [TOOL=<name>] [T=<number>]  PARAMETER=parameter_<name>`: 
 Saves the tool parameter to pending config changes.
 Defaults to current tool if tool not specified.
 
 ### RESET_TOOL_PARAMETER
+
 `RESET_TOOL_PARAMETER [TOOL=<name>] [T=<number>]  PARAMETER=parameter_<name> VALUE=<value>`: 
 Resets a parameter to its original value.
 Defaults to current tool if tool not specified.
@@ -226,26 +239,28 @@ Defaults to current tool if tool not specified.
 ## tool
 
 The following information is available in the `tool` object:
- - `name`: The tool name, eg 'tool T0'.
- - `tool_number`: The assigned tool number or -1 if not assigned.
- - `toolchanger`: The name of the toolchanger this tool is attached to. 
- - `extruder`: Name of the extruder used for this tool.
- - `fan`: Name of the part fan used for this tool.
- - `active`: If this tool is currently the selected tool.
- - `mounted`: If this tool is currently mounted, the tool may be mounted but
-   not selected. Some reasons for that can be that a child tool is selected, or
-   lazy unmounting is configured.  
- - `mounted_child`: The child tool which is currently mounted, or empty.
- - `params_*`: Set of values specified using params_*.
- - `gcode_x_offset`: current X offset.
- - `gcode_y_offset`: current Y offset.
- - `gcode_z_offset`: current Z offset.
+
+- `name`: The tool name, eg 'tool T0'.
+- `tool_number`: The assigned tool number or -1 if not assigned.
+- `toolchanger`: The name of the toolchanger this tool is attached to. 
+- `extruder`: Name of the extruder used for this tool.
+- `fan`: Name of the part fan used for this tool.
+- `active`: If this tool is currently the selected tool.
+- `mounted`: If this tool is currently mounted, the tool may be mounted but
+  not selected. Some reasons for that can be that a child tool is selected, or
+  lazy unmounting is configured.  
+- `mounted_child`: The child tool which is currently mounted, or empty.
+- `params_*`: Set of values specified using params_*.
+- `gcode_x_offset`: current X offset.
+- `gcode_y_offset`: current Y offset.
+- `gcode_z_offset`: current Z offset.
 
 ## toolchanger
 
 The following information is available in the `toolchanger` object:
- - `status`: One of 'uninitialized', 'ready', 'changing', 'error'.
- - `tool`: Name of currently selected/changed tool, or empty.
- - `tool_number`: Number of the currently selected tool, or -1.
- - `tool_numbers`: List of assigned tool numbers, eg [0,1,2].
- - `tool_names`: List of tool names corresponding the assigned numbers.
+
+- `status`: One of 'uninitialized', 'ready', 'changing', 'error'.
+- `tool`: Name of currently selected/changed tool, or empty.
+- `tool_number`: Number of the currently selected tool, or -1.
+- `tool_numbers`: List of assigned tool numbers, eg [0,1,2].
+- `tool_names`: List of tool names corresponding the assigned numbers.

@@ -1,0 +1,12 @@
+[Unit]
+Description=Update ToolChanger
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/sudo -u TC_USER bash -c "/home/TC_USER/klipper-toolchanger/scripts/install.sh"
+RemainAfterExit=no
+StandardOutput=journal
+
+[Install]
+WantedBy=multi-user.target
+
