@@ -286,14 +286,14 @@ class Toolchanger:
         self.ensure_homed(gcmd)
         self.status = STATUS_CHANGING
         gcode_status = self.gcode_move.get_status()
-        gcode_position = gcode_status['gcode_position']
+        gcode_position = gcode_status['gcode_position'] #(1) current gcode pos?
         current_z_offset = gcode_status['homing_origin'][2]
         extra_z_offset = current_z_offset - (self.active_tool.gcode_z_offset if self.active_tool else 0.0)
 
         extra_context = {
             'dropoff_tool': self.active_tool.name if self.active_tool else None,
             'pickup_tool': tool.name if tool else None,
-            'restore_position': self._position_with_tool_offset(
+            'restore_position': self._position_with_tool_offset( #(2) restore pos = gcodepos + tool offsets? that means already applied offset + the offset (double?) ?
                 gcode_position, restore_axis, tool, extra_z_offset),
             'start_position': self._position_with_tool_offset(
                 gcode_position, 'xyz', tool, extra_z_offset)
@@ -304,7 +304,7 @@ class Toolchanger:
 
         before_change_gcode = self.active_tool.before_change_gcode if self.active_tool else self.default_before_change_gcode
         self.run_gcode('before_change_gcode', before_change_gcode, extra_context)
-        self.gcode.run_script_from_command("SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0")
+        self.gcode.run_script_from_command("SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0") #(3) only now set offsets to 0 (should be done before getting gcode pos?)
 
         if self.active_tool:
             self.run_gcode('tool.dropoff_gcode',
@@ -319,7 +319,7 @@ class Toolchanger:
             self.run_gcode('after_change_gcode',
                            tool.after_change_gcode, extra_context)
 
-        self._restore_axis(gcode_position, restore_axis, tool)
+        self._restore_axis(gcode_position, restore_axis, tool) # Restores the axis. Restore axis is currently split between user (pickup gcode) and also set internally no matter what user decides.
 
         self.gcode.run_script_from_command(
             "RESTORE_GCODE_STATE NAME=_toolchange_state MOVE=0")
