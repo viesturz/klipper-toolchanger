@@ -53,6 +53,7 @@ class Toolchanger:
 
         # Read all the fields that might be defined on toolchanger.
         # To avoid throwing config error when no tools configured.
+        # is this even still needed?
         config.get('pickup_gcode', None)
         config.get('dropoff_gcode', None)
         config.getfloat('gcode_x_offset', None)
@@ -329,16 +330,23 @@ class Toolchanger:
             self.run_gcode('after_change_gcode',
                            tool.after_change_gcode, extra_context)
 
-        #self._restore_axis(gcode_position, restore_axis, tool) # (1.1) Restores the axis. Restore axis is currently split between user (pickup gcode) and also set internally no matter what user decides.
+        if tool.restore_axis_gcode.script.strip() or self.default_restore_axis_gcode.script.strip():
+            restore_axis_gcode = tool.restore_axis_gcode if tool.restore_axis_gcode.script.strip() else self.default_restore_axis_gcode
+            self.run_gcode('restore_axis_gcode', restore_axis_gcode, extra_context)
+        else:
+            self._restore_axis(gcode_position, restore_axis, tool) # (1.1) Restores the axis. Restore axis is currently split between user (pickup gcode) and also set internally no matter what user decides.
 
-        restore_axis_gcode = self.active_tool.restore_axis_gcode if self.active_tool else self.default_restore_axis_gcode
-        self.run_gcode('restore_axis_gcode', restore_axis_gcode, extra_context)
 
         self.gcode.run_script_from_command(
             "RESTORE_GCODE_STATE NAME=_toolchange_state MOVE=0")
         # Restore state sets old gcode offsets, fix that.
-        if tool is not None:
-            self._set_tool_gcode_offset(tool, extra_z_offset)
+
+        if tool is not None: # offer ability to do it in macro if needed.
+            if tool.gcode_offset_gcode.script.strip() or self.default_gcode_offset_gcode.script.strip():
+                gcode_offset_gcode = tool.gcode_offset_gcode if tool.gcode_offset_gcode.script.strip() else self.default_gcode_offset_gcode
+                self.run_gcode('gcode_offset_gcode', gcode_offset_gcode, extra_context)
+            else:
+                self._set_tool_gcode_offset(tool, extra_z_offset)
 
         self.status = STATUS_READY
         if tool:
