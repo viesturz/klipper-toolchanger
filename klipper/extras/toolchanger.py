@@ -371,7 +371,7 @@ class Toolchanger:
             'pickup_tool': tool.name if tool else None,
             'restore_position': self._position_with_tool_offset( 
                 gcode_position, restore_axis, tool, None),
-                'gcode_position': self._position_with_tool_offset(
+            'gcode_position': self._position_with_tool_offset(
                     gcode_position, 'xyz', None, None),
             'start_position': self._position_with_tool_offset(
                 gcode_position, 'xyz', tool, None),
