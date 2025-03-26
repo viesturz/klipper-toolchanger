@@ -319,10 +319,10 @@ class Toolchanger:
             self.run_gcode('after_change_gcode',
                            tool.after_change_gcode, extra_context)
 
-        self._restore_axis(gcode_position, restore_axis, tool) # Restores the axis. Restore axis is currently split between user (pickup gcode) and also set internally no matter what user decides.
+        self._restore_axis(gcode_position, restore_axis, tool) # (1.1) Restores the axis. Restore axis is currently split between user (pickup gcode) and also set internally no matter what user decides.
 
         self.gcode.run_script_from_command(
-            "RESTORE_GCODE_STATE NAME=_toolchange_state MOVE=0")
+            "RESTORE_GCODE_STATE NAME=_toolchange_state MOVE=0") # (1.2) Restores the axis again. but now doesnt force move.
         # Restore state sets old gcode offsets, fix that.
         if tool is not None:
             self._set_tool_gcode_offset(tool, extra_z_offset)
