@@ -304,10 +304,11 @@ class Toolchanger:
             'pickup_tool': tool.name if tool else None,
             'restore_position': self._position_with_tool_offset( 
                 gcode_position, restore_axis, tool, extra_z_offset),
-            'gcode_position': gcode_position,
+            'gcode_position': self._position_with_tool_offset(
+                gcode_position, 'xyz', None, extra_z_offset),
             'start_position': self._position_with_tool_offset(
                 gcode_position, 'xyz', tool, extra_z_offset),
-            'extra_z_offset': extra_z_offset
+            'extra_z_offset': float(extra_z_offset)
         }
 
         self.gcode.run_script_from_command(
@@ -370,7 +371,8 @@ class Toolchanger:
             'pickup_tool': tool.name if tool else None,
             'restore_position': self._position_with_tool_offset( 
                 gcode_position, restore_axis, tool, None),
-            'gcode_position': gcode_position,
+                'gcode_position': self._position_with_tool_offset(
+                    gcode_position, 'xyz', None, None),
             'start_position': self._position_with_tool_offset(
                 gcode_position, 'xyz', tool, None),
             'extra_z_offset': None
