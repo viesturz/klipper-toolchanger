@@ -12,6 +12,7 @@ class Tool:
         self.printer = config.get_printer()
         self.params = config.get_prefix_options('params_')
         self.gcode_macro = self.printer.load_object(config, 'gcode_macro')
+        self.gcode = self.printer.lookup_object('gcode')
 
         self.name = config.get_name()
         toolchanger_name = config.get('toolchanger', 'toolchanger')
@@ -152,11 +153,13 @@ class Tool:
         try:
             if config.get(key, None) is not None:
                 return self.gcode_macro.load_template(config, key, '')
-            if self.toolchanger.config.get(key, None) is not None:
+            if hasattr(self, 'toolchanger') and self.toolchanger.config.get(key, None) is not None:
                 return self.gcode_macro.load_template(self.toolchanger.config, key, '')
         except Exception:
             pass
-        return self.gcode_macro.create_template('', self.printer.lookup_object('gcode'), config)
+        # Fallback: return empty template
+        return self.gcode_macro.load_template(config, key, '')
+
 
 
 def load_config_prefix(config):
