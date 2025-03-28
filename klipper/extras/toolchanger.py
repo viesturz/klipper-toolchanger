@@ -225,19 +225,12 @@ class Toolchanger:
     cmd_SELECT_TOOL_ERROR_help = "Abort tool change and mark the active toolchanger as failed"
 
     def cmd_SELECT_TOOL_ERROR(self, gcmd):
-        #gcode_offset_gcode = self._sel_gcode_template(None, self.default_gcode_offset_gcode)# technically reduntant tool contains tc as fallback
-        extra_context = {
-            'dropoff_tool': None,
-            'pickup_tool': None
-        }
-        self.run_gcode('gcode_offset_gcode', self.default_gcode_offset_gcode, extra_context)
-
-        #if self.status != STATUS_CHANGING and self.status != STATUS_INITIALIZING:
-        #    gcmd.respond_info(
-        #        'SELECT_TOOL_ERROR called while not selecting, doing nothing')
-        #    return
-        #self.status = STATUS_ERROR
-        #self.error_message = gcmd.get('MESSAGE', '')
+        if self.status != STATUS_CHANGING and self.status != STATUS_INITIALIZING:
+            gcmd.respond_info(
+                'SELECT_TOOL_ERROR called while not selecting, doing nothing')
+            return
+        self.status = STATUS_ERROR
+        self.error_message = gcmd.get('MESSAGE', '')
 
     cmd_UNSELECT_TOOL_help = "Unselect active tool without selecting a new one"
 
