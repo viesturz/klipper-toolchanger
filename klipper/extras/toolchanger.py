@@ -38,6 +38,7 @@ class Toolchanger:
         self.initialize_on = config.getchoice(
             'initialize_on', init_options, 'first-use')
         self.verify_tool_pickup = config.getboolean('verify_tool_pickup', True)
+        self.require_tool_present = config.getboolean('require_tool_present', False)
         self.transfer_fan_speed = config.getboolean('transfer_fan_speed', True)
         self.uses_axis = config.get('uses_axis', 'xyz').lower()
         home_options = {'abort': ON_AXIS_NOT_HOMED_ABORT,
@@ -91,9 +92,10 @@ class Toolchanger:
         self.gcode.register_command("SELECT_TOOL_ERROR",
                                     self.cmd_SELECT_TOOL_ERROR,
                                     desc=self.cmd_SELECT_TOOL_ERROR_help)
-        self.gcode.register_command("UNSELECT_TOOL",
-                                    self.cmd_UNSELECT_TOOL,
-                                    desc=self.cmd_UNSELECT_TOOL_help)
+        if not self.require_tool_present:
+            self.gcode.register_command("UNSELECT_TOOL",
+                                        self.cmd_UNSELECT_TOOL,
+                                        desc=self.cmd_UNSELECT_TOOL_help)
         self.gcode.register_command("TEST_TOOL_DOCKING",
                                     self.cmd_TEST_TOOL_DOCKING,
                                     desc=self.cmd_TEST_TOOL_DOCKING_help)
@@ -166,9 +168,7 @@ class Toolchanger:
     cmd_INITIALIZE_TOOLCHANGER_help = "Initialize the toolchanger"
 
     def cmd_INITIALIZE_TOOLCHANGER(self, gcmd):
-        tool = self.gcmd_tool(gcmd, None)
-        if tool is None and self.has_detection:
-            tool = self.require_detected_tool(gcmd)
+        tool = self.gcmd_tool(gcmd, self.detected_tool)
         self.initialize(tool)
 
     cmd_SELECT_TOOL_help = 'Select active tool'
@@ -274,6 +274,8 @@ class Toolchanger:
 
         if should_run_initialize:
             if self.status == STATUS_INITIALIZING:
+                if self.require_tool_present and self.active_tool is None:
+                    raise self.gcode.error('%s failed to initialize, require_tool_present set and no tool present after initialization' % (self.name,))
                 self.status = STATUS_READY
                 self.gcode.respond_info('%s initialized, active %s' %
                                         (self.name,

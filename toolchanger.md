@@ -54,6 +54,9 @@ and will provide a default value for all of its tools.
   #  - first-use: on first toolchange command.
 # verify_tool_pickup: True
   # If tool detection is available, will verify tool presence after pickp_gcode
+# require_tool_present: False
+  # Raise error if no tool present on init or on unmount. 
+  # Use in case the tool contains crucial sensors for the printer to operate/home.  
 # uses_axis: xyz 
   # Axis used by the tool change process
 # on_axis_not_homed: abort
