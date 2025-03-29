@@ -45,15 +45,16 @@ class Toolchanger:
                         'home': ON_AXIS_NOT_HOMED_HOME}
         self.on_axis_not_homed = config.getchoice('on_axis_not_homed',
                                                   home_options, 'abort')
-        self.initialize_gcode = self.gcode_macro.load_template(
-            config, 'initialize_gcode', '')
-        self.default_before_change_gcode = self.gcode_macro.load_template(
-            config, 'before_change_gcode', '')
-        self.default_after_change_gcode = self.gcode_macro.load_template(
-            config, 'after_change_gcode', '')
+        self.initialize_gcode = self._try_load_template(config, 'initialize_gcode')
+        self.default_before_change_gcode = self._try_load_template(config, 'before_change_gcode')
+        self.default_after_change_gcode = self._try_load_template(config, 'after_change_gcode')
+        self.default_restore_axis_gcode = self._try_load_template(config, 'restore_axis_gcode')
+        self.default_gcode_offset_gcode = self._try_load_template(config, 'gcode_offset_gcode')
+
 
         # Read all the fields that might be defined on toolchanger.
         # To avoid throwing config error when no tools configured.
+        # is this even still needed?
         config.get('pickup_gcode', None)
         config.get('dropoff_gcode', None)
         config.getfloat('gcode_x_offset', None)
@@ -107,6 +108,16 @@ class Toolchanger:
         self.gcode.register_command("VERIFY_TOOL_DETECTED",
                                     self.cmd_VERIFY_TOOL_DETECTED)
         self.fan_switcher = None
+
+    def _try_load_template(self, config, key):
+        try:
+            if config.get(key, None) is not None:
+                return self.gcode_macro.load_template(config, key, '')
+        except Exception:
+            pass
+        # Fallback: return empty template
+        return self.gcode_macro.load_template(config, key, '')
+
 
     def require_fan_switcher(self):
         if not self.fan_switcher:
@@ -288,17 +299,20 @@ class Toolchanger:
         self.ensure_homed(gcmd)
         self.status = STATUS_CHANGING
         gcode_status = self.gcode_move.get_status()
-        gcode_position = gcode_status['gcode_position']
+        gcode_position = gcode_status['gcode_position'] #(1) current gcode pos?
         current_z_offset = gcode_status['homing_origin'][2]
         extra_z_offset = current_z_offset - (self.active_tool.gcode_z_offset if self.active_tool else 0.0)
 
-        extra_context = {
+        extra_context = {#(2) restore pos = gcodepos + tool offsets? that means already applied offset + the offset (double?) ?
             'dropoff_tool': self.active_tool.name if self.active_tool else None,
             'pickup_tool': tool.name if tool else None,
-            'restore_position': self._position_with_tool_offset(
+            'restore_position': self._position_with_tool_offset( 
                 gcode_position, restore_axis, tool, extra_z_offset),
+            'gcode_position': self._position_with_tool_offset(
+                gcode_position, 'xyz', None, extra_z_offset),
             'start_position': self._position_with_tool_offset(
-                gcode_position, 'xyz', tool, extra_z_offset)
+                gcode_position, 'xyz', tool, extra_z_offset),
+            'extra_z_offset': float(extra_z_offset)
         }
 
         self.gcode.run_script_from_command(
@@ -306,11 +320,11 @@ class Toolchanger:
 
         before_change_gcode = self.active_tool.before_change_gcode if self.active_tool else self.default_before_change_gcode
         self.run_gcode('before_change_gcode', before_change_gcode, extra_context)
-        self.gcode.run_script_from_command("SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0")
+
+        self.gcode.run_script_from_command("SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0") #(3) only now set offsets to 0 (should be done before getting gcode pos?)
 
         if self.active_tool:
-            self.run_gcode('tool.dropoff_gcode',
-                           self.active_tool.dropoff_gcode, extra_context)
+            self.run_gcode('tool.dropoff_gcode', self.active_tool.dropoff_gcode, extra_context)
 
         self._configure_toolhead_for_tool(tool)
         if tool is not None:
@@ -321,13 +335,26 @@ class Toolchanger:
             self.run_gcode('after_change_gcode',
                            tool.after_change_gcode, extra_context)
 
-        self._restore_axis(gcode_position, restore_axis, tool)
+        if tool is not None:
+            restore_axis_gcode = self._sel_gcode_template(tool.restore_axis_gcode, self.default_restore_axis_gcode)#prefer tool otherwise default, else none
+        else:
+            restore_axis_gcode = self._sel_gcode_template(None, self.default_restore_axis_gcode)#prefer tool otherwise default, else none
+
+        if restore_axis_gcode:
+            self.run_gcode('restore_axis_gcode', restore_axis_gcode, extra_context)
+        else:
+            self._restore_axis(gcode_position, restore_axis, tool)# (1.1) Restores the axis. Restore axis is currently split between user (pickup gcode) and also set internally no matter what user decides.
 
         self.gcode.run_script_from_command(
             "RESTORE_GCODE_STATE NAME=_toolchange_state MOVE=0")
         # Restore state sets old gcode offsets, fix that.
-        if tool is not None:
-            self._set_tool_gcode_offset(tool, extra_z_offset)
+
+        if tool is not None:  # offer ability to do it in macro if needed
+            gcode_offset_gcode = self._sel_gcode_template(tool.gcode_offset_gcode, self.default_gcode_offset_gcode)# technically reduntant tool contains tc as fallback
+            if gcode_offset_gcode:
+                self.run_gcode('gcode_offset_gcode', gcode_offset_gcode, extra_context)
+            else:
+                self._set_tool_gcode_offset(tool, extra_z_offset)
 
         self.status = STATUS_READY
         if tool:
@@ -349,10 +376,13 @@ class Toolchanger:
         extra_context = {
             'dropoff_tool': self.active_tool.name if self.active_tool else None,
             'pickup_tool': tool.name if tool else None,
-            'restore_position': self._position_with_tool_offset(
-                gcode_position, restore_axis, None),
+            'restore_position': self._position_with_tool_offset( 
+                gcode_position, restore_axis, tool, None),
+            'gcode_position': self._position_with_tool_offset(
+                    gcode_position, 'xyz', None, None),
             'start_position': self._position_with_tool_offset(
-                gcode_position, 'xyz', tool)
+                gcode_position, 'xyz', tool, None),
+            'extra_z_offset': None
         }
 
         self.gcode.run_script_from_command("SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0")
@@ -448,15 +478,18 @@ class Toolchanger:
         for i in axis:
             index = XYZ_TO_INDEX[i]
             v = position[index]
+            offset = 0.
             if tool:
-                offset = 0.
                 if index == 0:
                     offset = tool.gcode_x_offset
                 elif index == 1:
                     offset = tool.gcode_y_offset
                 elif index == 2:
                     offset = tool.gcode_z_offset + extra_z_offset
-                v += offset
+            else: 
+                if index == 2:
+                    offset = extra_z_offset #added ability to call without tool and maintain extra z.
+            v += offset
             result[INDEX_TO_XYZ[index]] = v
         return result
 
@@ -565,6 +598,21 @@ class Toolchanger:
                 raise gcmd.error('Missing TOOL=<name> or T=<number>')
             tool = default
         return tool
+
+    def _sel_gcode_template(self, tool_template, fallback_template):
+        if tool_template is not None:
+            try:
+                if tool_template and tool_template.render({}).strip(): #.render({}).strip(): maybe sucks a lot of performance? look into that
+                    return tool_template
+            except Exception:
+                pass
+        if fallback_template is not None:
+            try:
+                if fallback_template and fallback_template.render({}).strip():
+                    return fallback_template
+            except Exception:
+                pass
+        return None
 
 class FanSwitcher:
     def __init__(self, toolchanger, config):
