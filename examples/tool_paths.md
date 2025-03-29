@@ -17,6 +17,6 @@ Feel free to create pull requests to add more.
 ### ClickChanger
 
 ```
-  params_dropoff_path: [{'z':0, 'y':10}, {'z':0, 'y':0}, {'z':-10.5, 'y':0}, {'z':-10.5, 'y':10}]
-  params_pickup_path: [{'z':-10.5, 'y':10}, {'z':-10.5, 'y':0}, {'z':-4, 'y':0}, {'z':2.5, 'f':0.5, 'verify':1}, {'z':0}, {'y':10, 'z':0}]
+  params_dropoff_path: [{'z':0, 'y':10}, {'z':0, 'y':0}, {'z':-8, 'y':0}, {'z':-9, 'y':3}]
+  params_pickup_path: [{'z':-9, 'y':3}, {'z':-8, 'y':0}, {'z':-4, 'y':0}, {'z':0, 'f':0.5, 'verify':1}, {'y':10, 'z':0}]
 ```
