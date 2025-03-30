@@ -147,9 +147,13 @@ class ToolProbeEndstop:
         expected_tool_number = gcmd.get_int("T", self.active_tool_number)
 
         if expected_tool_number is None:
-            raise gcmd.error("Cannot start probe crash detection - no active tool")
+            self.gcode.respond_info("Cannot start probe crash detection - no active tool")
+            self.crash_gcode.run_gcode_from_command()
+            return
         if expected_tool_number != self.active_tool_number:
-            raise gcmd.error("Cannot start probe crash detection - expected tool not active")
+            self.gcode.respond_info("Cannot start probe crash detection - expected tool not active")
+            self.crash_gcode.run_gcode_from_command()
+            return
         self.crash_lasttime = 0.
         self.crash_detection_active = True
 
