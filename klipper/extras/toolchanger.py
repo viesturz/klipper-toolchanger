@@ -256,15 +256,17 @@ class Toolchanger:
             self.status = STATUS_INITIALIZING
             self.run_gcode('initialize_gcode', self.initialize_gcode, extra_context)
 
-        if select_tool:
+        if select_tool or self.has_detection:
             self._configure_toolhead_for_tool(select_tool)
             self.run_gcode('after_change_gcode', select_tool.after_change_gcode, extra_context)
             self._set_tool_gcode_offset(select_tool, 0.0)
+            if self.require_tool_present and self.active_tool is None:
+                raise self.gcode.error(
+                    '%s failed to initialize, require_tool_present set and no tool present after initialization' % (
+                    self.name,))
 
         if should_run_initialize:
             if self.status == STATUS_INITIALIZING:
-                if self.require_tool_present and self.active_tool is None:
-                    raise self.gcode.error('%s failed to initialize, require_tool_present set and no tool present after initialization' % (self.name,))
                 self.status = STATUS_READY
                 self.gcode.respond_info('%s initialized, active %s' %
                                         (self.name,
