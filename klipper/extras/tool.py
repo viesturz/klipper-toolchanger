@@ -94,6 +94,11 @@ class Tool:
             self.gcode_z_offset if self.gcode_z_offset else 0.0,
         ]
 
+    def set_offset(self, [x, y, z]):
+        self.gcode_x_offset = x
+        self.gcode_y_offset = y
+        self.gcode_z_offset = z
+
     cmd_ASSIGN_TOOL_help = 'Assign tool to tool number'
     def cmd_ASSIGN_TOOL(self, gcmd):
         self.assign_tool(gcmd.getint('N', minval=0), replace = True)
