@@ -258,8 +258,9 @@ class Toolchanger:
 
         if select_tool or self.has_detection:
             self._configure_toolhead_for_tool(select_tool)
-            self.run_gcode('after_change_gcode', select_tool.after_change_gcode, extra_context)
-            self._set_tool_gcode_offset(select_tool, 0.0)
+            if select_tool:
+                self.run_gcode('after_change_gcode', select_tool.after_change_gcode, extra_context)
+                self._set_tool_gcode_offset(select_tool, 0.0)
             if self.require_tool_present and self.active_tool is None:
                 raise self.gcode.error(
                     '%s failed to initialize, require_tool_present set and no tool present after initialization' % (
