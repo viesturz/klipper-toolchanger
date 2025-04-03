@@ -377,13 +377,13 @@ class Toolchanger:
 
     def note_detect_change(self, tool):
         detected = None
-        detected_count = 0
+        detected_names = []
         for tool in self.tools.values():
             if tool.detect_state == DETECT_PRESENT:
                 detected = tool
-                detected_count += 1
-        if detected_count > 1:
-            # multiple tools detected
+                detected_names.append(tool.name)
+        if len(detected_names) > 1:
+            self.gcode.respond_info("Multiple tools detected: %s" % (detected_names,))
             detected = None
         self.detected_tool = detected
 
