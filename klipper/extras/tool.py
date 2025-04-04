@@ -12,19 +12,18 @@ class Tool:
         self.printer = config.get_printer()
         self.params = config.get_prefix_options('params_')
         self.gcode_macro = self.printer.load_object(config, 'gcode_macro')
+        self.gcode = self.printer.lookup_object('gcode')
 
         self.name = config.get_name()
         toolchanger_name = config.get('toolchanger', 'toolchanger')
         self.main_toolchanger = self.printer.load_object(config, 'toolchanger')
         self.toolchanger = self.printer.load_object(config, toolchanger_name)
-        self.pickup_gcode = self.gcode_macro.load_template(
-            config, 'pickup_gcode', self._config_get(config, 'pickup_gcode', ''))
-        self.dropoff_gcode = self.gcode_macro.load_template(
-            config, 'dropoff_gcode', self._config_get(config, 'dropoff_gcode', ''))
-        self.before_change_gcode = self.gcode_macro.load_template(
-            config, 'before_change_gcode', self._config_get(config, 'before_change_gcode', ''))
-        self.after_change_gcode = self.gcode_macro.load_template(
-            config, 'after_change_gcode', self._config_get(config, 'after_change_gcode', ''))
+        self.pickup_gcode = self._try_load_template(config, 'pickup_gcode')
+        self.dropoff_gcode = self._try_load_template(config, 'dropoff_gcode')
+        self.before_change_gcode = self._try_load_template(config, 'before_change_gcode')
+        self.after_change_gcode = self._try_load_template(config, 'after_change_gcode')
+        self.restore_axis_gcode = self._try_load_template(config, 'restore_axis_gcode')
+        self.gcode_offset_gcode = self._try_load_template(config, 'gcode_offset_gcode')
         self.gcode_x_offset = self._config_getfloat(
             config, 'gcode_x_offset', 0.0)
         self.gcode_y_offset = self._config_getfloat(
@@ -150,6 +149,18 @@ class Tool:
         return config.getfloat(name, self.toolchanger.config.getfloat(name, default_value))
     def _config_getboolean(self, config, name, default_value):
         return config.getboolean(name, self.toolchanger.config.getboolean(name, default_value))
+    def _try_load_template(self, config, key):
+        try:
+            if config.get(key, None) is not None:
+                return self.gcode_macro.load_template(config, key, '')
+            if hasattr(self, 'toolchanger') and self.toolchanger.config.get(key, None) is not None:
+                return self.gcode_macro.load_template(self.toolchanger.config, key, '')
+        except Exception:
+            pass
+        # Fallback: return empty template
+        return self.gcode_macro.load_template(config, key, '')
+
+
 
 def load_config_prefix(config):
     return Tool(config)
