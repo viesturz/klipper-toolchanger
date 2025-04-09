@@ -108,6 +108,7 @@ class Toolchanger:
         self.gcode.register_command("VERIFY_TOOL_DETECTED",
                                     self.cmd_VERIFY_TOOL_DETECTED)
         self.fan_switcher = None
+        self.validate_tool_timer = None
 
     def require_fan_switcher(self):
         if not self.fan_switcher:
@@ -417,10 +418,12 @@ class Toolchanger:
         toolhead = self.printer.lookup_object('toolhead')
         if gcmd.get_int("ASYNC", 0) == 1:
             reactor = self.printer.get_reactor()
-            toolhead.register_lookahead_callback(lambda print_time:
-                                                 reactor.register_timer(
-                                                     lambda _: self.validate_detected_tool(expected, gcmd),
-                                                     print_time + 0.2))
+            def timer_handler(print_time) :
+                self.validate_detected_tool(expected, gcmd)
+                return reactor.NEVER
+            if self.validate_tool_timer:
+                reactor.unregister_timer(self.validate_tool_timer)
+            self.validate_tool_timer = toolhead.register_lookahead_callback(lambda print_time:reactor.register_timer(timer_handler,print_time + 0.2))
         else:
             toolhead.wait_moves()
             # Wait some to allow tool sensors to update
