@@ -210,10 +210,11 @@ Performs only the first part of select tool, leaving the printer with no tool
 selected.
 
 ### VERIFY_TOOL_DETECTED
-`VERIFY_TOOL_DETECTED [TOOL=<name>] [T=<number>]`: Check if detected tool 
+`VERIFY_TOOL_DETECTED [TOOL=<name>] [T=<number>] [ASYNC=0]`: Check if detected tool 
 matches the expected tool. Shutdown Klipper if not. 
 Does nothing if tool detection pin is not configured.
-
+If ASYNC=0, will wait until any queued moves are complete, causing the toolhead to come to a stop for a bit.   
+If ASYNC=1, will return immediately and perform the check in background after all previous moves are finished.
 
 ### SET_TOOL_TEMPERATURE
 `SET_TOOL_TEMPERATURE [TOOL=<name>] [T=<number>]  TARGET=<temp> [WAIT=0]`: Set tool temperature.

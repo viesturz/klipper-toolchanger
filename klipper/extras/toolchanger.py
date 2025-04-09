@@ -23,6 +23,7 @@ DETECT_UNAVAILABLE = -1
 DETECT_ABSENT = 0
 DETECT_PRESENT = 1
 
+
 class Toolchanger:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -264,7 +265,7 @@ class Toolchanger:
             if self.require_tool_present and self.active_tool is None:
                 raise self.gcode.error(
                     '%s failed to initialize, require_tool_present set and no tool present after initialization' % (
-                    self.name,))
+                        self.name,))
 
         if should_run_initialize:
             if self.status == STATUS_INITIALIZING:
@@ -414,10 +415,17 @@ class Toolchanger:
         if not self.has_detection:
             return
         toolhead = self.printer.lookup_object('toolhead')
-        toolhead.wait_moves()
-        # Wait some to allow tool sensors to update
-        toolhead.dwell(.2)
-        self.validate_detected_tool(expected, gcmd)
+        if gcmd.get_int("ASYNC", 0) == 1:
+            reactor = self.printer.get_reactor()
+            toolhead.register_lookahead_callback(lambda print_time:
+                                                 reactor.register_timer(
+                                                     lambda _: self.validate_detected_tool(expected, gcmd),
+                                                     print_time + 0.2))
+        else:
+            toolhead.wait_moves()
+            # Wait some to allow tool sensors to update
+            toolhead.dwell(.2)
+            self.validate_detected_tool(expected, gcmd)
 
     def _configure_toolhead_for_tool(self, tool):
         if self.active_tool:
@@ -446,7 +454,7 @@ class Toolchanger:
                 (-tool.gcode_x_offset, -tool.gcode_y_offset,
                  -tool.gcode_z_offset))
 
-    def _position_with_tool_offset(self, position, axis, tool, extra_z_offset = 0.0):
+    def _position_with_tool_offset(self, position, axis, tool, extra_z_offset=0.0):
         result = {}
         for i in axis:
             index = XYZ_TO_INDEX[i]
@@ -533,7 +541,7 @@ class Toolchanger:
         if self.on_axis_not_homed == ON_AXIS_NOT_HOMED_ABORT:
             raise gcmd.error(
                 "Cannot perform toolchange, axis not homed. Required: %s, homed: %s" % (
-                self.uses_axis, homed))
+                    self.uses_axis, homed))
         # Home the missing axis
         axis_str = " ".join(axis_to_home).upper()
         gcmd.respond_info('Homing%s before toolchange' % (axis_str,))
@@ -549,7 +557,8 @@ class Toolchanger:
                 "Cannot perform toolchange, required axis still not homed after homing move. Required: %s, homed: %s" % (
                     self.uses_axis, homed))
 
-    class sentinel: pass
+    class sentinel:
+        pass
 
     def gcmd_tool(self, gcmd, default=sentinel, extra_number_arg=None):
         tool_name = gcmd.get('TOOL', None)
@@ -568,6 +577,7 @@ class Toolchanger:
                 raise gcmd.error('Missing TOOL=<name> or T=<number>')
             tool = default
         return tool
+
 
 class FanSwitcher:
     def __init__(self, toolchanger, config):
@@ -602,7 +612,8 @@ class FanSwitcher:
         if speed_to_set is not None:
             if self.active_fan:
                 self.pending_speed = None
-                self.gcode.run_script_from_command("SET_FAN_SPEED FAN='%s' SPEED=%s" % (self.active_fan.fan_name, speed_to_set))
+                self.gcode.run_script_from_command(
+                    "SET_FAN_SPEED FAN='%s' SPEED=%s" % (self.active_fan.fan_name, speed_to_set))
             else:
                 self.pending_speed = speed_to_set
 
@@ -610,14 +621,17 @@ class FanSwitcher:
         tool = self.toolchanger.gcmd_tool(gcmd, default=self.toolchanger.active_tool, extra_number_arg='P')
         speed = gcmd.get_float('S', 255., minval=0.) / 255.
         self.set_speed(speed, tool)
+
     def cmd_M107(self, gcmd):
         tool = self.toolchanger.gcmd_tool(gcmd, default=self.toolchanger.active_tool, extra_number_arg='P')
         self.set_speed(0.0, tool)
+
     def set_speed(self, speed, tool):
         if tool and tool.fan:
             self.gcode.run_script_from_command("SET_FAN_SPEED FAN='%s' SPEED=%s" % (tool.fan.fan_name, speed))
         else:
             self.pending_speed = speed
+
 
 def get_params_dict(config):
     result = {}
