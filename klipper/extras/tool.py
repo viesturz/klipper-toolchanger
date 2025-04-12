@@ -25,6 +25,8 @@ class Tool:
             config, 'before_change_gcode', self._config_get(config, 'before_change_gcode', ''))
         self.after_change_gcode = self.gcode_macro.load_template(
             config, 'after_change_gcode', self._config_get(config, 'after_change_gcode', ''))
+        self.recover_gcode = self.gcode_macro.load_template(
+            config, 'recover_gcode', self._config_get(config, 'recover_gcode', ''))
         self.gcode_x_offset = self._config_getfloat(
             config, 'gcode_x_offset', 0.0)
         self.gcode_y_offset = self._config_getfloat(

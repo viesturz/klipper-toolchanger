@@ -73,6 +73,12 @@ and will provide a default value for all of its tools.
 # after_change_gcode:
   # Common gcode to run after any tool change.
   # EG: To set custom input shaping, accelerations, etc.  
+# error_gcode:
+  # If specified, this gcode is run on failures instead of erroring out Klipper 
+  # Typical use would be to pause the print and put INITIALIZE_TOOLCHANGER in the resume macro to reset toolchanger.
+# recover_gcode:
+  # Experimental, if specified, this gcode is run on `INITIALIZE_TOOLCHANGER RECOVER=1` to recover the position.
+  # Should not generally be necessary, but adds optional extra control.
 # parent_tool:
   # Name of a parent tool. Marks this toolchanger as a child, meaning the parent tool
   # will be selected in order to select any tool attached to this.
@@ -161,7 +167,7 @@ All gcode macros below have the following context available:
 The following commands are available when toolchanger is loaded.
 
 ### INITIALIZE_TOOLCHANGER
-`INITIALIZE_TOOLCHANGER [TOOLCHANGER=toolchanger] [TOOL_NAME=<name>] [T=<number>]`: 
+`INITIALIZE_TOOLCHANGER [TOOLCHANGER=toolchanger] [TOOL_NAME=<name>] [T=<number>] [RECOVER=0]`: 
 Initializes or Re-initializes the toolchanger state. Sets toolchanger status to `ready`.
 
 The default behavior is to auto-initialize on first tool selection call.
@@ -169,6 +175,8 @@ Always needs to be manually re-initialized after a `SELECT_TOOL_ERROR`.
 If `TOOL_NAME` is specified, sets the active tool without performing any tool change
 gcode. The after_change_gcode is always called. `TOOL_NAME` with empty name unselects
 tool.
+
+Experimental: If `RECOVER=1` is specified, `recover_gcode` is run and toolehad is moved to restore_axis position. 
 
 ### ASSIGN_TOOL
 `ASSIGN_TOOL TOOL=<name> N=<number>`: Assign tool to specific tool number.
@@ -201,7 +209,7 @@ If the tools have parents, their corresponding dropoff/pickup gcode is also run.
 `SELECT_TOOL_ERROR [MESSAGE=]`: Signals failure to select a tool. 
 Can be called from within tool macros during SELECT_TOOL and will abort any
 remaining tool change steps and put the toolchanger starting the selection in
-`ERROR` state.
+`ERROR` state. Then runs `error_gcode` if one is provided, 
 
 ### UNSELECT_TOOL
 `UNSELECT_TOOL [RESTORE_AXIS=]`: Unselect active tool without selecting a new one.
@@ -215,6 +223,9 @@ matches the expected tool. Shutdown Klipper if not.
 Does nothing if tool detection pin is not configured.
 If ASYNC=0, will wait until any queued moves are complete, causing the toolhead to come to a stop for a bit.   
 If ASYNC=1, will return immediately and perform the check in background after all previous moves are finished.
+A verification failure will:
+ - abort in-progress toolchange, put the toolchanger in `ERROR` state.
+ - Run`error_gcode` if one is provided. 
 
 ### SET_TOOL_TEMPERATURE
 `SET_TOOL_TEMPERATURE [TOOL=<name>] [T=<number>]  TARGET=<temp> [WAIT=0]`: Set tool temperature.
