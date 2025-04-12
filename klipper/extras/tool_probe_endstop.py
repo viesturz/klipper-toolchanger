@@ -12,6 +12,7 @@ class ToolProbeEndstop:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.reactor = self.printer.get_reactor()
+        self.toolhead = self.printer.lookup_object('toolhead')
         self.name = config.get_name()
         self.tool_probes = {}
         self.last_query = {} # map from tool number to endstop state
@@ -156,9 +157,7 @@ class ToolProbeEndstop:
     cmd_STOP_TOOL_PROBE_CRASH_DETECTION_help = "Stop detecting tool crashes"
     def cmd_STOP_TOOL_PROBE_CRASH_DETECTION(self, gcmd):
         # Clear when current print queue is finished
-        self.reactor.register_callback(
-            lambda _: self.stop_crash_detection(),
-            self.toolhead.get_last_move_time())
+        self.toolhead.register_lookahead_callback(lambda _: self.stop_crash_detection())
 
     def stop_crash_detection(self):
         self.crash_lasttime = 0.
