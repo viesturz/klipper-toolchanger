@@ -226,7 +226,7 @@ class Toolchanger:
         if self.status != STATUS_CHANGING and self.status != STATUS_INITIALIZING:
             gcmd.respond_info(
                 'SELECT_TOOL_ERROR called while not selecting, doing nothing')
-            return        
+            return
         message = gcmd.get('MESSAGE', '')
         self._process_error(gcmd.error, message)
 
@@ -302,14 +302,25 @@ class Toolchanger:
         try:
             self.ensure_homed(gcmd)
             self.status = STATUS_CHANGING
+
+            # What is going on here:
+            #  - toolhead position - the position of the toolhead mount relative to homing sensors.
+            #  - gcode position - the position of the nozzle, relative to the bed;
+            #      since each tool has a slightly different geometry, each tool has a set of gcode offsets that determine the delta.
+            # Normally gcode commands use gcode position, but that can mean different toolhead positions depending on
+            # which tool is mounted, making tool changes unreliable.
+            # To solve that, during toolchange Gcode offsets are set to zero and the gcode moves directly work with toolhead position.
+            # And nozzle location will deviate for each tool.
+            #
+            # To restore the new tool's nozzle to where the previous tool left off, the restore position is manually computed in the code below.
             gcode_status = self.gcode_move.get_status()
             gcode_position = gcode_status['gcode_position']
-            current_z_offset = gcode_status['homing_origin'][2]
+            current_z_offset = gcode_status['homing_origin'][2] # Current Z offset applied; Contains both the tool offset plus any manual changes by the user.
             extra_z_offset = current_z_offset - (self.active_tool.gcode_z_offset if self.active_tool else 0.0)
 
             self.last_change_gcode_position = gcode_position
-            self.last_change_start_position = self._position_with_tool_offset(gcode_position, 'xyz', None)
-            self.last_change_restore_position = self._position_with_tool_offset(gcode_position, restore_axis, None)
+            self.last_change_start_position = self._position_to_xyz(gcode_position, 'xyz')
+            self.last_change_restore_position = self._position_to_xyz(gcode_position, restore_axis)
             self.last_change_restore_axis = restore_axis
             self.last_change_extra_z_offset = extra_z_offset
             self.last_change_pickup_tool = tool
@@ -317,10 +328,8 @@ class Toolchanger:
             extra_context = {
                 'dropoff_tool': self.active_tool.name if self.active_tool else None,
                 'pickup_tool': tool.name if tool else None,
-                'start_position': self._position_with_tool_offset(
-                    gcode_position, 'xyz', tool, extra_z_offset),
-                'restore_position': self._position_with_tool_offset(
-                    gcode_position, restore_axis, tool, extra_z_offset),
+                'start_position': self._position_with_tool_offset(gcode_position, 'xyz', tool, extra_z_offset),
+                'restore_position': self._position_with_tool_offset(gcode_position, restore_axis, tool, extra_z_offset),
             }
 
             self.gcode.run_script_from_command("SAVE_GCODE_STATE NAME=_toolchange_state")
@@ -531,6 +540,13 @@ class Toolchanger:
                 'BED_MESH_OFFSET X=%.6f Y=%.6f ZFADE=%.6f' %
                 (-tool.gcode_x_offset, -tool.gcode_y_offset,
                  -tool.gcode_z_offset))
+
+    def _position_to_xyz(self, position, axis):
+        result = {}
+        for i in axis:
+            index = XYZ_TO_INDEX[i]
+            result[INDEX_TO_XYZ[index]] = position[index]
+        return result
 
     def _position_with_tool_offset(self, position, axis, tool, extra_z_offset=0.0):
         result = {}
