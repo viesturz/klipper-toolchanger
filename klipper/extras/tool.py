@@ -98,7 +98,7 @@ class Tool:
 
     cmd_ASSIGN_TOOL_help = 'Assign tool to tool number'
     def cmd_ASSIGN_TOOL(self, gcmd):
-        self.assign_tool(gcmd.getint('N', minval=0), replace = True)
+        self.assign_tool(gcmd.get_int('N', minval=0), replace = True)
 
     def assign_tool(self, number, replace = False):
         prev_number = self.tool_number
