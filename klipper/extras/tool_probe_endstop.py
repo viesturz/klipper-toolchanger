@@ -12,7 +12,6 @@ class ToolProbeEndstop:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.reactor = self.printer.get_reactor()
-        self.toolhead = self.printer.lookup_object('toolhead')
         self.name = config.get_name()
         self.tool_probes = {}
         self.last_query = {} # map from tool number to endstop state
