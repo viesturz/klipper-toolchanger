@@ -497,21 +497,21 @@ class Toolchanger:
         if not self.has_detection:
             return
         toolhead = self.printer.lookup_object('toolhead')
+        reactor = self.printer.get_reactor()
         if gcmd.get_int("ASYNC", 0) == 1:
             if self.error_gcode is None:
                 raise gcmd.error("VERIFY_TOOL_DETECTED ASYNC=1 needs error_gcode to be defined")
-            reactor = self.printer.get_reactor()
             def timer_handler(reactor_time) :
                 self.validate_detected_tool(expected, respond_info=gcmd.respond_info, raise_error=None)
                 return reactor.NEVER
             if self.validate_tool_timer:
                 reactor.unregister_timer(self.validate_tool_timer)
             self.validate_tool_timer = toolhead.register_lookahead_callback(lambda print_time:
-                                                                            reactor.register_timer(timer_handler, reactor.monotonic() + 0.2 + max(0.0, print_time - reactor.estimated_print_time(reactor.monotonic())) ))
+                                                                            reactor.register_timer(timer_handler, reactor.monotonic() + 0.2 + max(0.0, print_time - toolhead.mcu.estimated_print_time(reactor.monotonic())) ))
         else:
             toolhead.wait_moves()
-            # Wait some to allow tool sensors to update
-            toolhead.dwell(.2)
+            # Wait some more to allow tool sensors to update
+            reactor.pause(reactor.monotonic() + 0.2)
             self.validate_detected_tool(expected, respond_info=gcmd.respond_info, raise_error=gcmd.error)
 
     def _configure_toolhead_for_tool(self, tool):
