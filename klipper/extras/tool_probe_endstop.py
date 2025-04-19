@@ -22,7 +22,7 @@ class ToolProbeEndstop:
         self.crash_lasttime = 0.
         self.mcu_probe = EndstopRouter(self.printer)
         self.param_helper = probe.ProbeParameterHelper(config)
-        self.homing_helper = probe.HomingViaProbeHelper(config, self.mcu_probe,self.param_helper)
+        self.homing_helper = probe.HomingViaProbeHelper(config, self.mcu_probe, self.param_helper)
         self.probe_session = probe.ProbeSessionHelper(config, self.param_helper, self.homing_helper.start_probe_session)
         self.cmd_helper = probe.ProbeCommandHelper(config, self, self.mcu_probe.query_endstop)
 
@@ -54,10 +54,12 @@ class ToolProbeEndstop:
         if self.active_probe:
             return self.active_probe.get_offsets()
         return 0.0, 0.0, 0.0
+    
     def get_probe_params(self, gcmd=None):
         if self.active_probe:
-            return self.param_helper.get_probe_params(gcmd)
+            return self.active_probe.get_probe_params(gcmd)
         raise self.printer.command_error("No active tool probe")
+    
     def start_probe_session(self, gcmd):
         if self.active_probe:
             return self.active_probe.start_probe_session(gcmd)
