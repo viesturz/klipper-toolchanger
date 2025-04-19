@@ -414,7 +414,7 @@ class Toolchanger:
             'restore_position': self.last_change_restore_position,
         }
         self.run_gcode('recover_gcode', tool.recover_gcode, extra_context)
-        self._restore_axis(self.last_change_restore_position, self.last_change_restore_axis, tool)
+        self._restore_axis(self.last_change_gcode_position, self.last_change_restore_axis, tool)
         self.gcode.run_script_from_command(
             "RESTORE_GCODE_STATE NAME=_toolchange_state MOVE=0")
         # Restore state sets old gcode offsets, fix that.
