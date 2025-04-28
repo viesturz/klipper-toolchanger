@@ -335,15 +335,13 @@ class Toolchanger:
             self.gcode.run_script_from_command("SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0 MOVE=0")
             self.gcode.run_script_from_command("SAVE_GCODE_STATE NAME=_toolchange_state")
 
-            if not force_pickup:
-                before_change_gcode = self.active_tool.before_change_gcode if self.active_tool and self.active_tool.before_change_gcode else self.default_before_change_gcode
-                self.run_gcode('before_change_gcode', before_change_gcode, extra_context)
+            before_change_gcode = self.active_tool.before_change_gcode if self.active_tool and self.active_tool.before_change_gcode else self.default_before_change_gcode
+            self.run_gcode('before_change_gcode', before_change_gcode, extra_context)
 
-            if not force_pickup and self.active_tool:
+            if self.active_tool:
                 self.gcode.run_script_from_command("STOP_TOOL_PROBE_CRASH_DETECTION")
                 self.run_gcode('tool.dropoff_gcode', self.active_tool.dropoff_gcode, extra_context)
                 self.gcode.run_script_from_command("DETECT_ACTIVE_TOOL_PROBE")
-
 
             self._configure_toolhead_for_tool(tool)
             if tool is not None:
