@@ -209,7 +209,6 @@ class EndstopRouter:
             self.home_wait = self.active_mcu.home_wait
             self.multi_probe_begin = self.active_mcu.multi_probe_begin
             self.multi_probe_end = self.active_mcu.multi_probe_end
-            self.probing_move = self.active_mcu.probing_move
             self.probe_prepare = self.active_mcu.probe_prepare
             self.probe_finish = self.active_mcu.probe_finish
         else:
@@ -218,7 +217,6 @@ class EndstopRouter:
             self.home_wait = self.on_error
             self.multi_probe_begin = self.on_error
             self.multi_probe_end = self.on_error
-            self.probing_move = self.on_error
             self.probe_prepare = self.on_error
             self.probe_finish = self.on_error
 
