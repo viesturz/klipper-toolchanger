@@ -94,7 +94,8 @@ class Tool:
             self.gcode_z_offset if self.gcode_z_offset else 0.0,
         ]
 
-    def set_offset(self, [x, y, z]):
+    def set_offset(self, offset):
+        x, y, z = offset
         self.gcode_x_offset = x
         self.gcode_y_offset = y
         self.gcode_z_offset = z
