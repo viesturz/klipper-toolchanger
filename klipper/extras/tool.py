@@ -25,6 +25,8 @@ class Tool:
             config, 'before_change_gcode', self._config_get(config, 'before_change_gcode', ''))
         self.after_change_gcode = self.gcode_macro.load_template(
             config, 'after_change_gcode', self._config_get(config, 'after_change_gcode', ''))
+        self.recover_gcode = self.gcode_macro.load_template(
+            config, 'recover_gcode', self._config_get(config, 'recover_gcode', ''))
         self.gcode_x_offset = self._config_getfloat(
             config, 'gcode_x_offset', 0.0)
         self.gcode_y_offset = self._config_getfloat(
@@ -102,7 +104,7 @@ class Tool:
 
     cmd_ASSIGN_TOOL_help = 'Assign tool to tool number'
     def cmd_ASSIGN_TOOL(self, gcmd):
-        self.assign_tool(gcmd.getint('N', minval=0), replace = True)
+        self.assign_tool(gcmd.get_int('N', minval=0), replace = True)
 
     def assign_tool(self, number, replace = False):
         prev_number = self.tool_number
