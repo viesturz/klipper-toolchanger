@@ -122,7 +122,8 @@ class ProbeSessionHelper:
         pos = toolhead.get_position()
         pos[2] = self.z_position
         try:
-            epos = self.mcu_probe.probing_move(pos, speed)
+            phoming = self.printer.lookup_object('homing')
+            epos = phoming.probing_move(self.mcu_probe, pos, speed)
         except self.printer.command_error as e:
             reason = str(e)
             if "Timeout during endstop homing" in reason:
