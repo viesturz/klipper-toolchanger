@@ -3,9 +3,7 @@
 # Copyright (C) 2023 Viesturs Zarins <viesturz@gmail.com>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-#
-# Contribution 2024 by Justin F. Hallett <thesin@southofheaven.org>
-from .probe import ProbeCommandHelper, HomingViaProbeHelper, calc_probe_z_average
+from . import probe
 
 # Virtual endstop, using a tool attached Z probe in a toolchanger setup.
 # Tool endstop change may be done either via SET_ACTIVE_TOOL_PROBE TOOL=99
@@ -23,8 +21,10 @@ class ToolProbeEndstop:
         self.crash_detection_active = False
         self.crash_lasttime = 0.
         self.mcu_probe = EndstopRouter(self.printer)
-        self.homing_helper = HomingViaProbeHelper(config, self.mcu_probe)
-        self.cmd_helper = ProbeCommandHelper(config, self, self.mcu_probe.query_endstop)
+        self.param_helper = probe.ProbeParameterHelper(config)
+        self.homing_helper = probe.HomingViaProbeHelper(config, self.mcu_probe, self.param_helper)
+        self.probe_session = probe.ProbeSessionHelper(config, self.param_helper, self.homing_helper.start_probe_session)
+        self.cmd_helper = probe.ProbeCommandHelper(config, self, self.mcu_probe.query_endstop)
 
         # Emulate the probe object, since others rely on this.
         if self.printer.lookup_object('probe', default=None):
@@ -54,10 +54,12 @@ class ToolProbeEndstop:
         if self.active_probe:
             return self.active_probe.get_offsets()
         return 0.0, 0.0, 0.0
+    
     def get_probe_params(self, gcmd=None):
         if self.active_probe:
             return self.active_probe.get_probe_params(gcmd)
         raise self.printer.command_error("No active tool probe")
+    
     def start_probe_session(self, gcmd):
         if self.active_probe:
             return self.active_probe.start_probe_session(gcmd)
@@ -65,7 +67,7 @@ class ToolProbeEndstop:
 
     def add_probe(self, config, tool_probe):
         if (tool_probe.tool in self.tool_probes):
-            raise config.error(f"Duplicate tool number in {tool_probe.name}")
+            raise config.error("Duplicate tool probe nr: %s" % (tool_probe.tool,))
         self.tool_probes[tool_probe.tool] = tool_probe
         self.mcu_probe.add_mcu(tool_probe.mcu_probe)
 
@@ -158,9 +160,7 @@ class ToolProbeEndstop:
     cmd_STOP_TOOL_PROBE_CRASH_DETECTION_help = "Stop detecting tool crashes"
     def cmd_STOP_TOOL_PROBE_CRASH_DETECTION(self, gcmd):
         # Clear when current print queue is finished
-        self.reactor.register_callback(
-            lambda _: self.stop_crash_detection(),
-            self.toolhead.get_last_move_time())
+        self.toolhead.register_lookahead_callback(lambda _: self.stop_crash_detection())
 
     def stop_crash_detection(self):
         self.crash_lasttime = 0.
@@ -185,13 +185,6 @@ class ToolProbeEndstop:
         if self.crash_detection_active:
             self.crash_detection_active = False
             self.crash_gcode.run_gcode_from_command()
-            pause_resume = self.printer.lookup_object('pause_resume')
-            if pause_resume:
-                gcode = self.printer.lookup_object('gcode')
-                gcmd = gcode.create_gcode_command("", "", {})
-                pause_resume.cmd_PAUSE(gcmd)
-            else:
-                gcmd.respond_info("PauseResume module not loaded")
 
 # Routes commands to the selected tool probe endstop.
 class EndstopRouter:
@@ -216,7 +209,7 @@ class EndstopRouter:
             self.home_wait = self.active_mcu.home_wait
             self.multi_probe_begin = self.active_mcu.multi_probe_begin
             self.multi_probe_end = self.active_mcu.multi_probe_end
-            self.probing_move = self.active_mcu.probing_move
+            # self.probing_move = self.active_mcu.probing_move
             self.probe_prepare = self.active_mcu.probe_prepare
             self.probe_finish = self.active_mcu.probe_finish
         else:
@@ -225,7 +218,7 @@ class EndstopRouter:
             self.home_wait = self.on_error
             self.multi_probe_begin = self.on_error
             self.multi_probe_end = self.on_error
-            self.probing_move = self.on_error
+            # self.probing_move = self.on_error
             self.probe_prepare = self.on_error
             self.probe_finish = self.on_error
 
@@ -236,7 +229,7 @@ class EndstopRouter:
     def get_steppers(self):
         return list(self._steppers)
 
-    def on_error(self, *args):
+    def on_error(self, *args, **kwargs):
         raise self.printer.command_error("Cannot interact with probe - no active tool probe.")
     def query_endstop(self, print_time):
         if not self.active_mcu:
@@ -248,59 +241,6 @@ class EndstopRouter:
             # Report 0 and fix up in the homing sequence
             return 0.0
         return self.active_mcu.get_position_endstop()
-
-
-# class ProbeCommandHelper(ProbeCommandHelper):
-#     def cmd_PROBE_ACCURACY(self, gcmd):
-#         params = self.probe.get_probe_params(gcmd)
-#         sample_count = gcmd.get_int("SAMPLES", 10, minval=1)
-#         toolhead = self.printer.lookup_object('toolhead')
-#         pos = toolhead.get_position()
-#         gcmd.respond_info("PROBE_ACCURACY at X:%.3f Y:%.3f Z:%.3f"
-#                           " (samples=%d retract=%.3f"
-#                           " speed=%.1f lift_speed=%.1f)\n"
-#                           % (pos[0], pos[1], pos[2],
-#                              sample_count, params['sample_retract_dist'],
-#                              params['probe_speed'], params['lift_speed']))
-#         # Create dummy gcmd with SAMPLES=1
-#         fo_params = dict(gcmd.get_command_parameters())
-#         fo_params['SAMPLES'] = '1'
-#         gcode = self.printer.lookup_object('gcode')
-#         fo_gcmd = gcode.create_gcode_command("", "", fo_params)
-#         # Probe bed sample_count times
-#         probe_session = self.probe.start_probe_session(fo_gcmd)
-#         probe_num = 0
-#         drop = probe_session.drop_first_result
-#         while probe_num < sample_count:
-#             # Probe position
-#             probe_session.run_probe(fo_gcmd, drop)
-#             if drop:
-#                 drop = False
-#             else:
-#                 probe_num += 1
-#             # Retract
-#             pos = toolhead.get_position()
-#             liftpos = [None, None, pos[2] + params['sample_retract_dist']]
-#             self._move(liftpos, params['lift_speed'])
-#         positions = probe_session.pull_probed_results()
-#         probe_session.end_probe_session()
-#         # Calculate maximum, minimum and average values
-#         max_value = max([p[2] for p in positions])
-#         min_value = min([p[2] for p in positions])
-#         range_value = max_value - min_value
-#         avg_value = calc_probe_z_average(positions, 'average')[2]
-#         median = calc_probe_z_average(positions, 'median')[2]
-#         # calculate the standard deviation
-#         deviation_sum = 0
-#         for i in range(len(positions)):
-#             deviation_sum += pow(positions[i][2] - avg_value, 2.)
-#         sigma = (deviation_sum / len(positions)) ** 0.5
-#         # Show information
-#         gcmd.respond_info(
-#             "probe accuracy results: maximum %.6f, minimum %.6f, range %.6f, "
-#             "average %.6f, median %.6f, standard deviation %.6f" % (
-#             max_value, min_value, range_value, avg_value, median, sigma))
-
 
 def load_config(config):
     return ToolProbeEndstop(config)
