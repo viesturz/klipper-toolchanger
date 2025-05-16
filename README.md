@@ -32,7 +32,6 @@ bash ~/klipper-toolchanger/install.sh
 
 # Components
 
-* [Multi fan](/multi_fan.md) - multiple primary part fans.
 * [Toolchanger](/toolchanger.md) - tool management support.
 * [Tool probe](/tool_probe.md) - per tool Z probe.
 * [Rounded path](/rounded_path.md) - rounds the travel path corners for fast non-print moves.
