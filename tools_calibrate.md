@@ -59,7 +59,7 @@ samples_tolerance:    (mm)
      a good probe will work with 0.05, altho increasing it has no effect on results.
      more a "sanity check" then anything else.
 
-samples_retries: 
+samples_tolerance_retries: 
      the amount of times to retry the probing when the sample tolerance has been exceeded.
 
 samples_result:       ['median' | 'average']
