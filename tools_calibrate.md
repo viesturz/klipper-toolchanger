@@ -8,26 +8,73 @@ See [Nozzle Align](https://github.com/viesturz/NozzleAlign) repo for some sensor
 ### Configuration
 
 See the [example](/examples/calibrate-offsets.cfg) folder for a full example.
-
 ```
 [tools_calibrate]
-pin: ^!PF5
-travel_speed: 20  # mms to travel sideways for XY probing
-spread: 7  # mms to travel down from top for XY probing
-lower_z: 1.0  # The speed (in mm/sec) to move tools down onto the probe
-speed: 2  # The speed (in mm/sec) to retract between probes
-lift_speed: 4  # Z Lift after probing done, should be greater than any Z variance between tools
-final_lift_z: 6 
-sample_retract_dist:2
-samples_tolerance:0.05
-samples:5
-samples_result: median # median, average
 
-# Settings for nozzle probe calibration - optional.
-probe: probe # name of the nozzle probe to use
+pin: GPIO pin (e.g., '^PG11')
+     The pin Klipper will monitor to detect a probe trigger.
+     - depending on probe may require inversion (ie: !PG11)
+     - normally closed: nudge (no inversion)
+     - normally open: sexball [microswitch type] (no inversion)
 
-trigger_to_bottom_z: 0.25 # Offset from probe trigger to vertical motion bottoms out. 
-# decrease if the nozzle is too high, increase if too low.
+spread:               (mm)
+    X/Y distance from center for probing sequence
+    This defines how far the tool moves during the touch pattern.
+    - For large pins (≥5mm), use 3.5-4.0 
+    - Larger values = more overtravel, takes longer, safer for larger variance in tools or larger pins
+    - Smaller values = less overtravel but may hit too early for large variance tools/large pins
+    - Example: a 5mm pin, a 2.5mm spread would touch the pins face. (assuming nozzle = cylinder with 0 width)
+
+lower_z:              (mm)
+   Distance to lower the nozzle to hit. (0 -> slides over | 3-4 -> hits silicone sock)
+   - 0.1-0.2 = minimal travel, may work, usually cleaner nozzle around here
+   - 0.4-0.5 = safer hit margin, possibly less accurate.
+
+travel_speed:         (mm/s)
+   Move speed between probes 
+   - 0.1-infinity (really doesnt matter that much)
+
+speed:                (mm/s)
+   move speed during probes 
+   - too slow -> takes forever | too fast -> not accurate enough
+   - 0.5-10 would be an avreage/sane range
+
+lift_speed:           (mm/s)
+   speed with which to raise Z
+
+final_lift_z:         (mm)
+   Distance to raise Z between/after probing.
+   Will also the the distance its waiting above the probe.
+
+sample_retract_dist:  (mm)
+   Z retract between samples (Z) 
+   - too little -> backlash/doesnt untrigger | too much -> moves up too high/takes longer.
+   - 0.2-5 
+
+samples: 
+    Number of probe samples to take (usually 3-5)
+
+samples_tolerance:    (mm) 
+     Max variance allowed between samples (will retry/abort if exceeded)
+     a good probe will work with 0.05, altho increasing it has no effect on results.
+     more a "sanity check" then anything else.
+
+samples_retries: 
+     the amount of times to retry the probing when the sample tolerance has been exceeded.
+
+samples_result:       ['median' | 'average']
+     output result method 
+     
+trigger_to_bottom_z:  (mm)
+    Used in trigger calibration calculations.
+    Defines Z distance from calibration probe *trigger* to mechanical bottom out.
+    sort of like the distance from when your keyboard key registers a hit, to where it actually hits the bottom.
+    - 0-3 best calibrated by setting it to 0, 
+      running TOOL_CALIBRATE_PROBE_OFFSET and substracting the result from your current probe offset.
+    - decrease if the nozzle is too high, increase if too low.
+
+probe: probe 
+     (optional name of the nozzle probe to use)
 ```
 
 ### Clean your nozzles 
@@ -56,9 +103,12 @@ All probing moves and final offsets will be printed in the console.
 
 ## Troubleshooting
 
-- **Probe triggered prior to movement**, the nozzle is not touching the probe
-  - Check if the probe is triggering without touching - use a multimeter to check for continuity and if it changes when pressing down on the probe. (or use ```TOOL_CALIBRATE_QUERY_PROBE``` to query the status of the probe)
+### Probe triggered prior to movement
+- the nozzle is not touching the probe
+  - Check if the probe is triggering without touching  
+  - use a multimeter to check for continuity and if it changes when pressing down on the probe. (or use `TOOL_CALIBRATE_QUERY_PROBE` to query the status of the probe)
   - Check if the pin is configured correctly. The example configuration is for active low with a pullup. Depending how you have wired it, you might need remove the **^!** for active-high.
-- **Probe triggered prior to movement**, the nozzle is touching the probe, could have probed a few times already
+  
+- the nozzle is touching the probe - (and could have probed a few times already)
   - Likely the initial position was too far off-center. Try to position it more accurately.
-  - The probe is lowered too much and/or not enough sideways - tweak ```lower_z``` and ```spread```
+  - The probe is lowered too much and/or not enough sideways - tweak `lower_z` and `spread`
