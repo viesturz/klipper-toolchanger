@@ -15,7 +15,7 @@ pin: GPIO pin (e.g., '^PG11')
      The pin Klipper will monitor to detect a probe trigger.
      - depending on probe may require inversion (ie: !PG11)
      - normally closed: nudge (no inversion)
-     - normally open: sexball [microswitch type] (no inversion)
+     - normally open: sexball [microswitch type] (inversion)
 
 spread:               (mm)
     X/Y distance from center for probing sequence
