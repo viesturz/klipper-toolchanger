@@ -353,7 +353,6 @@ class Toolchanger:
             # self._restore_axis(gcode_position, restore_axis, tool)    # This is handled in a seperate macro
 
             self.gcode.run_script_from_command("RESTORE_GCODE_STATE NAME=_toolchange_state MOVE=0")
-            # Restore state sets old gcode offsets, fix that.
             
             if tool is not None:
                 self._set_tool_gcode_offset(tool, extra_z_offset)
