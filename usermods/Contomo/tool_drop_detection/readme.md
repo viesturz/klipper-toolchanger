@@ -43,7 +43,7 @@ printer.tool_drop_detection.$NAME$.->
 - crash_mintime: [ 0.0 - 100.0 ] (default 1.0) -> *how long the angle has to be exceeded to be considered dropped* (high g events remain instant)
 - crash_gcode: gcode template to be executed when THRESHOLD exceeded. provided with extra context: [ie: 'ACCEL':T1]
 
-### unrelated/toys *(will always use pitch_threshold, roll_threshold)*
+### angle templates (always use config set limits)
 - angle_exceed: gcode template to be ran when the angle gets exceeded
 - angle_return: gcode template to be ran when the angle returns to normal.
 - hysterisis: [0.0-180.0] (default: 5.0) Hysterisis between those two templates executing.
