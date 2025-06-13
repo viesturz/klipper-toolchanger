@@ -12,7 +12,7 @@ currently there is no actual way to obtain any accel values inside of macros. qu
 
 ## How it works
 
-
+![](./images/Anthead-domestic-abuse.gif)
 
 
 ## Status return
@@ -58,7 +58,7 @@ printer.tool_drop_detection.$NAME$.->
  * `TDD_POLLING_START` -> Starts the actual data gathering. [FREQ] [RATE] provided to overwrite internal settings.
  * `TDD_POLLING_STOP` -> Stops the actual data gathering.
  * `TDD_POLLING_RESET` -> Resets the current session. 
- * `TDD_QUERY` -> query (crashes when not polling, sorry) 
+ * `TDD_QUERY` -> query (crashes when not polling, will fix when ive got time (or you fix it :P)) 
  * `TDD_REFERENCE_DUMP` -> dumps the current refrence frame `default_$NAME$: [g:$.$$  p:$.$$°  r:$.$$°  vec:($.$$$,$.$$$,$.$$$)]` to be added to config for defaults.
  * `TDD_REFERENCE_SET` -> Sets the current position as baseline 
  * `TDD_REFERENCE_RESET` -> Resets the current reference frame back to config defaults. 
