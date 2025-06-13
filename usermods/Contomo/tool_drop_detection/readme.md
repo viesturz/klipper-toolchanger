@@ -1,33 +1,95 @@
 # Feature
 
-This is my proposal for how to implement the ability to save the baby steps that are done via the GUIs or via the command `SET_GCODE_OFFSET` in the Klipper Console.
+- Enables you to read 'live' values from the accelerometers
+- Allows you to run templates similarly to the `[tool_probe_endstop]` `crash_gcode` on specific events.
+- You have good accelerometers! Why not use them?
 
 ## Background
 
-Traditionally, for single nozzle tool-head systems, the z-offset can be dialled-in from the various GUIs or via the console with the command `SET_GCODE_OFFSET`. These dialling nudges are often referred to as baby-steps, and the result from which can be saved to the config using the button shown in Screenshot_1, below. This front-end invoke the command `Z_OFFSET_APPLY_PROBE` then `SAVE_CONFIG`.
+currently there is no actual way to obtain any accel values inside of macros. query prints to console, and the other dump to files.
 
-**Screenshot_1: the save button**
 
-![](./images/Screenshot_1.png)
-
-This has not broadly worked for tool-changers that are using (or based on) the vieturz add-ons, so far. That is because `Z_OFFSET_APPLY_PROBE` is not "tool-changer aware" and only save the `z_offset` of the current tool-head to the `[tool_probe_endstop]` object in the config, which is not used in the tool-changer. Further complicating the matter, the `z_offset` parameter for the inactive tool-heads are not visible for both Klipper and the python back-end.
-
-There are operational ways around this issue. The most obvious one of all is to just probe and use the `z_offset` of T0. This method is simpler for the configs can be achieved with just gcode macros, and there will be no need for any additional function to be defined in the back-end. However, doing it this way is limiting in several ways. Chief among which is in how the machine (namely the Voron 2.4 series) is going to handle the out-of-tram gantry, which is after the motors are disabled and the gantry tilts toward the corner / edge that has the higher weight distribution. It is not impossible to do, but it is tedious and / or requires manual intervention.
 
 ## How it works
 
-The proposed function here requires 2 files:
+TDD_POLLING_START
+TDD_POLLING_STOP
+TDD_POLLING_RESET
+TDD_QUERY
+TDD_REFERENCE_DUMP
+TDD_REFERENCE_SET
+TDD_REFERENCE_RESET
+TDD_START
+TDD_STOP
 
-* `save_babies.py` - To add the command `SAVE_BABYSTEPS [OFFSET=]` to read the `z_offset` of each tool-head from printer.cfg and save the new `z_offset` using the `TOOL_CALIBRATE_SAVE_TOOL_OFFSET` command.
 
-* `offsets_adjust_record.cfg` - Which contains the steps that are to be done on Klipper side. This includes:
-  
-  * Capture and store the baby-step value as the `SET_GCODE_OFFSET` command being issued.
-  
-  * Interject the `Z_OFFSET_APPLY_PROBE` command and run `SAVE_BABYSTEPS [OFFSET=]` before it. The original command, which produced the `#*# [tool_probe_endstop]` section in the config, is preserved; even though it is redundant. This is to avoid any potential compatibility problems with mainline Klipper down the line.
 
-The new files needs to be referenced in printer.cfg, as shows in Screenshot_2.
+# Accellerometer polling/tool drop detection
 
-**Screenshot_2: integration** 
+## objects/stats avalible inside of printer.tool_drop_detection object
 
-![](./images/Screenshot_2.png)
+- **rotation**
+rotation{'pitch':0.000,'yaw':0.000}
+- **magnitude** -> total acceleration, absolute in g. avalible as:
+'magnitude': 0.000
+- **vector** -> the data retrieved from our accel. avalible as:
+'vector':{'x':0.000,'y':0.000,'z':0.000}
+- **session** -> data from our start stop session, peak, norm and current in g abs.
+'session':{'peak': 0.000, 'norm': 0.000, 'current': 0.000}
+
+## config
+
+### general
+- sample_results: [ median | average ] (default: median) -> *norm* (the way to calculate our current accel.)
+- decimals: [ 0 - 10 ] (default: 3) -> *the amount of decimals to pack into our objects*
+- accelerometer: [comma seperated names] (default: none)
+
+### crash/drop detection
+- peak_g_threshold: [ 0.1 - 25 ] (default: 5) -> *if defined enables also triggering crash gcode when a peak higher than this is detected (instant)*
+- rotational thresholding *(the threshold in rotation at which to trigger the crash gcode)*
+ - either:  rotation_threshold: [0.0 - 180.0] (±abs, vector to vector)
+ - or:      pitch_threshold and/or roll_threshold (±abs, actual rotation angles)
+- crash_mintime: [ 0.0 - 100.0 ] (default 1.0) -> *how long the angle has to be exceeded to be considered dropped* (high g events remain instant)
+- crash_gcode: gcode template to be executed when THRESHOLD exceeded. provided with extra context: [ie: 'ACCEL':T1]
+
+### unrelated/toys *(will always use pitch_threshold, roll_threshold)*
+- angle_exceed: gcode template to be ran when the angle gets exceeded
+- angle_return: gcode template to be ran when the angle returns to normal.
+- hysterisis: [0.0-180.0] (default: 5.0) Hysterisis between those two templates executing.
+
+(unsure if this works?)
+- polling_freq: [1-max] (default: 1) -> *the frequency at which at ask the mcu for values*
+- polling_rate: [see adxl345] (default: 50) -> *the frequency the accelerometer is spitting out values to mcu*
+
+## commands
+
+# ---[ testing ]
+ - TDD_QUERY_ASYNC/TDD_QUERY [/ACCEL=NAME/]
+-> single query, either querying all or just those provided. comma seperated list.
+action: responds with the rotation, magnitude and vector in the console,
+all rounded to two decimals without updating the tool_drop_detection object.
+
+ - TDD_DUMP_ROTATIONS [/ACCEL=NAME/]
+-> single query, either querying all or just those provided. comma seperated list replied to copy into config.
+default_$NAME$: [g:?.??, p:?.??, r:?.??]
+
+
+# ---[ drop detection ]
+ - TDD_STOP [/ACCEL=NAME/]
+-> stops tool drop detection for that tool or all
+
+ - TDD_START [ACCEL=NAME] ([LIMIT_PITCH=0.0-180.0] [LIMIT_ROLL=0.0-180.0]) or [LIMIT_ANGLE=0.0-180.0] optional: [/CRASH_MINTIME=0.0-100.0/] [/LIMIT_G=0.0-25/]
+where LIMIT_ANGLE is the angle between the two vectors. limits again relative to our config objects previously set by obtaining an offset to our 0.0.0 angles with TDD_DUMP_ROTATIONS
+-> starts tool drop detection for that tool or all, everything provided optional to config.
+
+# ---[ polling ]
+ - TDD_POLLING_START [/ACCEL/] [/FREQ/] [/RATE/]
+-> starts the high speed polling for that tool or all, freq, interval provided to overwrite internal settings.
+will update the info in session accordingly. 
+will also update the acceleration vector, the magnitutde, and the rotation that can be retrieved.
+
+ - TDD_POLLING_RESET [/ACCEL/]
+-> resets the info in session for that tool or all.
+
+ - TDD_POLLING_STOP [/ACCEL/]
+-> stops the polling for that tool or all.
