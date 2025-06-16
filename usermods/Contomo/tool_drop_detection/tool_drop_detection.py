@@ -1,9 +1,10 @@
-# Tool-Drop Detection (v1.1)
+# Tool-Drop Detection (v1.11)
 
 from __future__ import annotations
 import math, statistics, collections, types, copy, re
 from typing import Dict, Deque, List, Tuple, Sequence, Union
 from . import adxl345
+
 
 _Number = Union[float, Tuple[float, float, float]]
 
@@ -45,7 +46,7 @@ def _vector_to_magnitude(vector):
     magnitude = math.sqrt(gx**2 + gy**2 + gz**2)
     return magnitude
 
-def strip_timestamps(samples):
+def _strip_timestamps(samples):
     """ .accel_x, .accel_y, .accel_z, .time -> plain (x, y, z) tuples"""
     return [(s.accel_x, s.accel_y, s.accel_z) for s in samples]
 
@@ -100,6 +101,425 @@ def _parse_default_line(raw: str) -> Dict[str, _Number]:
 
     return out
 
+# ───────────────────────────── main object ────────────────────────────
+class ToolDropDetection:
+    def __init__(self, cfg):
+        self.printer = cfg.get_printer()
+        # ── event handlers ───────────────────────────────────────────────────────────
+        self.printer.register_event_handler("klippy:connect",           self._klippy_connect)
+        self.printer.register_event_handler("klippy:ready",             self._klippy_ready)
+        self.printer.register_event_handler("klippy:firmware_restart",  self._reset)
+        self.printer.register_event_handler("homing:home_rails_begin",  self._on_home_begin)
+        self.printer.register_event_handler("homing:home_rails_end",    self._on_home_end)
+
+        self.startup_report = ""
+
+        self._homing = False
+
+        self.gcode = self.printer.lookup_object('gcode')
+        self.gcode_macro = gcode_macro = self.printer.load_object(cfg, 'gcode_macro')
+
+        # ─────────────────────────────────────────────────[ config ]─────────────────────────────────────────────────
+        # ────| primary
+        raw_accelerometers          = cfg.getlist ('accelerometer',         '') # Parse ALL accelerometer entries (multi-line or comma-separated)
+        self.def_freq               = cfg.getfloat('polling_freq',          1.00,   minval=0.01,    maxval=MAX_POLL_FREQ)
+        req_rate                    = cfg.getint  ('polling_rate',          10) # checked/adjusted later
+
+        # ────| crash detection stuff (disabled if not set)
+        self.peak_g_thr             = cfg.getfloat('peak_g_threshold',      None,   minval=0.01)
+        self.rot_threshold          = cfg.getfloat('rotation_threshold',    None,   minval=0.0,     maxval=180.0)
+        self.pitch_threshold        = cfg.getfloat('pitch_threshold',       None,   minval=0.0,     maxval=180.0)
+        self.roll_threshold         = cfg.getfloat('roll_threshold',        None,   minval=0.0,     maxval=180.0)
+
+        self.drop_mintime           = cfg.getfloat('drop_mintime',          1.0,    minval=0.0)
+        self.drop_template          = gcode_macro.load_template(cfg, 'crash_gcode', '')
+
+        # ────| angle checking stuff
+        self.hysteresis             = cfg.getfloat('angle_hysteresis',      5.0,    minval=0.1,     maxval=180.0)
+        self.angle_exceed_template = self.gcode_macro.load_template(cfg, 'angle_exceed_gcode', '')
+        self.angle_return_template = self.gcode_macro.load_template(cfg, 'angle_return_gcode', '')
+
+        # ────| secondary
+        self.decimals               = cfg.getint('decimals', 3, minval=0, maxval=10)
+
+        self.session_time           = cfg.getfloat('session_time',          1.00,   minval=0.01,    maxval=60)
+        self.current_samples        = cfg.getint  ('current_samples',       10,      minval=0)
+
+        statistics_mode = {'median': statistics.median,'mean'  : statistics.mean,}
+        global _STATISTIC_FN 
+        _STATISTIC_FN = cfg.getchoice('samples_result', statistics_mode, 'median')
+        # ────| ensure valid if not errored before.
+        self.def_rate = min(_RATE_CHOICES, key=lambda x: abs(x - req_rate))
+        if self.def_rate != req_rate:
+            self.startup_report += f"[tool_drop_detection] polling_rate {req_rate} Hz is not " f"supported; using closest {self.def_rate} Hz instead."
+        
+
+        raw_acc = [n.strip() for line in raw_accelerometers for n in str(line).split(',') if n.strip()]
+        if not raw_acc:
+            raise cfg.error("tool_drop_detection: the 'accelerometer' option must list at least one "
+                            "ADXL345 section/alias (e.g. 'T1,T2' or multiple lines).")
+
+        # ── build two-way name maps ───────────────────────────────────────────────
+        self._build_name_mappings(raw_acc)
+
+        # ── prepare per-axis defaults ──────────────────────────
+        self.config_defaults = {}
+        self.defaults = {}
+
+        for short in self.full_to_short.values():
+            raw_def = cfg.get(f"default_{short}", None)
+            vals = _parse_default_line(raw_def) if raw_def else {}
+
+            self.defaults[short] = {
+                'base_g'      : vals.get('g', 1.0),
+                'base_pitch'  : vals.get('p', 0.0),
+                'base_roll'   : vals.get('r', 0.0),
+                'base_vector' : vals.get('v', (0.0, 0.0, 1.0)),
+            }
+            self.config_defaults[short] = copy.deepcopy(self.defaults[short])
+
+        self.readers: Dict[str, _Reader] = {
+            short: _Reader(self.printer, full)
+            for full, short in self.full_to_short.items()
+        }
+        self.pollers: Dict[str, _Poller] = {}  # ── created on TDD_POLLING_START
+
+        # ── shared UI data store, keyed by SHORT alias ─────────────────────────────
+        self._data = {
+            short: {
+                'current':  {            # set by _cmd_query  / poller
+                    'vector':    {'x': 0, 'y': 0, 'z': 0},
+                    'magnitude': 0,
+                    'rotation':  {'pitch': 0, 'roll': 0, 'vector': 0},
+                },
+                
+                'default':  {                # reference baseline
+                    'base_g'     : 1.0,
+                    'base_vector': {'x': 0, 'y': 0, 'z': 0},
+                    'base_pitch' : 0.0,
+                    'base_roll'  : 0.0,
+                },
+                
+                'session':  {            # -------- continuously updated by pollers -------------------- 
+                    'peak': 0,           # max-g seen
+                    'magnitude': 0,      # rolling avg-g
+                    'rotation': {'pitch': 0, 'roll': 0, 'vector': 0},
+                },
+            }
+            for short in self.full_to_short.values()
+        }
+
+        self.printer.add_object('tool_drop_detection', self) # dunno
+
+        # ── register gcode commands ───────────────────────────────────────────────────────────
+        self.gcode.register_command('TDD_POLLING_START',    self._cmd_polling_start,        desc=self.cmd_TDD_POLLING_START_help)
+        self.gcode.register_command('TDD_POLLING_STOP',     self._cmd_polling_stop,         desc=self.cmd_TDD_POLLING_STOP_help)
+        self.gcode.register_command('TDD_POLLING_RESET',    self._cmd_polling_reset,        desc=self.cmd_TDD_POLLING_RESET_help)
+        self.gcode.register_command('TDD_QUERY',            self._cmd_query,                desc=self.cmd_TDD_QUERY_help)
+        self.gcode.register_command('TDD_REFERENCE_DUMP',   self._cmd_dump_reference,       desc=self.cmd_TDD_REFERENCE_DUMP_help)
+        self.gcode.register_command('TDD_REFERENCE_SET',    self._cmd_set_reference,        desc=self.cmd_TDD_REFERENCE_SET_help)
+        self.gcode.register_command('TDD_REFERENCE_RESET',  self._cmd_reset_reference,      desc=self.cmd_TDD_REFERENCE_RESET_help)
+        self.gcode.register_command('TDD_START',            self._cmd_start_crash_detect,   desc=self.cmd_TDD_START_help)
+        self.gcode.register_command('TDD_STOP',             self._cmd_stop_crash_detect,    desc=self.cmd_TDD_STOP_help)
+
+
+    def _build_name_mappings(self, raw_acc):
+        self.name_to_full: Dict[str,str] = {}
+        self.full_to_short: Dict[str,str] = {}
+        for raw in raw_acc:
+            parts = raw.split(None, 1)
+            if len(parts) == 2:
+                full  = raw
+                short = parts[1] # already "adxl345 Tn"
+            else:
+                
+                short = raw
+                full  = f"adxl345 {short}" # assume 'T1' == 'adxl345 T1'
+
+            # register both lookups
+            self.name_to_full[raw] = full
+            self.name_to_full[full] = full
+            self.full_to_short[full] = short
+
+    def _klippy_ready(self): # i dunno if this even works
+        if self.startup_report:
+            self.gcode.respond_info(self.startup_report)
+            self.startup_report = ""
+
+    # ─── homing handlers ────────────────────────────────────────────
+    def _on_home_begin(self, *_):
+        self._homing = True
+        for p in self.pollers.values(): # fast flush so we don’t accumulate unread samples
+            p.helper.request_start_time = self.printer.get_reactor().monotonic()
+
+    def _on_home_end(self, *_):
+        self._homing = False
+        for p in self.pollers.values():
+            p.reset() # clear windows so readings not polluted by stale data
+
+    # ─── COMMON CONVERSION ────────────────────────────────────────────────────
+    def _build_context(self, accel_name, pitch, roll, angle, mag, peak):
+        """Return the dict passed to templates"""
+        rnd = self.decimals
+        return {
+            'accelerometer':    accel_name,       # NOT accel*l*erometer (words are hard)
+            'pitch':            round(pitch,    rnd),
+            'roll':             round(roll,     rnd),
+            'vector':           round(angle,    rnd),
+            'magnitude':        round(mag,      rnd),
+            'peak':             round(peak,     rnd),
+        }
+    # for UI / REST ------------------------------------------------------
+    def get_status(self, *_):
+        return self._data
+
+    def run_gcode(self, template, extra_context):
+        # template is a template object, not raw string!!
+        ctx = { **template.create_template_context(),
+                **extra_context }
+        template.run_gcode_from_command(ctx)
+    
+    def _targets(self, gcmd) -> List[str]:
+        acc = gcmd.get('ACCEL', '').strip()
+        if not acc:
+            return list(self.readers) #all
+        else:
+            requested = [n.strip() for n in acc.split(',') if n.strip()]
+            unknown = [n for n in requested if n not in self.readers]
+            if unknown:
+                raise gcmd.error(f"Unknown accelerometer(s) requested in ACCEL: {', '.join(unknown)}")
+            return requested
+
+    def _klippy_connect(self): # once up actually get it 
+        self.chips: Dict[str,object] = {}
+        # resolve each full section name from name_to_full
+        for full in set(self.name_to_full.values()):
+            chip = self.printer.lookup_object(full, default=None)
+            if chip is None:
+                raise self.printer.config.error(f"tool_drop_detection: cannot find accelerometer section '{full}'")
+            self.chips[full] = chip
+
+    def _rate(self, gcmd): #todo add accelerometer type
+        rate_req = int(gcmd.get('RATE', self.def_rate))
+        rate = min(_RATE_CHOICES, key=lambda x: abs(x - rate_req))
+        if rate != rate_req:
+            gcmd.respond_info(f"RATE {rate_req} not supported, using {rate}")
+        return rate
+
+    # ─── POLLING COMMANDS ──────────────────────────────────────────────────────────────────────────
+    cmd_TDD_POLLING_START_help = """[ACCEL] [FREQ] [RATE] - Start polling accelerometer(s) \
+    optional frequency and data rate to overwrite config defined."""
+    def _cmd_polling_start(self, gcmd):
+        freq_req = float(gcmd.get('FREQ', self.def_freq))
+        freq = min(freq_req, MAX_POLL_FREQ)
+        if freq != freq_req:
+            gcmd.respond_info(f"FREQ clamped to {freq} Hz (MAX_POLL_FREQ)")
+
+        rate = self._rate(gcmd)
+
+        started = []
+        for n in self._targets(gcmd):
+            if n not in self.pollers:
+                self.pollers[n] = _Poller(self, n, freq, rate)
+                started.append(n)
+
+        if started:
+            msg = ", ".join(f"{n} (freq={freq} Hz, rate={rate} Hz)"
+                            for n in started)
+            gcmd.respond_info("Started: " + msg)
+        else:
+            gcmd.respond_info("Started: none")
+
+    cmd_TDD_POLLING_STOP_help = '[ACCEL] - Stop polling accelerometer(s)'
+    def _cmd_polling_stop(self, gcmd):
+        stopped: List[str] = []
+        for n in self._targets(gcmd):
+            p = self.pollers.pop(n, None)
+            if p:
+                p.stop(); stopped.append(n)
+        gcmd.respond_info('Stopped: ' + (', '.join(stopped) if stopped else 'none'))
+
+    cmd_TDD_POLLING_RESET_help = '[ACCEL] - Reset polling session data'
+    def _cmd_polling_reset(self, gcmd):
+        r = []
+        for n in self._targets(gcmd):
+            if n in self.pollers: 
+                self.pollers[n].reset()
+                r.append(n)
+
+        gcmd.respond_info('Session reset for: ' + ', '.join(r))
+            
+
+    def _reset(self):
+        _ = None
+        #for n in self._targets(None):
+            #p = self.pollers.pop(n, None)
+            #if p:
+                #p.stop();
+    # ─────────────────────────────────────────────────────────────────────────────
+
+    cmd_TDD_START_help = 'optional [ACCEL=…] [LIMIT_G=<g-force>] [LIMIT_ANGLE=<deg>] [LIMIT_PITCH=<deg>] [LIMIT_ROLL=<deg>] Start crash detection with optional limits'
+    def _cmd_start_crash_detect(self, gcmd):  
+        targets = self._targets(gcmd)
+
+        lim_angle = gcmd.get_float('LIMIT_ANGLE', None)
+        lim_pitch = gcmd.get_float('LIMIT_PITCH', None)
+        lim_roll  = gcmd.get_float('LIMIT_ROLL',  None)
+        lim_g     = gcmd.get_float('LIMIT_G',     None)
+
+        # ── 3  Derive effective thresholds with clear precedence ─────────────────
+        g_limit = lim_g if lim_g is not None else self.peak_g_thr
+
+        if lim_angle is not None:
+            # A vector-angle limit overrides any pitch/roll pair.
+            angle_limit = lim_angle
+            pitch_limit = roll_limit = None
+            if lim_pitch is not None or lim_roll is not None:
+                gcmd.respond_info("LIMIT_ANGLE overrides LIMIT_PITCH / LIMIT_ROLL")
+        elif lim_pitch is not None or lim_roll is not None:
+            # At least one axis-specific limit supplied.
+            angle_limit = None
+            pitch_limit = lim_pitch
+            roll_limit  = lim_roll
+        else:
+            # No CLI parameters - fall back to config defaults.
+            angle_limit = self.rot_threshold
+            pitch_limit = self.pitch_threshold
+            roll_limit  = self.roll_threshold
+
+        # Fail fast if nothing configured at all.
+        if g_limit is None and angle_limit is None and pitch_limit is None and roll_limit is None:
+            raise gcmd.error("No crash-detection limits supplied and nothing configured")
+
+        # ── 4  Program each poller & echo armed thresholds ───────────────────────
+        for name in targets:
+            poller = self.pollers.get(name)
+            if poller is None:
+                gcmd.respond_info(f"failed to arm {name}, not polling.")
+                continue
+
+            # reset state & install limits
+            poller.drop_enabled = True
+            poller.drop_timer   = None
+            poller.g_limit      = g_limit
+            poller.angle_limit  = angle_limit
+            poller.pitch_limit  = pitch_limit
+            poller.roll_limit   = roll_limit
+
+            # build a concise per-accel confirmation message
+            msg = [f"armed {name}"]
+            if g_limit is not None:
+                msg.append(f"±{g_limit} g")
+            if angle_limit is not None:
+                msg.append(f"vector ±{angle_limit}°")
+            else:
+                if pitch_limit is not None:
+                    msg.append(f"pitch ±{pitch_limit}°")
+                if roll_limit is not None:
+                    msg.append(f"roll ±{roll_limit}°")
+            gcmd.respond_info(" | ".join(msg))
+
+
+    cmd_TDD_STOP_help = '[ACCEL] - Disarms both high-G and angular crash detection for specified accelerometer(s)'
+
+    def _cmd_stop_crash_detect(self, gcmd):
+        targets = self._targets(gcmd)
+        # Determine if this even maeks sense
+        active = []
+        for n in targets:
+            p = self.pollers.get(n)
+            if p and p.drop_enabled:
+                active.append(n)
+        if not active:
+            gcmd.respond_info("Cannot disable drop detection, inactive.")
+            return
+        # Disarm thresholds and timers for active targets
+        for n in active:
+            p = self.pollers.get(n)
+            if p:
+                p.drop_enabled = False
+                p.drop_timer   = None
+                p.g_limit       = None
+                p.angle_limit   = None
+                p.pitch_limit   = None
+                p.roll_limit    = None
+        gcmd.respond_info("Drop detection disabled for: " + ",".join(active))
+
+
+    cmd_TDD_REFERENCE_RESET_help = '[ACCEL] - Reset reference baseline to config defaults'
+
+    def _cmd_reset_reference(self, gcmd):
+        for short in self._targets(gcmd) or self.readers:
+            self.defaults[short] = copy.deepcopy(self.config_defaults[short])
+            self._data[short]['default'].update(self.defaults[short])
+
+
+    cmd_TDD_REFERENCE_SET_help = '[ACCEL] - Set reference baseline data from the current session'
+
+    def _cmd_set_reference(self, gcmd):
+        stored, targets = 0, self._targets(gcmd) or list(self.readers)
+        for short in targets:
+            poll  = self.pollers.get(short)
+            if poll:                                # reuse live window
+                samples = list(poll.xyz_history) or poll.helper.get_samples()
+                poll._update_reference(samples)
+            else:                                   # one-shot reader
+                samples = self.readers[short].window(0.08)
+                if not samples:
+                    gcmd.respond_info(f"[TDD] no data from '{short}'"); continue
+                tmp = types.SimpleNamespace(parent=self, short=short, dec=self.decimals, defaults=self.defaults[short]) #hack
+                _Poller._update_reference(tmp, samples)   # type: ignore # static method call
+            stored += 1
+        gcmd.respond_info(f"[tool_drop_detection] stored {stored} reference set(s)")
+
+
+    cmd_TDD_REFERENCE_DUMP_help = '[ACCEL] - Dump current reference baseline data to console for copying'
+
+    def _cmd_dump_reference(self, gcmd):
+        for short in self._targets(gcmd) or self._data:
+            d = self.defaults.get(short, {})
+            bg  = round(d.get('base_g',     0.0), 3)
+            bp  = round(d.get('base_pitch', 0.0), 3)
+            br  = round(d.get('base_roll',  0.0), 3)
+            bv  = d.get('base_vector', (0.0,0.0,0.0))
+            vx,vy,vz = (round(bv[i], 3) for i in range(3))
+
+            gcmd.respond_info(f"default_{short}: [g:{bg}  p:{bp}°  r:{br}°  vec:({vx},{vy},{vz})]")
+
+
+    cmd_TDD_QUERY_help = '[ACCEL] - Query current accelerometer orientation data, prints to console and updates objects current'
+
+    def _cmd_query(self: ToolDropDetection, gcmd):
+        targets = self._targets(gcmd) or list(self.readers)
+        for short in targets:
+            poll = self.pollers.get(short)
+            if poll:
+                raw = poll.helper.get_samples() or list(poll.xyz_history)
+                tup_samples = _strip_timestamps(raw) if raw and hasattr(raw[0], "accel_x") else raw
+            else:
+                tup_samples = self.readers[short].window(_DWELL_GRAB)
+                if not tup_samples:
+                    gcmd.respond_info(f"[TDD] no data from '{short}'");
+                    continue
+            
+            tmp = types.SimpleNamespace(parent=self, short=short, dec=self.decimals, defaults=self.defaults[short])
+            avrg = _average_samples(tup_samples, -self.current_samples)
+            if poll:
+                poll._update_current(avrg)
+            else:
+                _Poller._update_current(tmp, avrg) #hack
+
+            cur = self._data[short]['current']
+            rot = cur['rotation']
+            gcmd.respond_info(
+                f"[{short}] mag={cur['magnitude']}g  "
+                f"pitch={rot['pitch']}° roll={rot['roll']}° "
+                f"angle={rot['vector']}°"
+            )
+
+
+def load_config(cfg):
+    return ToolDropDetection(cfg)
 
 # ───────────────────────────── one-shot / window reader ──────────────
 class _Reader:
@@ -127,14 +547,13 @@ class _Reader:
         helper.is_finished = True
         return samples
 
-    def grab(self, dwell: float = _DWELL_GRAB):
+    def grab(self, dwell: float = _DWELL_GRAB):# -> None | tuple[Any, Any, Any]:
         """Return **one** (x,y,z) tuple or None."""
         sam = self._capture(dwell)
         return None if not sam else (
             sam[-1].accel_x, sam[-1].accel_y, sam[-1].accel_z)
 
-    # NEW - used only by _cmd_dump_rot
-    def window(self, duration_s: float = 1.0):
+    def window(self, duration_s: float = 1.0):# -> list[tuple[Any, Any, Any]]:
         """Return **list**[tuple(x,y,z)] gathered over ‘duration_s’."""
         raw = self._capture(duration_s)
         return [(s.accel_x, s.accel_y, s.accel_z) for s in raw]
@@ -216,9 +635,10 @@ class _Poller:
         current['magnitude'] = round(mag, self.dec)
         current['vector'] = {'x': round(gx, self.dec), 'y': round(gy, self.dec), 'z': round(gz, self.dec)}
         current['rotation'] = {'pitch':round(pitch, self.dec), 'roll':round(roll, self.dec), 'vector':round(angle , self.dec)}
-    # ─── UPDATE STATE ───────────────────────────────────────
-    def _update_session(self, xyz_samples):
 
+
+        # ─── UPDATE STATE ───────────────────────────────────────
+    def _update_session(self, xyz_samples):
         session = self.parent._data[self.short]['session']
         self.xyz_history.append(_average_samples(xyz_samples)) # add to rolling history
         sess_raw = _average_samples(self.xyz_history)
@@ -237,7 +657,6 @@ class _Poller:
         session['rotation']  = {'pitch': round(pitch, self.dec), 'roll': round(roll, self.dec), 'vector': round(angle, self.dec)}
 
     def _check_angle_exceed(self, angle, pitch, roll, ctx):
-        # ─── configuration -------------------------------------------------
         hyst      = self.parent.hysteresis        # hysteresis band
         tp        = self.parent.pitch_threshold   # may be None
         tr        = self.parent.roll_threshold
@@ -346,7 +765,7 @@ class _Poller:
         sample_ts = samples[-1].time
         self.helper.request_start_time = sample_ts # tell it to void anything before "samples[-1].time" (we got that now, dont need it again)
 
-        xyz_samples = strip_timestamps(samples)
+        xyz_samples = _strip_timestamps(samples)
         
         current_average = _average_samples(xyz_samples, -self.parent.current_samples)
     
@@ -393,402 +812,3 @@ class _Poller:
         if self.timer:
             r.update_timer(self.timer, r.NEVER)
         r.register_callback(lambda e=None: self.helper.finish_measurements())
-
-# ───────────────────────────── main object ────────────────────────────
-class ToolDropDetection:
-    def __init__(self, cfg):
-        self.printer = cfg.get_printer()
-        # ── event handlers ───────────────────────────────────────────────────────────
-        self.printer.register_event_handler("klippy:connect",           self._klippy_connect)
-        self.printer.register_event_handler("klippy:ready",             self._klippy_ready)
-        self.printer.register_event_handler("klippy:firmware_restart",  self._reset)
-        self.printer.register_event_handler("homing:home_rails_begin",  self._on_home_begin)
-        self.printer.register_event_handler("homing:home_rails_end",    self._on_home_end)
-
-        self.startup_report = ""
-
-        self._homing = False
-
-        self.gcode = self.printer.lookup_object('gcode')
-        self.gcode_macro = gcode_macro = self.printer.load_object(cfg, 'gcode_macro')
-
-        # ─────────────────────────────────────────────────[ config ]─────────────────────────────────────────────────
-        # ────| primary
-        raw_accelerometers          = cfg.getlist ('accelerometer',         '') # Parse ALL accelerometer entries (multi-line or comma-separated)
-        self.def_freq               = cfg.getfloat('polling_freq',          1.00,   minval=0.01,    maxval=MAX_POLL_FREQ)
-        req_rate                    = cfg.getint  ('polling_rate',          10) # checked/adjusted later
-
-        # ────| crash detection stuff (disabled if not set)
-        self.peak_g_thr             = cfg.getfloat('peak_g_threshold',      None,   minval=0.01)
-        self.rot_threshold          = cfg.getfloat('rotation_threshold',    None,   minval=0.0,     maxval=180.0)
-        self.pitch_threshold        = cfg.getfloat('pitch_threshold',       None,   minval=0.0,     maxval=180.0)
-        self.roll_threshold         = cfg.getfloat('roll_threshold',        None,   minval=0.0,     maxval=180.0)
-
-        self.drop_mintime           = cfg.getfloat('drop_mintime',          1.0,    minval=0.0)
-        self.drop_template          = gcode_macro.load_template(cfg, 'crash_gcode', '')
-
-        # ────| angle checking stuff
-        self.hysteresis             = cfg.getfloat('angle_hysteresis',      5.0,    minval=0.1,     maxval=180.0)
-        self.angle_exceed_template = self.gcode_macro.load_template(cfg, 'angle_exceed_gcode', '')
-        self.angle_return_template = self.gcode_macro.load_template(cfg, 'angle_return_gcode', '')
-
-        # ────| secondary
-        self.decimals               = cfg.getint('decimals', 3, minval=0, maxval=10)
-
-        self.session_time           = cfg.getfloat('session_time',          1.00,   minval=0.01,    maxval=60)
-        self.current_samples        = cfg.getint  ('current_samples',       5,      minval=0)
-
-        statistics_mode = {'median': statistics.median,'mean'  : statistics.mean,}
-        global _STATISTIC_FN 
-        _STATISTIC_FN = cfg.getchoice('samples_result', statistics_mode, 'median')
-        # ────| ensure valid if not errored before.
-        self.def_rate = min(_RATE_CHOICES, key=lambda x: abs(x - req_rate))
-        if self.def_rate != req_rate:
-            self.startup_report += f"[tool_drop_detection] polling_rate {req_rate} Hz is not " f"supported; using closest {self.def_rate} Hz instead."
-        
-
-        raw_acc = [n.strip() for line in raw_accelerometers for n in str(line).split(',') if n.strip()]
-        if not raw_acc:
-            raise cfg.error("tool_drop_detection: the 'accelerometer' option must list at least one "
-                            "ADXL345 section/alias (e.g. 'T1,T2' or multiple lines).")
-
-        # ── build two-way name maps ───────────────────────────────────────────────
-        self._build_name_mappings(raw_acc)
-
-        # ── prepare per-axis defaults ──────────────────────────
-        self.config_defaults = {}
-        self.defaults = {}
-
-        for short in self.full_to_short.values():
-            raw_def = cfg.get(f"default_{short}", None)
-            vals = _parse_default_line(raw_def) if raw_def else {}
-
-            self.defaults[short] = {
-                'base_g'      : vals.get('g', 1.0),
-                'base_pitch'  : vals.get('p', 0.0),
-                'base_roll'   : vals.get('r', 0.0),
-                'base_vector' : vals.get('v', (0.0, 0.0, 1.0)),
-            }
-            self.config_defaults[short] = copy.deepcopy(self.defaults[short])
-
-        self.readers: Dict[str, _Reader] = {
-            short: _Reader(self.printer, full)
-            for full, short in self.full_to_short.items()
-        }
-        self.pollers: Dict[str, _Poller] = {}  # ── created on TDD_POLLING_START
-
-        # ── shared UI data store, keyed by SHORT alias ─────────────────────────────
-        self._data = {
-            short: {
-                'current':  {            # set by _cmd_query  / poller
-                    'vector':    {'x': 0, 'y': 0, 'z': 0},
-                    'magnitude': 0,
-                    'rotation':  {'pitch': 0, 'roll': 0, 'vector': 0},
-                },
-                
-                'default':  {                # reference baseline
-                    'base_g'     : 1.0,
-                    'base_vector': {'x': 0, 'y': 0, 'z': 0},
-                    'base_pitch' : 0.0,
-                    'base_roll'  : 0.0,
-                },
-                
-                'session':  {            # -------- continuously updated by pollers -------------------- 
-                    'peak': 0,           # max-g seen
-                    'magnitude': 0,      # rolling avg-g
-                    'rotation': {'pitch': 0, 'roll': 0, 'vector': 0},
-                },
-            }
-            for short in self.full_to_short.values()
-        }
-
-        self.printer.add_object('tool_drop_detection', self)
-
-        # ── register gcode commands ───────────────────────────────────────────────────────────
-        self.gcode.register_command('TDD_POLLING_START',    self._cmd_start,                desc='[ACCEL] [FREQ] [RATE]')
-        self.gcode.register_command('TDD_POLLING_STOP',     self._cmd_stop,                 desc='[ACCEL]')
-        self.gcode.register_command('TDD_POLLING_RESET',    self._cmd_reset,                desc='[ACCEL]')
-        self.gcode.register_command('TDD_QUERY',            self._cmd_query,                desc='[ACCEL]')
-        self.gcode.register_command('TDD_REFERENCE_DUMP',    self._cmd_dump_reference,        desc='[ACCEL]')
-        self.gcode.register_command('TDD_REFERENCE_SET',     self._cmd_set_reference,         desc='[ACCEL]')
-        self.gcode.register_command('TDD_REFERENCE_RESET',   self._cmd_reset_reference,       desc='[ACCEL]')
-        self.gcode.register_command('TDD_START',            self._cmd_start_crash_detect,   desc='optional [ACCEL] (OVERWRITE) [LIMIT_ANGLE] [LIMIT_PITCH] [LIMIT_ROLL] [LIMIT_G]')
-        self.gcode.register_command('TDD_STOP',             self._cmd_stop_crash_detect,    desc='[ACCEL] stop angle crash detection')
-
-    def _build_name_mappings(self, raw_acc):
-        self.name_to_full: Dict[str,str] = {}
-        self.full_to_short: Dict[str,str] = {}
-        for raw in raw_acc:
-            parts = raw.split(None, 1)
-            if len(parts) == 2:
-                full  = raw
-                short = parts[1] # already "adxl345 Tn"
-            else:
-                
-                short = raw
-                full  = f"adxl345 {short}" # assume 'T1' == 'adxl345 T1'
-
-            # register both lookups
-            self.name_to_full[raw] = full
-            self.name_to_full[full] = full
-            self.full_to_short[full] = short
-
-    def _klippy_ready(self): # i dunno if this even works
-        if self.startup_report:
-            self.gcode.respond_info(self.startup_report)
-            self.startup_report = ""
-
-    # ─── homing handlers ────────────────────────────────────────────
-    def _on_home_begin(self, *_):
-        self._homing = True
-        for p in self.pollers.values(): # fast flush so we don’t accumulate unread samples
-            p.helper.request_start_time = self.printer.get_reactor().monotonic()
-
-    def _on_home_end(self, *_):
-        self._homing = False
-        for p in self.pollers.values():
-            p.reset() # clear windows so readings not polluted by stale data
-
-    # ─── COMMON CONVERSION ────────────────────────────────────────────────────
-    def _build_context(self, accel_name, pitch, roll, angle, mag, peak):
-        """Return the dict passed to templates/status"""
-        rnd = self.decimals
-        return {
-            'accelerometer':    accel_name,       # NOT accel*l*erometer (words are hard)
-            'pitch':            round(pitch,    rnd),
-            'roll':             round(roll,     rnd),
-            'vector':           round(angle,    rnd),
-            'magnitude':        round(mag,      rnd),
-            'peak':             round(peak,     rnd),
-        }
-    # for UI / REST ------------------------------------------------------
-    def get_status(self, *_):
-        return self._data
-
-    def run_gcode(self, template, extra_context):
-        # template is a template object, not raw string!!
-        ctx = { **template.create_template_context(),
-                **extra_context }
-        template.run_gcode_from_command(ctx)
-    
-    # helper to parse targets ------------------------------------------
-    def _targets(self, gcmd) -> List[str]:
-        acc = gcmd.get('ACCEL', '') # '' is falseish right???
-        return list(self.readers) if not acc else [n.strip() for n in acc.split(',') if n.strip() in self.readers]
-
-    def _klippy_connect(self): # once up actually get it 
-        self.chips: Dict[str,object] = {}
-        # resolve each full section name from name_to_full
-        for full in set(self.name_to_full.values()):
-            chip = self.printer.lookup_object(full, default=None)
-            if chip is None:
-                raise self.printer.config.error(f"tool_drop_detection: cannot find accelerometer section '{full}'")
-            self.chips[full] = chip
-
-    def _rate(self, gcmd): #todo add accelerometer type
-        rate_req = int(gcmd.get('RATE', self.def_rate))
-        rate = min(_RATE_CHOICES, key=lambda x: abs(x - rate_req))
-        if rate != rate_req:
-            gcmd.respond_info(f"RATE {rate_req} not supported, using {rate}")
-        return rate
-
-    # ─── POLLING COMMANDS ──────────────────────────────────────────────────────────────────────────
-    def _cmd_start(self, gcmd):
-        freq_req = float(gcmd.get('FREQ', self.def_freq))
-        freq = min(freq_req, MAX_POLL_FREQ)
-        if freq != freq_req:
-            gcmd.respond_info(f"FREQ clamped to {freq} Hz (MAX_POLL_FREQ)")
-
-        rate = self._rate(gcmd)
-
-        started = []
-        for n in self._targets(gcmd):
-            if n not in self.pollers:
-                self.pollers[n] = _Poller(self, n, freq, rate)
-                started.append(n)
-
-        if started:
-            msg = ", ".join(f"{n} (freq={freq} Hz, rate={rate} Hz)"
-                            for n in started)
-            gcmd.respond_info("Started: " + msg)
-        else:
-            gcmd.respond_info("Started: none")
-
-    def _cmd_stop(self, gcmd):
-        stopped: List[str] = []
-        for n in self._targets(gcmd):
-            p = self.pollers.pop(n, None)
-            if p:
-                p.stop(); stopped.append(n)
-        gcmd.respond_info('Stopped: ' + (', '.join(stopped) if stopped else 'none'))
-
-    def _cmd_reset(self, gcmd):
-        r = []
-        for n in self._targets(gcmd):
-            if n in self.pollers: 
-                self.pollers[n].reset()
-                r.append(n)
-
-        gcmd.respond_info('Session reset for: ' + ', '.join(n))
-            
-
-    def _reset(self):
-        _ = None
-        #for n in self._targets(None):
-            #p = self.pollers.pop(n, None)
-            #if p:
-                #p.stop();
-    # ─────────────────────────────────────────────────────────────────────────────
-
-    # ─── ANGLE AND HIGH G CRASH DETECTION  ─────────────────────────────────────────────────
-    def _cmd_start_crash_detect(self, gcmd):
-        """TDD_START_CRASH_DETECT [ACCEL=…] [LIMIT_G=<g-force>] [LIMIT_ANGLE=<deg>] [LIMIT_PITCH=<deg>] [LIMIT_ROLL=<deg>]"""
-        
-        targets = self._targets(gcmd)
-        if not targets:
-            raise gcmd.error("needs accel to watch")
-
-        lim_angle = gcmd.get_float('LIMIT_ANGLE', None)
-        lim_pitch = gcmd.get_float('LIMIT_PITCH', None)
-        lim_roll  = gcmd.get_float('LIMIT_ROLL',  None)
-        lim_g     = gcmd.get_float('LIMIT_G',     None)
-
-        # ── 3  Derive effective thresholds with clear precedence ─────────────────
-        g_limit = lim_g if lim_g is not None else self.peak_g_thr
-
-        if lim_angle is not None:
-            # A vector-angle limit overrides any pitch/roll pair.
-            angle_limit = lim_angle
-            pitch_limit = roll_limit = None
-            if lim_pitch is not None or lim_roll is not None:
-                gcmd.respond_info("LIMIT_ANGLE overrides LIMIT_PITCH / LIMIT_ROLL")
-        elif lim_pitch is not None or lim_roll is not None:
-            # At least one axis-specific limit supplied.
-            angle_limit = None
-            pitch_limit = lim_pitch
-            roll_limit  = lim_roll
-        else:
-            # No CLI parameters - fall back to config defaults.
-            angle_limit = self.rot_threshold
-            pitch_limit = self.pitch_threshold
-            roll_limit  = self.roll_threshold
-
-        # Fail fast if nothing configured at all.
-        if g_limit is None and angle_limit is None and pitch_limit is None and roll_limit is None:
-            raise gcmd.error("No crash-detection limits supplied and nothing configured")
-
-        # ── 4  Program each poller & echo armed thresholds ───────────────────────
-        for name in targets:
-            poller = self.pollers.get(name)
-            if poller is None:
-                gcmd.respond_info(f"failed to arm {name}, not polling.")
-                continue
-
-            # reset state & install limits
-            poller.drop_enabled = True
-            poller.drop_timer   = None
-            poller.g_limit      = g_limit
-            poller.angle_limit  = angle_limit
-            poller.pitch_limit  = pitch_limit
-            poller.roll_limit   = roll_limit
-
-            # build a concise per-accel confirmation message
-            msg = [f"armed {name}"]
-            if g_limit is not None:
-                msg.append(f"±{g_limit} g")
-            if angle_limit is not None:
-                msg.append(f"vector ±{angle_limit}°")
-            else:
-                if pitch_limit is not None:
-                    msg.append(f"pitch ±{pitch_limit}°")
-                if roll_limit is not None:
-                    msg.append(f"roll ±{roll_limit}°")
-            gcmd.respond_info(" | ".join(msg))
-
-
-    # ─── Disarms both high-G and angular crash detection for specified ACCELs.  ─────────────────────────────────────────────────
-    def _cmd_stop_crash_detect(self, gcmd):
-        targets = self._targets(gcmd)
-        # Determine if this even maeks sense
-        active = []
-        for n in targets:
-            p = self.pollers.get(n)
-            if p and p.drop_enabled:
-                active.append(n)
-        if not active:
-            gcmd.respond_info("Cannot disable drop detection, inactive.")
-            return
-        # Disarm thresholds and timers for active targets
-        for n in active:
-            p = self.pollers.get(n)
-            p.drop_enabled = False
-            p.drop_timer   = None
-            p.g_limit       = None
-            p.angle_limit   = None
-            p.pitch_limit   = None
-            p.roll_limit    = None
-        gcmd.respond_info("Drop detection disabled for: " + ",".join(active))
-
-    def _cmd_reset_reference(self, gcmd):
-        for short in self._targets(gcmd) or self.readers:
-            self.defaults[short] = copy.deepcopy(self.config_defaults[short])
-            self._data[short]['default'].update(self.defaults[short])
-
-    # ─── G-code helpers  ─────────────────────────────────────────────────
-    def _cmd_set_reference(self, gcmd):
-        stored, targets = 0, self._targets(gcmd) or list(self.readers)
-        for short in targets:
-            poll  = self.pollers.get(short)
-            if poll:                                # reuse live window
-                samples = list(poll.xyz_history) or poll.helper.get_samples()
-                poll._update_reference(samples)
-            else:                                   # one-shot reader
-                samples = self.readers[short].window(0.08)
-                if not samples:
-                    gcmd.respond_info(f"[TDD] no data from '{short}'"); continue
-                tmp = types.SimpleNamespace(parent=self, short=short, dec=self.decimals, defaults=self.defaults[short])
-                _Poller._update_reference(tmp, samples)   # static method call
-            stored += 1
-        gcmd.respond_info(f"[tool_drop_detection] stored {stored} reference set(s)")
-
-    def _cmd_dump_reference(self, gcmd):
-        for short in self._targets(gcmd) or self._data:
-            d = self.defaults.get(short, {})
-            bg  = round(d.get('base_g',     0.0), 3)
-            bp  = round(d.get('base_pitch', 0.0), 3)
-            br  = round(d.get('base_roll',  0.0), 3)
-            bv  = d.get('base_vector', (0.0,0.0,0.0))
-            vx,vy,vz = (round(bv[i], 3) for i in range(3))
-
-            gcmd.respond_info(f"default_{short}: [g:{bg}  p:{bp}°  r:{br}°  vec:({vx},{vy},{vz})]")
-
-    # ─── one-shot or live “what’s the angle right now?” ───────────────
-    def _cmd_query(self: ToolDropDetection, gcmd):
-        """TDD_QUERY  [ACCEL=T1,T2] - read current orientation for each ACCEL."""
-        targets = self._targets(gcmd) or list(self.readers)
-        for short in targets:
-            poll = self.pollers.get(short)
-            if poll:
-                raw = poll.helper.get_samples() or list(poll.xyz_history)
-                tup_samples = strip_timestamps(raw) if raw and hasattr(raw[0], "accel_x") else raw
-            else:
-                tup_samples = self.readers[short].window(_DWELL_GRAB)
-                if not tup_samples:
-                    gcmd.respond_info(f"[TDD] no data from '{short}'");
-                    continue
-            
-            avrg = _average_samples(tup_samples, -self.current_samples)
-            poll._update_current(avrg)
-
-            cur = self._data[short]['current']
-            rot = cur['rotation']
-            gcmd.respond_info(
-                f"[{short}] mag={cur['magnitude']}g  "
-                f"pitch={rot['pitch']}° roll={rot['roll']}° "
-                f"angle={rot['vector']}°"
-            )
-
-
-def load_config(cfg):
-    return ToolDropDetection(cfg)
-
