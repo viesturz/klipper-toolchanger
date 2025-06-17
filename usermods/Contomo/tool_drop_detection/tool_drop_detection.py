@@ -1,4 +1,4 @@
-# Tool-Drop Detection (v1.11)
+# Tool-Drop Detection (v1.12)
 
 from __future__ import annotations
 import math, statistics, collections, types, copy, re
@@ -9,10 +9,10 @@ from . import adxl345
 _Number = Union[float, Tuple[float, float, float]]
 
 # ───────────────────────────── constants ──────────────────────────────
-MAX_POLL_FREQ = 20.0                       # Hz - upper ceiling we will clamp to
-FREEFALL_MS2   = 9.80665 * 1000.0          # 1 g in mm/s^2
-_DWELL_GRAB    = 0.08                      # dwell for one-shot queries (80 ms)
-_RATE_CHOICES  = adxl345.QUERY_RATES       # supported BW_RATE values
+MAX_POLL_FREQ = 20.0                        # Hz - upper ceiling we will clamp to
+FREEFALL_MS2   = 9.80665 * 1000.0           # 1 g in mm/s^2
+_DWELL_GRAB    = 0.1                        # dwell for one-shot queries
+_RATE_CHOICES  = adxl345.QUERY_RATES        # supported BW_RATE values
 _STATISTIC_FN  = statistics.median
 # ───────────────────────────── helpers ────────────────────────────────
 
@@ -310,6 +310,8 @@ class ToolDropDetection:
     cmd_TDD_POLLING_START_help = """[ACCEL] [FREQ] [RATE] - Start polling accelerometer(s) \
     optional frequency and data rate to overwrite config defined."""
     def _cmd_polling_start(self, gcmd):
+        wait = gcmd.get('ASYNC', 'TRUE') == 'FALSE'
+
         freq_req = float(gcmd.get('FREQ', self.def_freq))
         freq = min(freq_req, MAX_POLL_FREQ)
         if freq != freq_req:
@@ -421,7 +423,6 @@ class ToolDropDetection:
 
 
     cmd_TDD_STOP_help = '[ACCEL] - Disarms both high-G and angular crash detection for specified accelerometer(s)'
-
     def _cmd_stop_crash_detect(self, gcmd):
         targets = self._targets(gcmd)
         # Determine if this even maeks sense
@@ -447,7 +448,6 @@ class ToolDropDetection:
 
 
     cmd_TDD_REFERENCE_RESET_help = '[ACCEL] - Reset reference baseline to config defaults'
-
     def _cmd_reset_reference(self, gcmd):
         for short in self._targets(gcmd) or self.readers:
             self.defaults[short] = copy.deepcopy(self.config_defaults[short])
@@ -455,16 +455,14 @@ class ToolDropDetection:
 
 
     cmd_TDD_REFERENCE_SET_help = '[ACCEL] - Set reference baseline data from the current session'
-
     def _cmd_set_reference(self, gcmd):
         stored, targets = 0, self._targets(gcmd) or list(self.readers)
         for short in targets:
             poll  = self.pollers.get(short)
             if poll:                                # reuse live window
-                samples = list(poll.xyz_history) or poll.helper.get_samples()
-                poll._update_reference(samples)
+                poll._update_reference(poll.xyz_history)
             else:                                   # one-shot reader
-                samples = self.readers[short].window(0.08)
+                samples = self.readers[short].window(1)
                 if not samples:
                     gcmd.respond_info(f"[TDD] no data from '{short}'"); continue
                 tmp = types.SimpleNamespace(parent=self, short=short, dec=self.decimals, defaults=self.defaults[short]) #hack
@@ -474,7 +472,6 @@ class ToolDropDetection:
 
 
     cmd_TDD_REFERENCE_DUMP_help = '[ACCEL] - Dump current reference baseline data to console for copying'
-
     def _cmd_dump_reference(self, gcmd):
         for short in self._targets(gcmd) or self._data:
             d = self.defaults.get(short, {})
@@ -488,13 +485,12 @@ class ToolDropDetection:
 
 
     cmd_TDD_QUERY_help = '[ACCEL] - Query current accelerometer orientation data, prints to console and updates objects current'
-
     def _cmd_query(self: ToolDropDetection, gcmd):
         targets = self._targets(gcmd) or list(self.readers)
         for short in targets:
             poll = self.pollers.get(short)
             if poll:
-                raw = poll.helper.get_samples() or list(poll.xyz_history)
+                raw = list(poll.xyz_history)
                 tup_samples = _strip_timestamps(raw) if raw and hasattr(raw[0], "accel_x") else raw
             else:
                 tup_samples = self.readers[short].window(_DWELL_GRAB)
@@ -564,6 +560,8 @@ class _Poller:
         self.parent = parent
         self.name = name
 
+        #self.test = 0
+
         self.full   = parent.name_to_full[name]
         self.short  = parent.full_to_short[self.full]
         self.chip   = parent.chips[self.full]
@@ -589,26 +587,27 @@ class _Poller:
 
         self.angle_limit, self.pitch_limit, self.roll_limit, self.g_limit = None, None, None, None
 
-
-        # start helper & patch bulk-sensor commands
+        self.toolhead = self.parent.printer.lookup_object('toolhead') 
         self.helper = self.chip.start_internal_client()
         self.reactor = parent.printer.get_reactor()
         self.timer = self.reactor.register_timer(self._tick, self.reactor.monotonic())
+        
+
 
         # ─── PRIME WINDOW ─────────────────────────────────────────────────────────
-        toolhead = self.parent.printer.lookup_object('toolhead')
-        now = toolhead.get_last_move_time()
-        self.helper.request_start_time = now
-        self.helper.request_end_time   = now
+        # ALREADY DONE IN ADXL INTERALLY WITH """self.chip.start_internal_client()"""
+        #
+        #now = self.toolhead.get_last_move_time()
+        #self.helper.request_start_time = now
+        #self.helper.request_end_time   = now
     
     def _update_reference(self, xyz_samples):
         if not xyz_samples:
             return
-
-        avrg   = _average_samples(xyz_samples)
-        raw_vec = _raw_to_vector(avrg, self.defaults)
+        avrg        = _average_samples(xyz_samples)
+        raw_vec     = _raw_to_vector(avrg, self.defaults)
         pitch, roll = _vector_to_angles(raw_vec, {})
-        mag_g      = _vector_to_magnitude(raw_vec)
+        mag_g       = _vector_to_magnitude(raw_vec)
 
         # update the canonical defaults
         new_ref = {
@@ -626,16 +625,15 @@ class _Poller:
 
     def _update_current(self: _Poller, avrg_xyz: Tuple[float, float, float]):
         vector          = _raw_to_vector(avrg_xyz, self.defaults)
-        pitch, roll = _vector_to_angles(vector, self.defaults)
+        pitch, roll     = _vector_to_angles(vector, self.defaults)
         mag             = _vector_to_magnitude(vector)
-        angle    = _vector_angle(vector, self.defaults)
+        angle           = _vector_angle(vector, self.defaults)
 
         (gx, gy, gz) = vector
         current = self.parent._data[self.short]['current']
         current['magnitude'] = round(mag, self.dec)
         current['vector'] = {'x': round(gx, self.dec), 'y': round(gy, self.dec), 'z': round(gz, self.dec)}
         current['rotation'] = {'pitch':round(pitch, self.dec), 'roll':round(roll, self.dec), 'vector':round(angle , self.dec)}
-
 
         # ─── UPDATE STATE ───────────────────────────────────────
     def _update_session(self, xyz_samples):
@@ -736,26 +734,28 @@ class _Poller:
                     self.parent.run_gcode(self.parent.drop_template, context)
             else:
                 self.drop_timer = None
-
-
     # ─── POLLER TICK ───────────────────────────────────────────────────
     def _tick(self, ev):
         # ──────────────────── dont bug MCUs while homing
         if self.parent._homing:
             return ev + self.period
         # ──────────────────── timing stuffs ────────────────────
-        self.helper.request_end_time = self.reactor.monotonic() # toolhead.get_last_move_time()?
+        #self.helper.request_end_time = self.reactor.monotonic() # NEVER self.toolhead.get_last_move_time() # NEVER self.reactor.monotonic()
+
+        cur_pt = self.toolhead.mcu.estimated_print_time(self.reactor.monotonic())
+        self.helper.request_end_time = cur_pt
+
 
         try:
             samples = self.helper.get_samples()
         except TimeoutError as e: # message adxl not responding
-            self.parent.gcode.respond_info(f"ADXL '{self.name}' timeout")
+            self.parent.gcode.respond_info(f"'{self.full}' timeout")
             #self.helper.request_start_time = self.helper.request_end_time
             return ev + self.period
         except Exception as e:
             self.stop() # dunno if we fail here, may we fail there? eh what gives, error is shifted
             self.helper.request_start_time = self.helper.request_end_time # tells it "give up on previous"
-            self.parent.gcode.respond_info(f"ADXL '{self.name}' not responding - {e}")
+            self.parent.gcode.respond_info(f"'{self.full}' not responding - {e}")
             return self.reactor.NEVER 
 
         if not samples:
@@ -764,6 +764,15 @@ class _Poller:
         # ──────────────────── actual values get gotten, set last time etc... ────────────────────
         sample_ts = samples[-1].time
         self.helper.request_start_time = sample_ts # tell it to void anything before "samples[-1].time" (we got that now, dont need it again)
+
+        #if (self.test % 100):
+        #    self.parent.gcode.respond_info(f'sample_ts: {sample_ts}, cur_pt: {cur_pt}, reactor: {self.reactor.monotonic()}')
+        #    self.test = 0
+        #self.test = self.test + 1
+
+        while self.helper.msgs and self.helper.msgs[0]['data'][-1][0] < sample_ts: #todo check if this actually needed? cant hurt i think. (prob very needed)
+            self.helper.msgs.pop(0)
+
 
         xyz_samples = _strip_timestamps(samples)
         
@@ -792,7 +801,7 @@ class _Poller:
             if self.overrun >= 5:  # five consecutive overruns -> chillax
                 self.period *= 2   # halve the polling frequency
                 self.overrun = 0   # could also reduce poling rate, but idk if that would kill adxl while polling lol
-                self.parent.gcode.respond_info(f"oops, dont die on me! (throttled {self.name} to {1/self.period:.1f} Hz)")
+                self.parent.gcode.respond_info(f"oops, dont die on me! (reactor too busy) throttled {self.full} to {1/self.period:.1f} Hz)")
         else:
             self.overrun = 0
 
@@ -800,6 +809,7 @@ class _Poller:
 
     def reset(self):
         self.xyz_history.clear()
+        # self.helper.msgs.clear() #todo maybe this too? just cause... idk?
         sess = self.parent._data[self.short]['session']
         sess['peak']      = 0
         sess['magnitude'] = 0
@@ -807,7 +817,7 @@ class _Poller:
         
     def stop(self):
         self.xyz_history.clear()
-        self.chip.set_reg(0x2C, adxl345.QUERY_RATES[self.prev_rate])
+        self.chip.set_reg(0x2C, adxl345.QUERY_RATES[self.prev_rate]) #fix isnt this really dumb?
         r = self.reactor
         if self.timer:
             r.update_timer(self.timer, r.NEVER)
