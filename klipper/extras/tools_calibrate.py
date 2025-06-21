@@ -364,8 +364,9 @@ class ProbeEndstopWrapper:
     def _get_steppers(self):
         if self.idex and self.axis == 'x':
             dual_carriage = self.printer.lookup_object('dual_carriage')
-            prime_rail = dual_carriage.get_primary_rail()
-            return prime_rail.get_rail().get_steppers()
+            axis = "xyz".index(self.axis)
+            prime_rail = dual_carriage.get_primary_rail(axis)
+            return prime_rail.get_steppers()
         else:
             return self.mcu_endstop.get_steppers()
 
