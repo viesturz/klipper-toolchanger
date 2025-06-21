@@ -495,7 +495,7 @@ class Toolchanger:
         self._ensure_toolchanger_ready(gcmd)
         expected = self.gcmd_tool(gcmd, self.active_tool)
         if not self.has_detection:
-            return
+            raise gcmd.error("VERIFY_TOOL_DETECTED needs tool detection to be set up.")
         toolhead = self.printer.lookup_object('toolhead')
         reactor = self.printer.get_reactor()
         if gcmd.get_int("ASYNC", 0) == 1:
