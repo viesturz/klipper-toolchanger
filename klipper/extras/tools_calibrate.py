@@ -343,7 +343,7 @@ class ProbeEndstopWrapper:
     def __init__(self, config, axis):
         self.printer = config.get_printer()
         self.axis = axis
-        self.idex = config.has_section('dual_carriage')
+        self.idex = config.has_section('dual_carriage') or config.has_section('dual_carriage u')
         # Create an "endstop" object to handle the probe pin
         ppins = self.printer.lookup_object('pins')
         pin = config.get('pin')
