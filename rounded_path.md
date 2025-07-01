@@ -12,6 +12,12 @@ TODO: add image.
 resolution: 0.2 # the length of a circle approximation segments.
 replace_g0: False # Use at your own risk
 ```
+alternatively you can use a bezier path for rounding travel corner. (these 2 options are mutual exclusive!)
+```
+[bezier_path]
+resolution: 0.4 # the length of a circle approximation segments.
+replace_g0: False # Use at your own risk
+```
 
 # Gcodes
 
