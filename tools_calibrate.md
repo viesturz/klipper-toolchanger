@@ -37,7 +37,7 @@ travel_speed:         (mm/s)
 speed:                (mm/s)
    move speed during probes 
    - too slow -> takes forever | too fast -> not accurate enough
-   - 0.5-10 would be an avreage/sane range
+   - 0.5-10 would be an average/sane range
 
 lift_speed:           (mm/s)
    speed with which to raise Z
