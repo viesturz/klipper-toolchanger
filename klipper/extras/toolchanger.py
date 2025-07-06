@@ -205,20 +205,21 @@ class Toolchanger:
         heaters.set_temperature(tool.extruder.get_heater(), temp, wait)
 
     def _get_tool_from_gcmd(self, gcmd):
+        cmd_name  = gcmd.get_command()
         tool_name = gcmd.get('TOOL', None)
-        tool_nr = gcmd.get_int('T', None)
-        if tool_name:
-            tool = self.printer.lookup_object(tool_name)
+        tool_nr   = gcmd.get_int('T', None)
+        if tool_name is not None:
+            tool = self.printer.lookup_object(tool_name, None)
+            if tool is None:
+                raise gcmd.error("%s: TOOL: '%s' not found" % (cmd_name, tool_name))          
         elif tool_nr is not None:
             tool = self.lookup_tool(tool_nr)
-            if not tool:
-                raise gcmd.error(
-                    "SET_TOOL_TEMPERATURE: T%d not found" % (tool_nr))
+            if tool is None:
+                raise gcmd.error("%s: T%d not found" % (cmd_name, tool_nr))
         else:
             tool = self.active_tool
-            if not tool:
-                raise gcmd.error(
-                    "SET_TOOL_TEMPERATURE: No tool specified and no active tool")
+            if tool is None:
+                raise gcmd.error("%s: No tool specified and no active tool" % (cmd_name))
         return tool
 
     cmd_SELECT_TOOL_ERROR_help = "Abort tool change and mark the active toolchanger as failed"
