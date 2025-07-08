@@ -50,6 +50,8 @@ class Tool:
             self.toolchanger.require_fan_switcher()
         self.t_command_restore_axis = self._config_get(
             config, 't_command_restore_axis', 'XYZ')
+        self.perform_restore_move = self._config_getboolean(
+            config, 'perform_restore_move', True)
         self.tool_number = config.getint('tool_number', -1, minval=0)
 
         gcode = self.printer.lookup_object('gcode')
