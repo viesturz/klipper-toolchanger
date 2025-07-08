@@ -565,7 +565,7 @@ class Toolchanger:
             result[INDEX_TO_XYZ[index]] = v
         return result
 
-    def _restore_axis(self, position, axis, tool, extra_z_offset):
+    def _restore_axis(self, position, axis, tool, extra_z_offset=0.0):
         if not axis:
             return
         pos = self._position_with_tool_offset(position, axis, tool, extra_z_offset)
