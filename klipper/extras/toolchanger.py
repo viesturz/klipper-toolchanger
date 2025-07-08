@@ -63,6 +63,7 @@ class Toolchanger:
         config.getfloat('gcode_y_offset', None)
         config.getfloat('gcode_z_offset', None)
         config.get('t_command_restore_axis', None)
+        config.get('force_restore_axis', None)
         config.get('extruder', None)
         config.get('fan', None)
         config.get_prefix_options('params_')
@@ -351,7 +352,9 @@ class Toolchanger:
                 self.run_gcode('after_change_gcode',
                                tool.after_change_gcode, extra_context)
 
-            self._restore_axis(gcode_position, restore_axis, tool)
+            force_restore = tool.perform_restore_move if tool is not None else self.perform_restore_move
+            if force_restore:
+                self._restore_axis(gcode_position, restore_axis, tool)
 
             self.gcode.run_script_from_command(
                 "RESTORE_GCODE_STATE NAME=_toolchange_state MOVE=0")
