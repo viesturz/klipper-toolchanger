@@ -41,6 +41,7 @@ class Toolchanger:
         self.verify_tool_pickup = config.getboolean('verify_tool_pickup', True)
         self.require_tool_present = config.getboolean('require_tool_present', False)
         self.transfer_fan_speed = config.getboolean('transfer_fan_speed', True)
+        self.perform_restore_move = config.getboolean('perform_restore_move', True)
         self.uses_axis = config.get('uses_axis', 'xyz').lower()
         home_options = {'abort': ON_AXIS_NOT_HOMED_ABORT,
                         'home': ON_AXIS_NOT_HOMED_HOME}
@@ -63,7 +64,6 @@ class Toolchanger:
         config.getfloat('gcode_y_offset', None)
         config.getfloat('gcode_z_offset', None)
         config.get('t_command_restore_axis', None)
-        config.get('force_restore_axis', None)
         config.get('extruder', None)
         config.get('fan', None)
         config.get_prefix_options('params_')
