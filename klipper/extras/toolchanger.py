@@ -104,6 +104,10 @@ class Toolchanger:
         self.gcode.register_command("TEST_TOOL_DOCKING",
                                     self.cmd_TEST_TOOL_DOCKING,
                                     desc=self.cmd_TEST_TOOL_DOCKING_help)
+        self.gcode.register_command("SET_TOOL_OFFSET", 
+                                    self.cmd_SET_TOOL_OFFSET)
+        self.gcode.register_command("SAVE_TOOL_OFFSET", 
+                                    self.cmd_SAVE_TOOL_OFFSET)
         self.gcode.register_command("SET_TOOL_PARAMETER",
                                     self.cmd_SET_TOOL_PARAMETER)
         self.gcode.register_command("RESET_TOOL_PARAMETER",
@@ -586,7 +590,31 @@ class Toolchanger:
             **extra_context,
         }
         template.run_gcode_from_command(context)
+        
+    def cmd_SET_TOOL_OFFSET(self, gcmd):
+        tool = self._get_tool_from_gcmd(gcmd)
+        _x = gcmd.get_float("X", None)
+        _y = gcmd.get_float("Y", None)
+        _z = gcmd.get_float("Z", None)
+        if _x is None and _y is None and _z is None: 
+            raise gcmd.error('SET_TOOL_OFFSET requires atleast one paramter of X, Y, Z')
+        tool.gcode_x_offset = x = gcmd.get_float("X", tool.gcode_x_offset)
+        tool.gcode_y_offset = y = gcmd.get_float("Y", tool.gcode_y_offset)
+        tool.gcode_z_offset = z = gcmd.get_float("Z", tool.gcode_z_offset)
+        if tool is self.active_tool:
+            self._set_tool_gcode_offset(tool, 0.0)
+        gcmd.respond_info('Tool %s (%s) offset is now X=%.3f Y=%.3f Z=%.3f' % (str(tool.tool_number), tool.name, x, y, z))
 
+    def cmd_SAVE_TOOL_OFFSET(self, gcmd):
+        tool = self._get_tool_from_gcmd(gcmd)
+        x = gcmd.get_float("X", tool.gcode_x_offset)
+        y = gcmd.get_float("Y", tool.gcode_y_offset)
+        z = gcmd.get_float("Z", tool.gcode_z_offset)
+        configfile = self.printer.lookup_object('configfile')
+        configfile.set(tool.name, 'gcode_x_offset', x)
+        configfile.set(tool.name, 'gcode_y_offset', y)
+        configfile.set(tool.name, 'gcode_z_offset', z)
+        
     def cmd_SET_TOOL_PARAMETER(self, gcmd):
         tool = self._get_tool_from_gcmd(gcmd)
         name = gcmd.get("PARAMETER")
