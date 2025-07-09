@@ -41,6 +41,7 @@ class Toolchanger:
         self.verify_tool_pickup = config.getboolean('verify_tool_pickup', True)
         self.require_tool_present = config.getboolean('require_tool_present', False)
         self.transfer_fan_speed = config.getboolean('transfer_fan_speed', True)
+        self.perform_restore_move = config.getboolean('perform_restore_move', True)
         self.uses_axis = config.get('uses_axis', 'xyz').lower()
         home_options = {'abort': ON_AXIS_NOT_HOMED_ABORT,
                         'home': ON_AXIS_NOT_HOMED_HOME}
@@ -103,6 +104,10 @@ class Toolchanger:
         self.gcode.register_command("TEST_TOOL_DOCKING",
                                     self.cmd_TEST_TOOL_DOCKING,
                                     desc=self.cmd_TEST_TOOL_DOCKING_help)
+        self.gcode.register_command("SET_TOOL_OFFSET", 
+                                    self.cmd_SET_TOOL_OFFSET)
+        self.gcode.register_command("SAVE_TOOL_OFFSET", 
+                                    self.cmd_SAVE_TOOL_OFFSET)
         self.gcode.register_command("SET_TOOL_PARAMETER",
                                     self.cmd_SET_TOOL_PARAMETER)
         self.gcode.register_command("RESET_TOOL_PARAMETER",
@@ -205,20 +210,21 @@ class Toolchanger:
         heaters.set_temperature(tool.extruder.get_heater(), temp, wait)
 
     def _get_tool_from_gcmd(self, gcmd):
+        cmd_name  = gcmd.get_command()
         tool_name = gcmd.get('TOOL', None)
-        tool_nr = gcmd.get_int('T', None)
-        if tool_name:
-            tool = self.printer.lookup_object(tool_name)
+        tool_nr   = gcmd.get_int('T', None)
+        if tool_name is not None:
+            tool = self.printer.lookup_object(tool_name, None)
+            if tool is None:
+                raise gcmd.error("%s: TOOL: '%s' not found" % (cmd_name, tool_name))          
         elif tool_nr is not None:
             tool = self.lookup_tool(tool_nr)
-            if not tool:
-                raise gcmd.error(
-                    "SET_TOOL_TEMPERATURE: T%d not found" % (tool_nr))
+            if tool is None:
+                raise gcmd.error("%s: T%d not found" % (cmd_name, tool_nr))
         else:
             tool = self.active_tool
-            if not tool:
-                raise gcmd.error(
-                    "SET_TOOL_TEMPERATURE: No tool specified and no active tool")
+            if tool is None:
+                raise gcmd.error("%s: No tool specified and no active tool" % (cmd_name))
         return tool
 
     cmd_SELECT_TOOL_ERROR_help = "Abort tool change and mark the active toolchanger as failed"
@@ -351,7 +357,9 @@ class Toolchanger:
                 self.run_gcode('after_change_gcode',
                                tool.after_change_gcode, extra_context)
 
-            self._restore_axis(gcode_position, restore_axis, tool, extra_z_offset)
+            force_restore = tool.perform_restore_move if tool is not None else self.perform_restore_move
+            if force_restore:
+                self._restore_axis(gcode_position, restore_axis, tool, extra_z_offset)
 
             self.gcode.run_script_from_command(
                 "RESTORE_GCODE_STATE NAME=_toolchange_state MOVE=0")
@@ -539,7 +547,7 @@ class Toolchanger:
             self.gcode.run_script_from_command(
                 'BED_MESH_OFFSET X=%.6f Y=%.6f ZFADE=%.6f' %
                 (-tool.gcode_x_offset, -tool.gcode_y_offset,
-                 -tool.gcode_z_offset))
+                 tool.gcode_z_offset))
 
     def _position_to_xyz(self, position, axis):
         result = {}
@@ -582,7 +590,31 @@ class Toolchanger:
             **extra_context,
         }
         template.run_gcode_from_command(context)
+        
+    def cmd_SET_TOOL_OFFSET(self, gcmd):
+        tool = self._get_tool_from_gcmd(gcmd)
+        _x = gcmd.get_float("X", None)
+        _y = gcmd.get_float("Y", None)
+        _z = gcmd.get_float("Z", None)
+        if _x is None and _y is None and _z is None: 
+            raise gcmd.error('SET_TOOL_OFFSET requires atleast one paramter of X, Y, Z')
+        tool.gcode_x_offset = x = gcmd.get_float("X", tool.gcode_x_offset)
+        tool.gcode_y_offset = y = gcmd.get_float("Y", tool.gcode_y_offset)
+        tool.gcode_z_offset = z = gcmd.get_float("Z", tool.gcode_z_offset)
+        if tool is self.active_tool:
+            self._set_tool_gcode_offset(tool, 0.0)
+        gcmd.respond_info('Tool %s (%s) offset is now X=%.3f Y=%.3f Z=%.3f' % (str(tool.tool_number), tool.name, x, y, z))
 
+    def cmd_SAVE_TOOL_OFFSET(self, gcmd):
+        tool = self._get_tool_from_gcmd(gcmd)
+        x = gcmd.get_float("X", tool.gcode_x_offset)
+        y = gcmd.get_float("Y", tool.gcode_y_offset)
+        z = gcmd.get_float("Z", tool.gcode_z_offset)
+        configfile = self.printer.lookup_object('configfile')
+        configfile.set(tool.name, 'gcode_x_offset', x)
+        configfile.set(tool.name, 'gcode_y_offset', y)
+        configfile.set(tool.name, 'gcode_z_offset', z)
+        
     def cmd_SET_TOOL_PARAMETER(self, gcmd):
         tool = self._get_tool_from_gcmd(gcmd)
         name = gcmd.get("PARAMETER")
