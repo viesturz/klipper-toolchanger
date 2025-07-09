@@ -41,6 +41,7 @@ class Toolchanger:
         self.verify_tool_pickup = config.getboolean('verify_tool_pickup', True)
         self.require_tool_present = config.getboolean('require_tool_present', False)
         self.transfer_fan_speed = config.getboolean('transfer_fan_speed', True)
+        self.perform_restore_move = config.getboolean('perform_restore_move', True)
         self.uses_axis = config.get('uses_axis', 'xyz').lower()
         home_options = {'abort': ON_AXIS_NOT_HOMED_ABORT,
                         'home': ON_AXIS_NOT_HOMED_HOME}
@@ -351,7 +352,9 @@ class Toolchanger:
                 self.run_gcode('after_change_gcode',
                                tool.after_change_gcode, extra_context)
 
-            self._restore_axis(gcode_position, restore_axis, tool)
+            force_restore = tool.perform_restore_move if tool is not None else self.perform_restore_move
+            if force_restore:
+                self._restore_axis(gcode_position, restore_axis, tool)
 
             self.gcode.run_script_from_command(
                 "RESTORE_GCODE_STATE NAME=_toolchange_state MOVE=0")
