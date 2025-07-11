@@ -7,7 +7,7 @@
 
 ## Global variables ------------------------------------------
 REPO="VIN-y/klipper-toolchanger.git"
-BRANCH="beta"
+BRANCH="main"
 MACRODIR="misschanger_macros"
 SERVICE="/etc/systemd/system/ToolChanger.service"
 KLIPPER_PATH="${HOME}/klipper"
