@@ -141,9 +141,17 @@ class ToolsCalibrate:
             return
         section_name = gcmd.get("SECTION")
         param_name = gcmd.get("ATTRIBUTE")
+        z_offset_str = gcmd.get("Z_OFFSET", None)
         template = gcmd.get("VALUE", "{x:0.6f}, {y:0.6f}, {z:0.6f}")
+        z_delta = self.last_result[2]
+        if z_offset_str:
+            try:
+                z_delta = float(z_delta) + float(z_offset_str)
+            except ValueError:
+                gcmd.error(
+                    "Z_OFFSET has wrong format \"%s\"" % z_offset_str)
         value = template.format(x=self.last_result[0], y=self.last_result[1],
-                                z=self.last_result[2])
+                                z=z_delta)
         configfile = self.printer.lookup_object('configfile')
         configfile.set(section_name, param_name, value)
 
