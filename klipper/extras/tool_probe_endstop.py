@@ -138,9 +138,13 @@ class ToolProbeEndstop:
         status['active_tool_number'] = self.active_tool_number
         if self.active_probe:
             status['active_tool_probe'] = self.active_probe.name
+            status['active_tool_probe_x_offset'] = self.active_probe.get_offsets()[0]
+            status['active_tool_probe_y_offset'] = self.active_probe.get_offsets()[1]
             status['active_tool_probe_z_offset'] = self.active_probe.get_offsets()[2]
         else:
             status['active_tool_probe'] = None
+            status['active_tool_probe_x_offset'] = 0.0
+            status['active_tool_probe_y_offset'] = 0.0
             status['active_tool_probe_z_offset'] = 0.0
         return status
 
