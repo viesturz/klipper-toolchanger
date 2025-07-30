@@ -99,7 +99,7 @@ class ToolProbeEndstop:
         elif len(candidates) == 0:
             return "All probes triggered"
         else:
-            return  "Multiple probes not triggered: %s" % map(lambda p: p.name, candidates)
+            return f"Multiple probes not triggered: {[p.name for p in candidates]}"
 
     def _ensure_active_tool_or_fail(self, gcode):
         if self.active_probe:
