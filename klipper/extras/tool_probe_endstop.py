@@ -21,7 +21,9 @@ class ToolProbeEndstop:
         self.crash_detection_active = False
         self.crash_lasttime = 0.
         self.mcu_probe = EndstopRouter(self.printer)
-        self.homing_helper = probe.HomingViaProbeHelper(config, self.mcu_probe)
+        self.param_helper = probe.ProbeParameterHelper(config)
+        self.homing_helper = probe.HomingViaProbeHelper(config, self.mcu_probe, self.param_helper)
+        self.probe_session = probe.ProbeSessionHelper(config, self.param_helper, self.homing_helper.start_probe_session)
         self.cmd_helper = probe.ProbeCommandHelper(config, self, self.mcu_probe.query_endstop)
 
         # Emulate the probe object, since others rely on this.
@@ -52,10 +54,12 @@ class ToolProbeEndstop:
         if self.active_probe:
             return self.active_probe.get_offsets()
         return 0.0, 0.0, 0.0
+    
     def get_probe_params(self, gcmd=None):
         if self.active_probe:
             return self.active_probe.get_probe_params(gcmd)
         raise self.printer.command_error("No active tool probe")
+    
     def start_probe_session(self, gcmd):
         if self.active_probe:
             return self.active_probe.start_probe_session(gcmd)
@@ -156,9 +160,7 @@ class ToolProbeEndstop:
     cmd_STOP_TOOL_PROBE_CRASH_DETECTION_help = "Stop detecting tool crashes"
     def cmd_STOP_TOOL_PROBE_CRASH_DETECTION(self, gcmd):
         # Clear when current print queue is finished
-        self.reactor.register_callback(
-            lambda _: self.stop_crash_detection(),
-            self.toolhead.get_last_move_time())
+        self.toolhead.register_lookahead_callback(lambda _: self.stop_crash_detection())
 
     def stop_crash_detection(self):
         self.crash_lasttime = 0.
@@ -207,7 +209,6 @@ class EndstopRouter:
             self.home_wait = self.active_mcu.home_wait
             self.multi_probe_begin = self.active_mcu.multi_probe_begin
             self.multi_probe_end = self.active_mcu.multi_probe_end
-            self.probing_move = self.active_mcu.probing_move
             self.probe_prepare = self.active_mcu.probe_prepare
             self.probe_finish = self.active_mcu.probe_finish
         else:
@@ -216,7 +217,6 @@ class EndstopRouter:
             self.home_wait = self.on_error
             self.multi_probe_begin = self.on_error
             self.multi_probe_end = self.on_error
-            self.probing_move = self.on_error
             self.probe_prepare = self.on_error
             self.probe_finish = self.on_error
 
@@ -227,7 +227,7 @@ class EndstopRouter:
     def get_steppers(self):
         return list(self._steppers)
 
-    def on_error(self, *args):
+    def on_error(self, *args, **kwargs):
         raise self.printer.command_error("Cannot interact with probe - no active tool probe.")
     def query_endstop(self, print_time):
         if not self.active_mcu:
