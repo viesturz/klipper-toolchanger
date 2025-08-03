@@ -78,6 +78,8 @@ class Toolchanger:
         self.next_change_id = 1
         self.current_change_id = -1
 
+        self.printer.register_event_handler("gcode:command_error",
+                                            self._handle_connect)
         self.printer.register_event_handler("homing:home_rails_begin",
                                             self._handle_home_rails_begin)
         self.printer.register_event_handler('klippy:connect',
