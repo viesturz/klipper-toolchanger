@@ -140,6 +140,11 @@ class RoundedPath:
             self.gcode.register_command("G0", None)
             self.gcode.register_command("G0", self.cmd_ROUNDED_G0)
 
+        self.printer.register_event_handler("gcode:command_error", self._handle_command_error)
+
+    def _handle_command_error(self):
+        self.buffer = []
+
     def cmd_ROUNDED_G0(self, gcmd):
         d = gcmd.get_float("D", 0.0)
         if d <= 0.0 and len(self.buffer) < 2:
