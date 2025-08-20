@@ -234,7 +234,7 @@ A verification failure will:
  - Run`error_gcode` if one is provided. 
 
 ### SET_TOOL_TEMPERATURE
-`SET_TOOL_TEMPERATURE [TOOL=<name>] [T=<number>] [D=<number>]  TARGET=<temp> [WAIT=0]`: Set tool temperature.
+`SET_TOOL_TEMPERATURE [TOOL=<name>] [T=<number>] [DEADBAND=<number>]  TARGET=<temp> [WAIT=0]`: Set tool temperature.
 
 ### TEST_TOOL_DOCKING
 `TEST_TOOL_DOCKING`: Dock and undock current tool.
