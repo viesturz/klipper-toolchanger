@@ -2,6 +2,6 @@
 type: git_repo
 path: ~/klipper-toolchanger
 origin: https://github.com/VIN-y/klipper-toolchanger.git
-primary_branch: beta
+primary_branch: main
 is_system_service: True
 managed_services: ToolChanger
