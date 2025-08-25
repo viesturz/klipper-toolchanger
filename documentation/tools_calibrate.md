@@ -30,7 +30,7 @@ trigger_to_bottom_z: 0.25 # Offset from probe trigger to vertical motion bottoms
 # decrease if the nozzle is too high, increase if too low.
 ```
 
-### Clean your nozzles 
+### Clean your nozzles
 
 The calibration accuracy is as good as your nozzles are clean. 
 Clean all nozzles thoroughly before calibrating.
@@ -52,7 +52,6 @@ All probing moves and final offsets will be printed in the console.
 - Run TOOL_CALIBRATE_PROBE_OFFSET - to measure Z offset from nozzle triggering the probe to tool's nozzle probe activating.
 
 All probing moves and final offsets will be printed in the console.
-
 
 ## Troubleshooting
 
