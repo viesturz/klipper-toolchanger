@@ -23,11 +23,12 @@ class ManualRail:
         self.next_cmd_time = 0.
         # Setup iterative solver
         ffi_main, ffi_lib = chelper.get_ffi()
-        self.trapq = ffi_main.gc(ffi_lib.trapq_alloc(), ffi_lib.trapq_free)
-        self.trapq_append = ffi_lib.trapq_append
-        self.trapq_finalize_moves = ffi_lib.trapq_finalize_moves
+        self.rail.motion_queuing = self.printer.load_object(config, 'motion_queuing')
+        self.rail.trapq = self.rail.motion_queuing.allocate_trapq()
+        self.rail.trapq_append = self.rail.motion_queuing.lookup_trapq_append()
+        #self.trapq_finalize_moves = ffi_lib.trapq_finalize_moves
         self.rail.setup_itersolve('cartesian_stepper_alloc', b'x')
-        self.rail.set_trapq(self.trapq)
+        self.rail.set_trapq(self.rail.trapq)
         # Register commands
         rail_name = config.get_name().split()[1]
         gcode = self.printer.lookup_object('gcode')
@@ -59,18 +60,27 @@ class ManualRail:
         self.sync_print_time()
         cp = self.rail.get_commanded_position()
         dist = movepos - cp
+        prev_trapq = self.rail.set_trapq(self.rail.trapq)
         axis_r, accel_t, cruise_t, cruise_v = force_move.calc_move_time(
             dist, speed, accel)
-        self.trapq_append(self.trapq, self.next_cmd_time,
+        
+        self.rail.trapq_append(self.rail.trapq, self.next_cmd_time,
                           accel_t, cruise_t, accel_t,
                           cp, 0., 0., axis_r, 0., 0.,
                           0., cruise_v, accel)
         self.next_cmd_time = self.next_cmd_time + accel_t + cruise_t + accel_t
-        self.rail.generate_steps(self.next_cmd_time)
-        self.trapq_finalize_moves(self.trapq, self.next_cmd_time + 99999.9,
-                                  self.next_cmd_time + 99999.9)
+        #self.rail.generate_steps(self.next_cmd_time)
+        
+        
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.note_mcu_movequeue_activity(self.next_cmd_time)
+        toolhead.dwell(accel_t + cruise_t + accel_t)
+        toolhead.flush_step_generation()
+        self.rail.set_trapq(prev_trapq)
+        self.rail.motion_queuing.wipe_trapq(self.rail.trapq)
+        #raise self.printer.command_error('Start moving')
+        #self.trapq_finalize_moves(self.trapq, self.next_cmd_time + 99999.9,
+        #                         self.next_cmd_time + 99999.9)
         if sync:
             self.sync_print_time()
     def do_homing_move(self, accel):
