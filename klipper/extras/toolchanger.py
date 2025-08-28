@@ -445,6 +445,7 @@ class Toolchanger:
         self.gcode.run_script_from_command("DETECT_ACTIVE_TOOL_PROBE")
 
         self._restore_axis(gcode_position, restore_axis, None)
+        
         self.status = STATUS_READY
         gcmd.respond_info('Tool testing done')
 
