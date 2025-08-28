@@ -437,9 +437,7 @@ class Toolchanger:
             'start_position': self._position_with_tool_offset(
                 gcode_position, 'xyz', tool)
         }
-
-        self.gcode.run_script_from_command("SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0")
-
+        
         self.gcode.run_script_from_command("SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0")
         self.run_gcode('tool.dropoff_gcode', self.active_tool.dropoff_gcode, extra_context)
         self.gcode.run_script_from_command("DETECT_ACTIVE_TOOL_PROBE")
