@@ -351,7 +351,6 @@ class Toolchanger:
                 self.run_gcode('after_change_gcode', after_change_gcode, extra_context)
 
             self._restore_axis(gcode_position, restore_axis, tool)
-
             self.gcode.run_script_from_command("RESTORE_GCODE_STATE NAME=_toolchange_state MOVE=0")
             
             if tool is not None:
@@ -439,12 +438,15 @@ class Toolchanger:
         }
         
         self.gcode.run_script_from_command("SET_GCODE_OFFSET X=0.0 Y=0.0 Z=0.0")
+        self.gcode.run_script_from_command("SAVE_GCODE_STATE NAME=_toolchange_state")
         self.run_gcode('tool.dropoff_gcode', self.active_tool.dropoff_gcode, extra_context)
         self.gcode.run_script_from_command("DETECT_ACTIVE_TOOL_PROBE")
         self.run_gcode('tool.pickup_gcode', tool.pickup_gcode, extra_context)
         self.gcode.run_script_from_command("DETECT_ACTIVE_TOOL_PROBE")
 
-        self._restore_axis(gcode_position, restore_axis, None)
+        # self._restore_axis(gcode_position, restore_axis, None)
+        self._restore_axis(gcode_position, restore_axis, tool)
+        self.gcode.run_script_from_command("RESTORE_GCODE_STATE NAME=_toolchange_state MOVE=0")
         
         self.status = STATUS_READY
         gcmd.respond_info('Tool testing done')
