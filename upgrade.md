@@ -7,6 +7,7 @@ cd ~/klipper-toolchanger-easy
 git pull
 ./install.sh
 ```
+During the install you will be prompted what "type" of Z homing you want to use.  You almost certainly want option 1 here as the previous version of KTC-Easy did not support option 2.
 
 This will create a `toolchanger` directory in `~/printer_data/configs`
 
