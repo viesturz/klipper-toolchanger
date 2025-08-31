@@ -6,6 +6,9 @@ All of the documentation for StealthChanger still applies and should be what you
 
 **This assumes you have a WORKING PRINTER and configuration**
 
+## Upgrading from the old Klipper Tool Changer Easy
+[Upgrade instructions](upgrade.md)
+
 # Installation
 
 To install this plugin, run the installation script using the following command over SSH. This script will download this GitHub repository to your RaspberryPi home directory, and symlink the files in the Klipper extra folder.  It will also create copies of the user editable configuration and populate some example tools.  
