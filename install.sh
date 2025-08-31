@@ -44,15 +44,15 @@ function use_tap_per_tool {
     echo "[INSTALL] Tap Per Tool"
 
     ln -sfn "${INSTALL_PATH}"/examples/z\ probe/per\ tool\ probe/tool_detection.cfg "${CONFIG_PATH}"/toolchanger/readonly-configs/
-    cp --update=none "${INSTALL_PATH}"/examples/easy-additions/user-configs/tools/tap_per_tool/* "${CONFIG_PATH}"/toolchanger/tools
-    cp --update=none "${INSTALL_PATH}"/examples/easy-additions/user-configs/toolchanger-include.cfg "${CONFIG_PATH}"/toolchanger/toolchanger-include.cfg
+    cp -n "${INSTALL_PATH}"/examples/easy-additions/user-configs/tools/tap_per_tool/* "${CONFIG_PATH}"/toolchanger/tools
+    cp -n "${INSTALL_PATH}"/examples/easy-additions/user-configs/toolchanger-include.cfg "${CONFIG_PATH}"/toolchanger/toolchanger-include.cfg
 }
 
 function z_probe_on_shuttle {
     echo "[INSTALL] Z Probe on Shuttle"
 
-    cp --update=none "${INSTALL_PATH}"/examples/easy-additions/user-configs/tools/probe_on_shuttle/* "${CONFIG_PATH}"/toolchanger/tools
-    cp --update=none "${INSTALL_PATH}"/examples/easy-additions/user-configs/toolchanger-include_scanner.cfg "${CONFIG_PATH}"/toolchanger/toolchanger-include.cfg
+    cp -n "${INSTALL_PATH}"/examples/easy-additions/user-configs/tools/probe_on_shuttle/* "${CONFIG_PATH}"/toolchanger/tools
+    cp -n "${INSTALL_PATH}"/examples/easy-additions/user-configs/toolchanger-include_scanner.cfg "${CONFIG_PATH}"/toolchanger/toolchanger-include.cfg
 }
 
 function link_extension {
@@ -71,7 +71,7 @@ function do_shared_config {
     ln -sfn "${INSTALL_PATH}"/examples/calibrate-offsets.cfg "${CONFIG_PATH}"/toolchanger/readonly-configs
     ln -sfn "${INSTALL_PATH}"/examples/easy-additions/toolchanger-macros.cfg "${CONFIG_PATH}"/toolchanger/readonly-configs
 
-    cp --update=none "${INSTALL_PATH}"/examples/easy-additions/user-configs/toolchanger-config.cfg "${CONFIG_PATH}"/toolchanger
+    cp -n "${INSTALL_PATH}"/examples/easy-additions/user-configs/toolchanger-config.cfg "${CONFIG_PATH}"/toolchanger
 }
 
 function z_probe_option {
