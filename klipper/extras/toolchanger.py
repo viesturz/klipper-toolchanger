@@ -533,7 +533,7 @@ class Toolchanger:
         if tool.gcode_z_offset is not None:
             cmd += ' Z=%f' % (tool.gcode_z_offset + extra_z_offset,)
         self.gcode.run_script_from_command(cmd)
-        mesh = self.printer.lookup_object('bed_mesh')
+        mesh = self.printer.lookup_object('bed_mesh', default=None)
         if mesh and mesh.get_mesh():
             self.gcode.run_script_from_command(
                 'BED_MESH_OFFSET X=%.6f Y=%.6f ZFADE=%.6f' %
