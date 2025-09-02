@@ -205,23 +205,26 @@ class Toolchanger:
         tool_heater = tool.extruder.get_heater()
 
         if wait:
-            heaters.set_temperature(tool_heater, temp, False)
-            deadband = gcmd.get_float('DEADBAND', tool.deadband)
+            if temp:
+                heaters.set_temperature(tool_heater, temp, False)
+                deadband = gcmd.get_float('DEADBAND', tool.deadband)
 
-            min_temp = temp - (deadband/2)
-            max_temp = temp + (deadband/2)
+                min_temp = temp - (deadband/2)
+                max_temp = temp + (deadband/2)
 
-            reactor = self.printer.get_reactor()
-            eventtime = reactor.monotonic()
+                reactor = self.printer.get_reactor()
+                eventtime = reactor.monotonic()
 
-            while not self.printer.is_shutdown():
-                cur_temp, _ = tool_heater.get_temp(eventtime)
-                if min_temp <= cur_temp <= max_temp:
-                    return
+                while not self.printer.is_shutdown():
+                    cur_temp, _ = tool_heater.get_temp(eventtime)
+                    if min_temp <= cur_temp <= max_temp:
+                        return
 
-                eventtime = reactor.pause(eventtime + 1.0)
+                    eventtime = reactor.pause(eventtime + 1.0)
 
-            return
+                return
+            else:
+                heaters.set_temperature(tool_heater, temp, True)
         else:
             heaters.set_temperature(tool_heater, temp, False)
 
