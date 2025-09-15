@@ -51,11 +51,9 @@ class SaveBabies:
                         except section is None:
                             raise gcmd.error("No tool_probe detected")
                         except section == "tool_probe_endstop":
-                            raise gcmd.error("Miss configured back-end!\n
-                                            "Developer's fault. Please reach out for help.")
+                            raise gcmd.error("Miss configured back-end! Developer's fault. Please reach out for help.")
                         except SyntaxError:
-                            raise gcmd.error("Syntax error!\n"
-                                            "Developer's fault. Please reach out for help.")
+                            raise gcmd.error("Syntax error! Developer's fault. Please reach out for help.")
                             
 def load_config(config):
     return SaveBabies(config)
