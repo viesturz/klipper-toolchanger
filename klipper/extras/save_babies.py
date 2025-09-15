@@ -47,7 +47,7 @@ class SaveBabies:
                         # if section != "tool_probe_endstop":
                         if section is not None:
                             self.gcode.run_script_from_command("TOOL_CALIBRATE_SAVE_TOOL_OFFSET SECTION=\"%s\" ATTRIBUTE=z_offset VALUE=%f" % (section, z_offset))
-                            self.gcode.respond_info("[%s] | z_offset = %f" % (section, z_offset))
+                            self.gcode.respond_error("[%s] | z_offset = %f" % (section, z_offset))
                         else:
                             self.gcode.respond_error("No tool_probe detected")
 def load_config(config):
