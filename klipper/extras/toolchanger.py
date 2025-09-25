@@ -306,7 +306,7 @@ class Toolchanger:
             # What is going on here:
             #  - toolhead position - the position of the toolhead mount relative to homing sensors.
             #  - gcode position - the position of the nozzle, relative to the bed;
-            #      since each tool has a slightly different geometry, each tool has a set of gcode offsets that determine the delta.
+            # since each tool has a slightly different geometry, each tool has a set of gcode offsets that determine the delta.
             # Normally gcode commands use gcode position, but that can mean different toolhead positions depending on
             # which tool is mounted, making tool changes unreliable.
             # To solve that, during toolchange Gcode offsets are set to zero and the gcode moves directly work with toolhead position.
@@ -353,8 +353,8 @@ class Toolchanger:
             self._restore_axis(gcode_position, restore_axis, tool)
             self.gcode.run_script_from_command("RESTORE_GCODE_STATE NAME=_toolchange_state MOVE=0")
             
-            if tool is not None:
-                self._set_tool_gcode_offset(tool, extra_z_offset)
+            # if tool is not None:
+            #     self._set_tool_gcode_offset(tool, extra_z_offset)
 
             self.status = STATUS_READY
             if tool:
