@@ -353,9 +353,9 @@ class Toolchanger:
             self._restore_axis(gcode_position, restore_axis, tool)
             self.gcode.run_script_from_command("RESTORE_GCODE_STATE NAME=_toolchange_state MOVE=0")
             
-            ## "exact_z_offset" is now handled in the macro.
-            # if tool is not None:
-            #     self._set_tool_gcode_offset(tool, extra_z_offset)
+            if tool is not None:
+                # self._set_tool_gcode_offset(tool, extra_z_offset)
+                self._set_tool_gcode_offset(tool, self.active_tool.gcode_z_offset)
 
             self.status = STATUS_READY
             if tool:
