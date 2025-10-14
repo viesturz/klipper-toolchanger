@@ -562,6 +562,9 @@ class Toolchanger:
                 elif index == 2:
                     offset = tool.gcode_z_offset + extra_z_offset
                 v += offset
+            # Extra Z offset must be applied even if there's no tool
+            elif index == 2:
+                v += extra_z_offset
             result[INDEX_TO_XYZ[index]] = v
         return result
 
