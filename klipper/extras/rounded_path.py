@@ -1,6 +1,7 @@
 # rounded paths for fast travel.
 #
-# Copyright (C) 2023  Viesturs Zarins <viesturz@gmail.com>
+# Copyright (C) 2025  Viesturs Zarins <viesturz@gmail.com>
+# Copyright (C) 2025  Ingo Donasch <ingo@donasch.net>
 
 # Aimed to optimize travel paths by minimizing speed changes for sharp corners.
 # Supports arbitrary paths in XYZ.
@@ -8,6 +9,8 @@
 # Since each corner depends on the next one, the chain needs to end with an R=0
 # command to flush pending moves.
 # Coordinates created by this are converted into G0 commands.
+import numpy as np
+from math import comb
 
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import math
@@ -37,7 +40,7 @@ def _vmul(f:list, n) ->list:
 
 def _cross(vp: list, vn: list) -> list:
     return [vp[1] * vn[2] - vp[2] * vn[1], vp[2] * vn[0] - vp[0] * vn[2],
-           vp[0] * vn[1] - vp[1] * vn[0]]
+            vp[0] * vn[1] - vp[1] * vn[0]]
 
 def _vdist(v0: list, v1:list) -> float:
     return math.hypot(v0[0]-v1[0], v0[1]-v1[1], v0[2]-v1[2])
@@ -66,20 +69,19 @@ def _vrot(vec: list, angle, axis: list) -> list:
         vec[0] * (t * axis[0] * axis[2] - s * axis[1]) + vec[1] * (t * axis[1] * axis[2] + s * axis[0]) + vec[2] * (t * axis[2] ** 2 + c)
     ]
 
-def _vrot_transform(angle: float, axis: list) -> list:
-    # Axis needs to be normalized
-    # https://en.wikipedia.org/wiki/Rotation_matrix
-    s = math.sin(angle)
-    c = math.cos(angle)
-    t = 1 - c
-    return [(t * axis[0] ** 2 + c), (t * axis[0] * axis[1] - s * axis[2]), (t * axis[0] * axis[2] + s * axis[1]),
-        (t * axis[0] * axis[1] + s * axis[2]), (t * axis[1] ** 2 + c), (t * axis[1] * axis[2] - s * axis[0]),
-        (t * axis[0] * axis[2] - s * axis[1]), (t * axis[1] * axis[2] + s * axis[0]), (t * axis[2] ** 2 + c)]
+def _bernstein_poly(index, num_points, positions):
+    """
+     The Bernstein polynomial of n, i as a function of t
+    """
+    return comb(num_points, index) * (positions ** (num_points - index)) * (1 - positions)**index
 
-def _vtransform(vec: list, transform: list) -> list:
-    return [vec[0] * transform[0] + vec[1]*transform[1] + vec[2]* transform[2],
-            vec[0] * transform[3] + vec[1] * transform[4] + vec[2] * transform[5],
-            vec[0] * transform[6] + vec[1] * transform[7] + vec[2] * transform[8]]
+def _bezier_curve(start: list, tip: list, end: list, numpoints: int) -> list[list[float]]:
+    nPoints = 3
+    nDims = len(start)
+    t = np.linspace(1.0, 0.0, numpoints)
+    polynomial_array = np.array([_bernstein_poly(i, nPoints - 1, t) for i in range(0, nPoints)])
+    vals_by_dimension = [np.dot(np.array([start[d], tip[d], end[d]]), polynomial_array) for d in range(nDims)]
+    return np.transpose(vals_by_dimension)
 
 class RoundedPath:
     buffer: list[ControlPoint]
@@ -138,7 +140,6 @@ class RoundedPath:
 
         if len(self.buffer) >= 2 and self.buffer[-1].maxd <= 0.0:
             self._calculate_zero_corner(self.buffer[-1], self.buffer[-2])
-            # zero max offset, flush everything.
             self._flush_buffer(len(self.buffer) -2)
             self._g0(self.buffer[-1])
             self.buffer.clear()
@@ -227,20 +228,14 @@ class RoundedPath:
         if num_segments < 1:
             self._g0(c)
             return
-        vp = _vnorm(_vecto(c, p))
-        vn = _vnorm(_vecto(c, n))
-        rotaxis = _vnorm(_cross(vp, vn))
-        start = _vadd(c.vec, _vmul(vp, c.lin_d))
-        spoke = _vmul(_vrot(vp, math.pi/2, rotaxis), -radius)
-        center = _vadd(start, _vmul(spoke, -1.0))
-
-        # We are rotating counter the segment rotation.
-        rot_transform = _vrot_transform(-c.angle / num_segments, rotaxis)
-        rotspoke = spoke
-        self._g0p(c, _vadd(center, rotspoke))
-        for step in range(0, num_segments):
-            rotspoke = _vtransform(rotspoke, rot_transform)
-            self._g0p(c, _vadd(center, rotspoke))
+        normal_to_previous = _vnorm(_vecto(c, p))
+        normal_to_next = _vnorm(_vecto(c, n))
+        start = _vadd(c.vec, _vmul(normal_to_previous, c.lin_d))
+        end = _vadd(c.vec, _vmul(normal_to_next, c.lin_d))
+        tip = c.vec
+        beziercurve = _bezier_curve(start, tip, end, num_segments + 1)
+        for p in beziercurve:
+            self._g0p(c, p)
 
     def _g0(self, p: ControlPoint):
         self._g0p(p, p.vec)
