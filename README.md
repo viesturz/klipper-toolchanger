@@ -24,6 +24,7 @@ Add the [macros.cfg](/macros.cfg) to your printer config.
 
 ## Changelog
 
+2025.12.25 - Use Bezier curves for rounded paths.
 2025.12.25 - Manual rail update to latest Klipper
 
 ## Updates that add new files
