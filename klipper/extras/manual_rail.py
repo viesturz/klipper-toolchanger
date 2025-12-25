@@ -85,6 +85,12 @@ class ManualRail:
         self.homing_accel = accel
         hi = self.rail.get_homing_info()
         pos = [hi.position_endstop, 0., 0., 0.]
+        forcepos = hi.position_endstop
+        if hi.positive_dir:
+            forcepos -= 1.5 * (hi.position_endstop - self.pos_min)
+        else:
+            forcepos += 1.5 * (self.pos_max - hi.position_endstop)
+        self.do_set_position(forcepos)
         endstops = self.rail.get_endstops()
         phoming = self.printer.lookup_object('homing')
         phoming.manual_home(self, endstops, pos, hi.speed, True, True)
