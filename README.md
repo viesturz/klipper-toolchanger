@@ -22,6 +22,10 @@ primary_branch: main
 ```
 Add the [macros.cfg](/macros.cfg) to your printer config.
 
+## Changelog
+
+2025.12.25 - Manual rail update to latest Klipper
+
 ## Updates that add new files
 
 Note that if an update has new klipper files, they **will not** be automatically installed into Klipper.
