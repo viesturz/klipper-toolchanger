@@ -147,7 +147,9 @@ All gcode macros below have the following context available:
 # gcode_z_offset: 0
   # The XYZ gcode offset of the toolhead. If set, overrides offset defined 
   # by the parent. If set, even to 0, indicates the offset on that axis is 
-  # relevant for this tool and any adjustments will be attributed to this tool.  
+  # relevant for this tool and any adjustments will be attributed to this tool.
+  # The tool gcode offsets are applied independantly from user Gcode offsets. 
+  # User Gcode offsets are preserved across tool changes.    
 # params_*: 
   # Extra params to pass to pickup/dropoff gcode. Accessible in the gcode via
   # `tool.params_name`.
@@ -230,8 +232,14 @@ A verification failure will:
 ### SET_TOOL_TEMPERATURE
 `SET_TOOL_TEMPERATURE [TOOL=<name>] [T=<number>]  TARGET=<temp> [WAIT=0]`: Set tool temperature.
 
+### ENTER_DOCIKING_MODE
+`ENTER_DOCKING_MODE`: Manually enter docking mode, with tool and gcode offsets cleared. Primarily for dock alignment.
+
+### EXIT_DOCIKING_MODE
+`EXIT_DOCKING_MODE`: Exit manual docking mode.
+
 ### TEST_TOOL_DOCKING
-`TEST_TOOL_DOCKING`: Dock and undock current tool.
+`TEST_TOOL_DOCKING`: Dock and undock current tool. Requires manual docking mode.
 
 ### SET_TOOL_PARAMETER
 `SET_TOOL_PARAMETER [TOOL=<name>] [T=<number>]  PARAMETER=parameter_<name> VALUE=<value>`: 

@@ -24,8 +24,9 @@ Add the [macros.cfg](/macros.cfg) to your printer config.
 
 ## Changelog
 
-2025.12.25 - Use Bezier curves for rounded paths.
-2025.12.25 - Manual rail update to latest Klipper
+* 2025.12.26 - **Breaking change** Stop using Gcode offset for tool offsets. Uses a dedicated gcode transform instead. Hopefully making the code more robust.
+* 2025.12.25 - Use Bezier curves for rounded paths.
+* 2025.12.25 - Manual rail update to latest Klipper.
 
 ## Updates that add new files
 
