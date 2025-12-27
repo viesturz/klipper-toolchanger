@@ -44,6 +44,7 @@ class Tool:
         self.extruder_stepper_name = self._config_get(config, 'extruder_stepper', None)
         self.extruder = None
         self.extruder_stepper = None
+        self.deadband = self._config_getfloat(config, 'deadband', 1.0)
         self.fan_name = self._config_get(config, 'fan', None)
         self.fan = None
         if self.fan_name:
