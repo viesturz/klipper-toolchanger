@@ -60,6 +60,30 @@ class Tool:
         self.printer.register_event_handler("klippy:connect",
                                     self._handle_connect)
 
+    def set_parameter(self, name, value):
+        if name in self.params and name not in self.original_params:
+            self.original_params[name] = self.params[name]
+        self.params[name] = value
+        self._apply_param(name, value)
+
+    def reset_parameter(self, name):
+        if name in self.original_params:
+            value = self.original_params[name]
+            self.params[name] = value
+            self._apply_param(name, value)
+
+    def save_parameter(self, name):
+        configfile = self.printer.lookup_object('configfile')
+        configfile.set(self.name, name, self.params[name])
+
+    def _apply_param(self, name, value):
+        if name == 'gcode_x_offset':
+                self.gcode_x_offset = float(value)
+        elif name == 'gcode_y_offset':
+                self.gcode_y_offset = float(value)
+        elif name == 'gcode_z_offset':
+                self.gcode_z_offset = float(value)
+
     def _handle_connect(self):
         self.extruder = self.printer.lookup_object(
             self.extruder_name) if self.extruder_name else None

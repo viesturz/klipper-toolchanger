@@ -594,24 +594,20 @@ class Toolchanger:
     def cmd_SET_TOOL_PARAMETER(self, gcmd):
         tool = self._get_tool_from_gcmd(gcmd)
         name = gcmd.get("PARAMETER")
-        if name in tool.params and name not in tool.original_params:
-            tool.original_params[name] = tool.params[name]
         value = ast.literal_eval(gcmd.get("VALUE"))
-        tool.params[name] = value
+        tool.set_parameter(name, value)
 
     def cmd_RESET_TOOL_PARAMETER(self, gcmd):
         tool = self._get_tool_from_gcmd(gcmd)
         name = gcmd.get("PARAMETER")
-        if name in tool.original_params:
-            tool.params[name] = tool.original_params[name]
+        tool.reset_parameter(name)
 
     def cmd_SAVE_TOOL_PARAMETER(self, gcmd):
         tool = self._get_tool_from_gcmd(gcmd)
         name = gcmd.get("PARAMETER")
         if name not in tool.params:
             raise gcmd.error('Tool does not have parameter %s' % (name))
-        configfile = self.printer.lookup_object('configfile')
-        configfile.set(tool.name, name, tool.params[name])
+        tool.save_parameter(name)
 
     def ensure_homed(self, gcmd):
         if not self.uses_axis:
