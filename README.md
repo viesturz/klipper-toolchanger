@@ -23,8 +23,8 @@ primary_branch: main
 Add the [macros.cfg](/macros.cfg) to your printer config.
 
 ## Changelog
-
-* 2025.12.26 - **Breaking change** Stop using Gcode offset for tool offsets. Uses a dedicated gcode transform instead. Hopefully making the code more robust.
+* 2026.1.25 - Example script for camera tool alignment.
+* 2025.12.26 - **Breaking change** Stop using Gcode offset for tool offsets. Uses a dedicated gcode transform instead.
 * 2025.12.25 - Use Bezier curves for rounded paths.
 * 2025.12.25 - Manual rail update to latest Klipper.
 
