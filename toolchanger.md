@@ -95,6 +95,9 @@ and will provide a default value for all of its tools.
   # - lazy - no dot unmount the child unless a needed to mount a sibling
 # transfer_fan_speed: True
   # When tre, fan speed is transferred during toolchange. When false, fan speeds are not changed during toolchange.     
+# deadband:
+  # Variance in degrees while waiting for tool extruders to reach temperature.
+  # If not set, the default of 1.0 is used.
 ```
 
 ### [tool]
@@ -130,6 +133,9 @@ All gcode macros below have the following context available:
 # fan: 
   # Name of the fan to use as print cooling fan when this tool is selected.
   # If not set, uses parent fan or does nothing.
+# deadband:
+  # Variance in degrees while waiting for the tool's extruder to reach temperature.
+  # If not set, `toolchanger` deadband will be used.
 # detection_pin: 
   # Pin to use for tool presence detection.
 # tool_number: 
@@ -230,7 +236,7 @@ A verification failure will:
  - Run`error_gcode` if one is provided. 
 
 ### SET_TOOL_TEMPERATURE
-`SET_TOOL_TEMPERATURE [TOOL=<name>] [T=<number>]  TARGET=<temp> [WAIT=0]`: Set tool temperature.
+`SET_TOOL_TEMPERATURE [TOOL=<name>] [T=<number>] [DEADBAND=<number>]  TARGET=<temp> [WAIT=0]`: Set tool temperature.
 
 ### ENTER_DOCIKING_MODE
 `ENTER_DOCKING_MODE`: Manually enter docking mode, with tool and gcode offsets cleared. Primarily for dock alignment.
@@ -277,6 +283,7 @@ The following information is available in the `tool` object:
  - `toolchanger`: The name of the toolchanger this tool is attached to. 
  - `extruder`: Name of the extruder used for this tool.
  - `fan`: Full name of the fan to be used as part cooling fan for this tool, use [fan_generic] fans.
+ - `deadband`: The temperature variance allowed while waiting for the extruders heater.
  - `active`: If this tool is currently the selected tool.
  - `mounted`: If this tool is currently mounted, the tool may be mounted but
    not selected. Some reasons for that can be that a child tool is selected, or

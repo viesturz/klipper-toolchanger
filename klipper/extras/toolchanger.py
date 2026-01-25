@@ -218,7 +218,31 @@ class Toolchanger:
                 "SET_TOOL_TEMPERATURE: No extruder specified for tool %s" % (
                     tool.name))
         heaters = self.printer.lookup_object('heaters')
-        heaters.set_temperature(tool.extruder.get_heater(), temp, wait)
+        tool_heater = tool.extruder.get_heater()
+
+        if wait:
+            if temp:
+                heaters.set_temperature(tool_heater, temp, False)
+                deadband = gcmd.get_float('DEADBAND', tool.deadband)
+
+                min_temp = temp - (deadband/2)
+                max_temp = temp + (deadband/2)
+
+                reactor = self.printer.get_reactor()
+                eventtime = reactor.monotonic()
+
+                while not self.printer.is_shutdown():
+                    cur_temp, _ = tool_heater.get_temp(eventtime)
+                    if min_temp <= cur_temp <= max_temp:
+                        return
+
+                    eventtime = reactor.pause(eventtime + 1.0)
+
+                return
+            else:
+                heaters.set_temperature(tool_heater, temp, True)
+        else:
+            heaters.set_temperature(tool_heater, temp, False)
 
     def _get_tool_from_gcmd(self, gcmd):
         tool_name = gcmd.get('TOOL', None)
