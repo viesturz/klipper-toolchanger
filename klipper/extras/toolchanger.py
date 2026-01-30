@@ -120,6 +120,9 @@ class Toolchanger:
                                     self.cmd_SAVE_TOOL_PARAMETER)
         self.gcode.register_command("VERIFY_TOOL_DETECTED",
                                     self.cmd_VERIFY_TOOL_DETECTED)
+        self.gcode.register_command("RESTORE_TOOL_OFFSETS",
+                                    self.cmd_RESTORE_TOOL_OFFSETS,
+                                    desc=self.cmd_RESTORE_TOOL_OFFSETS_help)
         self.fan_switcher = None
         self.validate_tool_timer = None
 
@@ -596,6 +599,21 @@ class Toolchanger:
         name = gcmd.get("PARAMETER")
         value = ast.literal_eval(gcmd.get("VALUE"))
         tool.set_parameter(name, value)
+
+    def cmd_RESTORE_TOOL_OFFSETS(self, gcmd):
+        tool = self._get_tool_from_gcmd(gcmd)
+        offset_x = gcmd.get("X", None)
+        offset_y = gcmd.get("Y", None)
+        offset_z = gcmd.get("Z", None)
+        if tool != None:
+            if offset_x != None:
+                tool.gcode_x_offset = float(offset_x)
+            if offset_y != None:
+                tool.gcode_y_offset = float(offset_y)
+            if offset_z != None:
+                tool.gcode_z_offset = float(offset_z)
+
+    cmd_RESTORE_TOOL_OFFSETS_help = 'Restores the the given X, Y and/or Z offesets. Parameter are tool # or name and offesets:X,Y,Z'
 
     def cmd_RESET_TOOL_PARAMETER(self, gcmd):
         tool = self._get_tool_from_gcmd(gcmd)
