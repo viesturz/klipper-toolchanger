@@ -38,6 +38,7 @@ class Tool:
         self.extruder_name = self._config_get(config, 'extruder', None)
         detect_pin_name = config.get('detection_pin', None)
         self.detect_state = toolchanger.DETECT_UNAVAILABLE
+        self.presence_check_on_triggered = self._config_getboolean(config, 'presence_check_on_triggered', True)
         if detect_pin_name:
             self.printer.load_object(config, 'buttons').register_buttons([detect_pin_name], self._handle_detect)
             self.detect_state = toolchanger.DETECT_ABSENT
@@ -96,7 +97,8 @@ class Tool:
             self.assign_tool(self.tool_number)
 
     def _handle_detect(self, eventtime, is_triggered):
-        self.detect_state = toolchanger.DETECT_PRESENT if is_triggered else toolchanger.DETECT_ABSENT
+        detected = is_triggered if self.presence_check_on_triggered else not is_triggered
+        self.detect_state = toolchanger.DETECT_PRESENT if detected else toolchanger.DETECT_ABSENT
         self.toolchanger.note_detect_change(self)
 
     def get_status(self, eventtime):
