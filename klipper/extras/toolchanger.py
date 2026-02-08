@@ -6,6 +6,7 @@
 
 import ast, bisect
 from unittest.mock import sentinel
+from . import tool_probe_endstop
 
 STATUS_UNINITALIZED = 'uninitialized'
 STATUS_INITIALIZING = 'initializing'
@@ -19,10 +20,9 @@ ON_AXIS_NOT_HOMED_ABORT = 0
 ON_AXIS_NOT_HOMED_HOME = 1
 XYZ_TO_INDEX = {'x': 0, 'X': 0, 'y': 1, 'Y': 1, 'z': 2, 'Z': 2}
 INDEX_TO_XYZ = 'XYZ'
-DETECT_UNAVAILABLE = -1
-DETECT_ABSENT = 0
-DETECT_PRESENT = 1
-
+DETECT_UNAVAILABLE = "unavailable"
+DETECT_ABSENT = "absent"
+DETECT_PRESENT = "mounted"
 
 class Toolchanger:
     def __init__(self, config):
@@ -121,11 +121,17 @@ class Toolchanger:
         self.gcode.register_command("VERIFY_TOOL_DETECTED",
                                     self.cmd_VERIFY_TOOL_DETECTED)
         self.fan_switcher = None
+        self.tool_probe_endstop = None
         self.validate_tool_timer = None
 
     def require_fan_switcher(self):
         if not self.fan_switcher:
             self.fan_switcher = FanSwitcher(self, self.config)
+
+    def add_probe(self, probe):
+        if not self.tool_probe_endstop:
+            self.tool_probe_endstop = tool_probe_endstop.ToolProbeEndstop(self.config, standalone=False)
+        self.tool_probe_endstop.add_probe(self.config, probe)
 
     def _handle_home_rails_begin(self, homing_state, rails):
         if self.initialize_on == INIT_ON_HOME and self.status == STATUS_UNINITALIZED:
@@ -175,9 +181,12 @@ class Toolchanger:
         all_detection = all([t.detect_state != DETECT_UNAVAILABLE for t in self.tools.values()])
         if self.has_detection and not all_detection:
             raise self.config.error("Some tools missing detection pin")
+        has_probe = any([t.probe is not None for t in self.tools.values()])
+        all_probe = all([t.probe is not None for t in self.tools.values()])
+        if has_probe and not all_probe:
+            raise self.config.error("Some tools are missing tool_probe")
 
     cmd_INITIALIZE_TOOLCHANGER_help = "Initialize the toolchanger"
-
     def cmd_INITIALIZE_TOOLCHANGER(self, gcmd):
         tool = self.gcmd_tool(gcmd, self.detected_tool)
         was_error  = self.status == STATUS_ERROR
@@ -509,6 +518,9 @@ class Toolchanger:
         if self.active_tool:
             self.active_tool.deactivate()
         self.active_tool = tool
+        if self.tool_probe_endstop:
+            probe = tool.probe if tool else None
+            self.tool_probe_endstop.set_active_probe(probe)
         if self.active_tool:
             self.active_tool.activate()
 

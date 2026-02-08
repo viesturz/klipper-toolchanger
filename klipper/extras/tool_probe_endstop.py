@@ -9,11 +9,12 @@ from . import probe
 # Tool endstop change may be done either via SET_ACTIVE_TOOL_PROBE TOOL=99
 # Or via auto-detection of single open tool probe via DETECT_ACTIVE_TOOL_PROBE
 class ToolProbeEndstop:
-    def __init__(self, config):
+    def __init__(self, config, standalone = True):
         self.printer = config.get_printer()
         self.reactor = self.printer.get_reactor()
         self.name = config.get_name()
-        self.tool_probes = {}
+        self.probes = []
+        self.tool_number_to_probe = {}
         self.last_query = {} # map from tool number to endstop state
         self.active_probe = None
         self.active_tool_number = -1
@@ -41,14 +42,15 @@ class ToolProbeEndstop:
                                             self._handle_connect)
         # Register PROBE/QUERY_PROBE commands
         self.gcode = self.printer.lookup_object('gcode')
-        self.gcode.register_command('SET_ACTIVE_TOOL_PROBE', self.cmd_SET_ACTIVE_TOOL_PROBE,
-                                    desc=self.cmd_SET_ACTIVE_TOOL_PROBE_help)
-        self.gcode.register_command('DETECT_ACTIVE_TOOL_PROBE', self.cmd_DETECT_ACTIVE_TOOL_PROBE,
-                                    desc=self.cmd_DETECT_ACTIVE_TOOL_PROBE_help)
-        self.gcode.register_command('START_TOOL_PROBE_CRASH_DETECTION', self.cmd_START_TOOL_PROBE_CRASH_DETECTION,
-                                    desc=self.cmd_START_TOOL_PROBE_CRASH_DETECTION_help)
-        self.gcode.register_command('STOP_TOOL_PROBE_CRASH_DETECTION', self.cmd_STOP_TOOL_PROBE_CRASH_DETECTION,
-                                    desc=self.cmd_STOP_TOOL_PROBE_CRASH_DETECTION_help)
+        if standalone:
+            self.gcode.register_command('SET_ACTIVE_TOOL_PROBE', self.cmd_SET_ACTIVE_TOOL_PROBE,
+                                        desc=self.cmd_SET_ACTIVE_TOOL_PROBE_help)
+            self.gcode.register_command('DETECT_ACTIVE_TOOL_PROBE', self.cmd_DETECT_ACTIVE_TOOL_PROBE,
+                                        desc=self.cmd_DETECT_ACTIVE_TOOL_PROBE_help)
+            self.gcode.register_command('START_TOOL_PROBE_CRASH_DETECTION', self.cmd_START_TOOL_PROBE_CRASH_DETECTION,
+                                        desc=self.cmd_START_TOOL_PROBE_CRASH_DETECTION_help)
+            self.gcode.register_command('STOP_TOOL_PROBE_CRASH_DETECTION', self.cmd_STOP_TOOL_PROBE_CRASH_DETECTION,
+                                        desc=self.cmd_STOP_TOOL_PROBE_CRASH_DETECTION_help)
 
     def get_probe_params(self, gcmd=None):
         return self.param_helper.get_probe_params(gcmd)
@@ -72,10 +74,11 @@ class ToolProbeEndstop:
         self._detect_active_tool()
 
     def add_probe(self, config, tool_probe):
-        if (tool_probe.tool in self.tool_probes):
-            raise config.error("Duplicate tool probe nr: %s" % (tool_probe.tool,))
-        self.tool_probes[tool_probe.tool] = tool_probe
-        self.probe.add_probe(tool_probe)
+        if tool_probe.tool_number is not None:
+            if tool_probe.tool_number in self.tool_number_to_probe:
+                raise config.error(f"Duplicate tool probe nr: {tool_probe.tool_number}")
+            self.tool_number_to_probe[tool_probe.tool_number] = tool_probe
+        self.probes.append(tool_probe)
         self.mcu_probe.add_mcu(tool_probe.mcu_probe)
 
     def set_active_probe(self, tool_probe):
@@ -85,7 +88,7 @@ class ToolProbeEndstop:
         if self.active_probe:
             self.probe.set_active_probe(tool_probe)
             self.mcu_probe.set_active_mcu(tool_probe.mcu_probe)
-            self.active_tool_number = self.active_probe.tool
+            self.active_tool_number = self.active_probe.tool_number
         else:
             self.probe.set_active_probe(None)
             self.mcu_probe.set_active_mcu(None)
@@ -95,9 +98,10 @@ class ToolProbeEndstop:
         print_time = self.toolhead.get_last_move_time()
         self.last_query.clear()
         candidates = []
-        for tool_probe in self.tool_probes.values():
+        for tool_probe in self.probes:
             triggered = tool_probe.mcu_probe.query_endstop(print_time)
-            self.last_query[tool_probe.tool] = triggered
+            if tool_probe.tool_number is not None:
+                self.last_query[tool_probe.tool_number] = triggered
             if not triggered:
                 candidates.append(tool_probe)
         return candidates
@@ -126,9 +130,9 @@ class ToolProbeEndstop:
     cmd_SET_ACTIVE_TOOL_PROBE_help = "Set the tool probe that will act as the Z endstop."
     def cmd_SET_ACTIVE_TOOL_PROBE(self, gcmd):
         probe_nr = gcmd.get_int("T")
-        if (probe_nr not in self.tool_probes):
+        if probe_nr not in self.tool_number_to_probe:
             raise gcmd.error("SET_ACTIVE_TOOL_PROBE no tool probe for tool %d" % (probe_nr))
-        self.set_active_probe(self.tool_probes[probe_nr])
+        self.set_active_probe(self.tool_number_to_probe[probe_nr])
 
     cmd_DETECT_ACTIVE_TOOL_PROBE_help = "Detect which tool is active by identifying a probe that is NOT triggered"
     def cmd_DETECT_ACTIVE_TOOL_PROBE(self, gcmd):
@@ -187,11 +191,6 @@ class ProbeRouter:
     def __init__(self, printer):
         self.printer = printer
         self.active_probe = None
-        self.set_active_probe(None)
-        self._probes = []
-
-    def add_probe(self, probe):
-        self._probes.append(probe)
 
     def set_active_probe(self, probe):
         self.active_probe = probe

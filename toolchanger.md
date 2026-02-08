@@ -130,8 +130,15 @@ All gcode macros below have the following context available:
 # fan: 
   # Name of the fan to use as print cooling fan when this tool is selected.
   # If not set, uses parent fan or does nothing.
+# tool_probe:
+  # tool_probe to use for Z homing.
+  # If set, needs to be preset on all tools and a probe object is automatically registerd.
+  # The toolchanger needs to be initialized before Z homing for the probe to work.
 # detection_pin: 
-  # Pin to use for tool presence detection.
+  # Pin to use for tool presence detection: 
+  #  - when triggered, the tool is absent
+  #  - when not triggered, the tool is mounted
+  # Note: to allow sharing a pin for both tool detection and probing, the semantics are inverted.   
 # tool_number: 
   # Tool number to register this tool as.
   # When set, creates the T<n> macro and changes M104/M109 T<n> to target this tool.
@@ -281,6 +288,10 @@ The following information is available in the `tool` object:
  - `mounted`: If this tool is currently mounted, the tool may be mounted but
    not selected. Some reasons for that can be that a child tool is selected, or
    lazy unmounting is configured.  
+- `detect_state`: Tool detection state, may be different from mounted state if the tool was manually replaced.
+  "unavailable" if tool detection is not available
+  "mounted" if the tool is mounted
+  "absent" if tool is not mounted
  - `mounted_child`: The child tool which is currently mounted, or empty.
  - `params_*`: Set of values specified using params_*.
  - `gcode_x_offset`: current X offset.

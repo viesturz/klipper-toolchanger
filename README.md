@@ -23,6 +23,10 @@ primary_branch: main
 Add the [macros.cfg](/macros.cfg) to your printer config.
 
 ## Changelog
+* 2026.2.8
+     - **Breaking change** tool.detection_pin is inverted. Add/Remove the `!` in pin definition when updating.
+     - Simplify use of per-tool probe. Toolchanger can automatically detect active probe, see updated configuration example.
+     - Update tool probe for newest Klipper. 
 * 2026.1.25 - Example script for camera tool alignment.
 * 2025.12.26 - **Breaking change** Stop using Gcode offset for tool offsets. Uses a dedicated gcode transform instead.
 * 2025.12.25 - Use Bezier curves for rounded paths.

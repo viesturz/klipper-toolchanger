@@ -40,7 +40,7 @@ class Tool:
         self.detect_state = toolchanger.DETECT_UNAVAILABLE
         if detect_pin_name:
             self.printer.load_object(config, 'buttons').register_buttons([detect_pin_name], self._handle_detect)
-            self.detect_state = toolchanger.DETECT_ABSENT
+            self.detect_state = toolchanger.DETECT_PRESENT
         self.extruder_stepper_name = self._config_get(config, 'extruder_stepper', None)
         self.extruder = None
         self.extruder_stepper = None
@@ -48,6 +48,11 @@ class Tool:
         self.fan = None
         if self.fan_name:
             self.toolchanger.require_fan_switcher()
+        self.probe_name = self._config_get(config, 'tool_probe', None)
+        self.probe = None
+        if self.probe_name:
+            self.probe = self.printer.load_object(config, self.probe_name)
+            self.toolchanger.add_probe(self.probe)
         self.t_command_restore_axis = self._config_get(
             config, 't_command_restore_axis', 'XYZ')
         self.tool_number = config.getint('tool_number', -1, minval=0)
@@ -91,18 +96,19 @@ class Tool:
             self.extruder_stepper_name) if self.extruder_stepper_name else None
         if self.fan_name:
             self.fan = self.printer.lookup_object(self.fan_name,
-                      self.printer.lookup_object("fan_generic " + self.fan_name))
+                      self.printer.lookup_object("fan_generic " + self.fan_name, None))
         if self.tool_number >= 0:
             self.assign_tool(self.tool_number)
 
     def _handle_detect(self, eventtime, is_triggered):
-        self.detect_state = toolchanger.DETECT_PRESENT if is_triggered else toolchanger.DETECT_ABSENT
+        self.detect_state = toolchanger.DETECT_ABSENT if is_triggered else toolchanger.DETECT_PRESENT
         self.toolchanger.note_detect_change(self)
 
     def get_status(self, eventtime):
         return {**self.params,
                 'name': self.name,
                 'toolchanger': self.toolchanger.name,
+                'detect_state': self.detect_state,
                 'tool_number': self.tool_number,
                 'extruder': self.extruder_name,
                 'extruder_stepper': self.extruder_stepper_name,
