@@ -21,10 +21,14 @@ class ToolProbeEndstop:
         self.crash_detection_active = False
         self.crash_lasttime = 0.
         self.mcu_probe = EndstopRouter(self.printer)
-        self.param_helper = probe.ProbeParameterHelper(config)
-        self.homing_helper = probe.HomingViaProbeHelper(config, self.mcu_probe, self.param_helper)
-        self.probe_session = probe.ProbeSessionHelper(config, self.param_helper, self.homing_helper.start_probe_session)
+        self.probe = ProbeRouter(self.printer)
+        self.probe_offsets = self.probe
+        self.param_helper = self.probe
         self.cmd_helper = probe.ProbeCommandHelper(config, self, self.mcu_probe.query_endstop)
+        self.homing_helper = probe.HomingViaProbeHelper(
+            config, self.mcu_probe, self.probe_offsets, self.param_helper)
+        self.probe_session = probe.ProbeSessionHelper(
+            config, self.param_helper, self.homing_helper.start_probe_session)
 
         # Emulate the probe object, since others rely on this.
         if self.printer.lookup_object('probe', default=None):
@@ -46,29 +50,32 @@ class ToolProbeEndstop:
         self.gcode.register_command('STOP_TOOL_PROBE_CRASH_DETECTION', self.cmd_STOP_TOOL_PROBE_CRASH_DETECTION,
                                     desc=self.cmd_STOP_TOOL_PROBE_CRASH_DETECTION_help)
 
+    def get_probe_params(self, gcmd=None):
+        return self.param_helper.get_probe_params(gcmd)
+    def get_offsets(self, gcmd=None):
+        return self.probe_offsets.get_offsets(gcmd)
+    def start_probe_session(self, gcmd):
+        return self.probe_session.start_probe_session(gcmd)
+    def get_status(self, eventtime):
+        status = self.cmd_helper.get_status(eventtime)
+        offsets = self.get_offsets()
+        status['last_tools_query'] = self.last_query
+        status['active_tool_number'] = self.active_tool_number
+        status['active_tool_probe'] = self.active_probe.name if self.active_probe else None
+        status['active_tool_probe_x_offset'] = offsets[0]
+        status['active_tool_probe_y_offset'] = offsets[1]
+        status['active_tool_probe_z_offset'] = offsets[2]
+        return status
+
     def _handle_connect(self):
         self.toolhead = self.printer.lookup_object('toolhead')
         self._detect_active_tool()
-
-    def get_offsets(self):
-        if self.active_probe:
-            return self.active_probe.get_offsets()
-        return 0.0, 0.0, 0.0
-    
-    def get_probe_params(self, gcmd=None):
-        if self.active_probe:
-            return self.active_probe.get_probe_params(gcmd)
-        raise self.printer.command_error("No active tool probe")
-    
-    def start_probe_session(self, gcmd):
-        if self.active_probe:
-            return self.active_probe.start_probe_session(gcmd)
-        raise self.printer.command_error("No active tool probe")
 
     def add_probe(self, config, tool_probe):
         if (tool_probe.tool in self.tool_probes):
             raise config.error("Duplicate tool probe nr: %s" % (tool_probe.tool,))
         self.tool_probes[tool_probe.tool] = tool_probe
+        self.probe.add_probe(tool_probe)
         self.mcu_probe.add_mcu(tool_probe.mcu_probe)
 
     def set_active_probe(self, tool_probe):
@@ -76,9 +83,11 @@ class ToolProbeEndstop:
             return
         self.active_probe = tool_probe
         if self.active_probe:
+            self.probe.set_active_probe(tool_probe)
             self.mcu_probe.set_active_mcu(tool_probe.mcu_probe)
             self.active_tool_number = self.active_probe.tool
         else:
+            self.probe.set_active_probe(None)
             self.mcu_probe.set_active_mcu(None)
             self.active_tool_number = -1
 
@@ -132,22 +141,6 @@ class ToolProbeEndstop:
             self.set_active_probe(None)
             gcmd.respond_info(self._describe_tool_detection_issue(active_tools))
 
-    def get_status(self, eventtime):
-        status = self.cmd_helper.get_status(eventtime)
-        status['last_tools_query'] = self.last_query
-        status['active_tool_number'] = self.active_tool_number
-        if self.active_probe:
-            status['active_tool_probe'] = self.active_probe.name
-            status['active_tool_probe_x_offset'] = self.active_probe.get_offsets()[0]
-            status['active_tool_probe_y_offset'] = self.active_probe.get_offsets()[1]
-            status['active_tool_probe_z_offset'] = self.active_probe.get_offsets()[2]
-        else:
-            status['active_tool_probe'] = None
-            status['active_tool_probe_x_offset'] = 0.0
-            status['active_tool_probe_y_offset'] = 0.0
-            status['active_tool_probe_z_offset'] = 0.0
-        return status
-
     cmd_START_TOOL_PROBE_CRASH_DETECTION_help = "Start detecting tool crashes"
     def cmd_START_TOOL_PROBE_CRASH_DETECTION(self, gcmd):
         # Detect waits until previous print moves are finished to detect the triggers
@@ -189,6 +182,34 @@ class ToolProbeEndstop:
         if self.crash_detection_active:
             self.crash_detection_active = False
             self.crash_gcode.run_gcode_from_command()
+
+class ProbeRouter:
+    def __init__(self, printer):
+        self.printer = printer
+        self.active_probe = None
+        self.set_active_probe(None)
+        self._probes = []
+
+    def add_probe(self, probe):
+        self._probes.append(probe)
+
+    def set_active_probe(self, probe):
+        self.active_probe = probe
+
+    # Offsets helper
+    def get_offsets(self, *args, **kwargs):
+        if not self.active_probe:
+            return  0.0, 0.0, 0.0
+        return self.active_probe.probe_offsets.get_offsets(*args, **kwargs)
+    def create_probe_result(self, *args, **kwargs):
+        if not self.active_probe:
+            raise self.printer.command_error("Cannot query endstop - no active tool probe.")
+        return self.active_probe.probe_offsets.create_probe_result(*args, **kwargs)
+    # Param helper
+    def get_probe_params(self, *args, **kwargs):
+        if not self.active_probe:
+            raise self.printer.command_error("Cannot query endstop - no active tool probe.")
+        return self.active_probe.param_helper.get_probe_params(*args, **kwargs)
 
 # Routes commands to the selected tool probe endstop.
 class EndstopRouter:
