@@ -102,7 +102,7 @@ class Tool:
 
     def _handle_detect(self, eventtime, is_triggered):
         self.detect_state = toolchanger.DETECT_ABSENT if is_triggered else toolchanger.DETECT_PRESENT
-        self.toolchanger.note_detect_change(self)
+        self.toolchanger.note_detect_change(self, eventtime)
 
     def get_status(self, eventtime):
         return {**self.params,

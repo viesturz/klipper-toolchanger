@@ -167,6 +167,10 @@ All gcode macros below have the following context available:
   #  params_retract_mm: 8 
 # t_command_restore_axis: XYZ
    # Which axis to restore with the T<n> command, see SELECT_TOOL for command for more info.
+# abort_on_tool_missing: False
+  # Detects if tool goes missing during a print and calls `toolchanger.error_gcode`.
+# tool_missing_delay: 2.0
+  # Delay in seconds before triggering the tool missing logic. 
 ```
 
 # Gcodes
