@@ -537,7 +537,6 @@ class Toolchanger:
                 detected = tool
                 detected_names.append(tool.name)
         if len(detected_names) > 1:
-            self.gcode.respond_info("Multiple tools detected: %s" % (detected_names,))
             detected = None
         self.detected_tool = detected
         self.tool_missing_helper.note_tool_change(eventtime)
