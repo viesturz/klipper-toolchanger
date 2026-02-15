@@ -23,6 +23,7 @@ primary_branch: main
 Add the [macros.cfg](/macros.cfg) to your printer config.
 
 ## Changelog
+* 2026.2.15 - Bring back the adjust Z after nozzle homing.
 * 2026.2.8
      - **Breaking change** tool.detection_pin is inverted. Add/Remove the `!` in pin definition when updating.
      - Simplify use of per-tool probe. Toolchanger can automatically detect active probe, see updated configuration example.

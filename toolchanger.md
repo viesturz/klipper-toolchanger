@@ -79,20 +79,6 @@ and will provide a default value for all of its tools.
 # recover_gcode:
   # Experimental, if specified, this gcode is run on `INITIALIZE_TOOLCHANGER RECOVER=1` to recover the position.
   # Should not generally be necessary, but adds optional extra control.
-# parent_tool:
-  # Name of a parent tool. Marks this toolchanger as a child, meaning the parent tool
-  # will be selected in order to select any tool attached to this.
-  # Can be used for chaining multiple filament/tool changing techniques,
-  # like IDEX plus an MMU attached to one of the hotends.
-# parent_mounting_mode: parent-first 
-  # How to mount parent when the tool is selected:
-  # - parent-first - mount parent and then child
-  # - child-first - mount child before parent can be mounted
-# parent_unmounting_mode: lazy 
-  # How to unmount parent when the tool is deselected:
-  # - child-first - unmount child and then parent
-  # - parent-first - unmount parent and then child
-  # - lazy - no dot unmount the child unless a needed to mount a sibling
 # transfer_fan_speed: True
   # When tre, fan speed is transferred during toolchange. When false, fan speeds are not changed during toolchange.     
 ```
@@ -239,6 +225,9 @@ If ASYNC=1, will return immediately and perform the check in background after al
 A verification failure will:
  - abort in-progress toolchange, put the toolchanger in `ERROR` state.
  - Run`error_gcode` if one is provided. 
+
+### ADJUST_Z_AFTER_TOOL_NOZZLE_HOME
+`ADJUST_Z_AFTER_TOOL_NOZZLE_HOME`: Adjust toolhead Z position after bed probing to account for tool Z offset.
 
 ### SET_TOOL_TEMPERATURE
 `SET_TOOL_TEMPERATURE [TOOL=<name>] [T=<number>]  TARGET=<temp> [WAIT=0]`: Set tool temperature.

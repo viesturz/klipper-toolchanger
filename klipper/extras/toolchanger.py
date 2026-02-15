@@ -187,6 +187,8 @@ class Toolchanger:
                                     self.cmd_SAVE_TOOL_PARAMETER)
         self.gcode.register_command("VERIFY_TOOL_DETECTED",
                                     self.cmd_VERIFY_TOOL_DETECTED)
+        self.gcode.register_command("ADJUST_Z_AFTER_TOOL_NOZZLE_HOME",
+                                    self.cmd_ADJUST_Z_AFTER_TOOL_NOZZLE_HOME)
         self.fan_switcher = None
         self.tool_probe_endstop = None
         self.validate_tool_timer = None
@@ -693,6 +695,21 @@ class Toolchanger:
         if name not in tool.params:
             raise gcmd.error('Tool does not have parameter %s' % (name))
         tool.save_parameter(name)
+
+    def cmd_ADJUST_Z_AFTER_TOOL_NOZZLE_HOME(self, gcmd):
+        tool = self.active_tool
+        if not tool:
+            raise gcmd.error("ADJUST_Z_AFTER_TOOL_NOZZLE_HOME - no active tool")
+        self._adjust_z_position_for_tool(tool)
+
+    def _adjust_z_position_for_tool(self, tool):
+        z_offset = tool.gcode_z_offset
+        if z_offset != 0.0:
+            logging.info(f"Toolchanger: Adjusting Z position after homing move by {z_offset}")
+            toolhead = self.printer.lookup_object('toolhead')
+            pos = list(toolhead.get_position())
+            pos[2] += z_offset
+            toolhead.set_position(pos)
 
     def ensure_homed(self, gcmd):
         if not self.uses_axis:
