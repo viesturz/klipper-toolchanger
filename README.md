@@ -19,13 +19,30 @@ path: ~/klipper-toolchanger
 origin: https://github.com/viesturz/klipper-toolchanger.git
 managed_services: klipper
 primary_branch: main
-install_script: install.sh
 ```
 Add the [macros.cfg](/macros.cfg) to your printer config.
 
+## Changelog
+* 2026.2.15 - Bring back the adjust Z after nozzle homing.
+* 2026.2.8
+     - **Breaking change** tool.detection_pin is inverted. Add/Remove the `!` in pin definition when updating.
+     - Simplify use of per-tool probe. Toolchanger can automatically detect active probe, see updated configuration example.
+     - Update tool probe for newest Klipper. 
+* 2026.1.25 - Example script for camera tool alignment.
+* 2025.12.26 - **Breaking change** Stop using Gcode offset for tool offsets. Uses a dedicated gcode transform instead.
+* 2025.12.25 - Use Bezier curves for rounded paths.
+* 2025.12.25 - Manual rail update to latest Klipper.
+
+## Updates that add new files
+
+Note that if an update has new klipper files, they **will not** be automatically installed into Klipper.
+You will need to run the intall script manualy to add them:
+```commandline
+bash ~/klipper-toolchanger/install.sh
+```
+
 # Components
 
-* [Multi fan](/multi_fan.md) - multiple primary part fans.
 * [Toolchanger](/toolchanger.md) - tool management support.
 * [Tool probe](/tool_probe.md) - per tool Z probe.
 * [Rounded path](/rounded_path.md) - rounds the travel path corners for fast non-print moves.
