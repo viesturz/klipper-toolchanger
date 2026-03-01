@@ -14,7 +14,7 @@ from math import comb
 
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import math
-EPSILON = 0.001
+EPSILON = 1e-9
 EPSILON_ANGLE = 0.001
 
 class ControlPoint:
@@ -241,6 +241,9 @@ class RoundedPath:
         self._g0p(p, p.vec)
 
     def _g0p(self, p: ControlPoint, vec: list):
+        # ignore extremely short residual misalignements that may collapse lookahead junction velocity on otherwise smooth paths.
+        if self.lastg0 and _vdist(self.lastg0, vec) <= 0.001:
+            return
         self.G0_params["X"]=vec[0]
         self.G0_params["Y"]=vec[1]
         self.G0_params["Z"]=vec[2]
