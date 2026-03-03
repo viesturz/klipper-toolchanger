@@ -81,7 +81,8 @@ def _bezier_curve(start: list, tip: list, end: list, numpoints: int) -> list[lis
     t = np.linspace(1.0, 0.0, numpoints)
     polynomial_array = np.array([_bernstein_poly(i, nPoints - 1, t) for i in range(0, nPoints)])
     vals_by_dimension = [np.dot(np.array([start[d], tip[d], end[d]]), polynomial_array) for d in range(nDims)]
-    return np.transpose(vals_by_dimension)
+    curve = np.transpose(vals_by_dimension)
+    return curve.tolist()
 
 class RoundedPath:
     buffer: list[ControlPoint]
