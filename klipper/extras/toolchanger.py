@@ -787,6 +787,11 @@ class FanSwitcher:
         self.pending_speed = None
         self.active_fan = None
         self.transfer_fan_speed = toolchanger.transfer_fan_speed
+        
+        # CPAP Air Diverter Servo
+        self.has_air_diverter = config.has_section('servo air_diverter')
+        self.air_diverter_name = 'air_diverter'
+        
         if self.has_printer_fan:
             raise config.error("Cannot use tool fans together with [fan], use [fan_generic] for tool fans.")
         if not self.has_multi_fan and not self.has_printer_fan:
@@ -811,6 +816,7 @@ class FanSwitcher:
                 self.pending_speed = None
                 self.gcode.run_script_from_command(
                     "SET_FAN_SPEED FAN='%s' SPEED=%s" % (self.active_fan.fan_name, speed_to_set))
+                self.set_air_diverter(speed_to_set, self.toolchanger.active_tool)
             else:
                 self.pending_speed = speed_to_set
 
@@ -826,8 +832,28 @@ class FanSwitcher:
     def set_speed(self, speed, tool):
         if tool and tool.fan:
             self.gcode.run_script_from_command("SET_FAN_SPEED FAN='%s' SPEED=%s" % (tool.fan.fan_name, speed))
+            self.set_air_diverter(speed, tool)
         else:
             self.pending_speed = speed
+            self.set_air_diverter(speed, tool)
+    
+    # CPAP Air diverter helpers
+    def get_diverter_angles(self, tool):
+        if not tool:
+            return 0.0, 100.0
+        min_angle = float(getattr(tool, 'diverter_min_angle', 0.0))
+        max_angle = float(getattr(tool, 'diverter_max_angle', 100.0))
+        return min_angle, max_angle
+
+    def set_air_diverter(self, speed, tool=None):
+        if not self.has_air_diverter:
+            return
+        # Clamp speed
+        speed = max(0.0, min(1.0, speed))
+        min_angle, max_angle = self.get_diverter_angles(tool)
+        # Automatically inverts if min_angle > max_angle
+        angle = min_angle + speed * (max_angle - min_angle)
+        self.gcode.run_script_from_command("SET_SERVO SERVO=%s ANGLE=%.1f" % (self.air_diverter_name, angle))
 
 # Helper class for applying tool offset
 class ToolGcodeTransform:
