@@ -56,7 +56,11 @@ class Tool:
         self.t_command_restore_axis = self._config_get(
             config, 't_command_restore_axis', 'XYZ')
         self.tool_number = config.getint('tool_number', -1, minval=0)
-
+        self.diverter_min_angle = self._config_getfloat(
+            config, 'diverter_min_angle', 0.0)
+        self.diverter_max_angle = self._config_getfloat(
+            config, 'diverter_max_angle', 100.0)
+        
         gcode = self.printer.lookup_object('gcode')
         gcode.register_mux_command("ASSIGN_TOOL", "TOOL", self.name,
                                    self.cmd_ASSIGN_TOOL,
