@@ -97,7 +97,7 @@ class RoundedPath:
         self.real_G0 = self.gcode_move.cmd_G1
         self.gcode.register_command("ROUNDED_G0", self.cmd_ROUNDED_G0)
         self.buffer = []
-        self.lastg0 = []
+        self.lastg0 = None
 
         if config.getboolean('replace_g0', False):
             self.gcode.register_command("G0", None)
@@ -242,7 +242,7 @@ class RoundedPath:
 
     def _g0p(self, p: ControlPoint, vec: list):
         # ignore extremely short residual misalignements that may collapse lookahead junction velocity on otherwise smooth paths.
-        if self.lastg0 and _vdist(self.lastg0, vec) <= 0.001:
+        if self.lastg0 is not None and _vdist(self.lastg0, vec) <= 0.001:
             return
         self.G0_params["X"]=vec[0]
         self.G0_params["Y"]=vec[1]
