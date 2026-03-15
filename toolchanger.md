@@ -109,6 +109,8 @@ All gcode macros below have the following context available:
 # extruder:
   # Name of the extruder to activate when this tool is selected.
   # If not specified, will use parent's extruder.
+# heater:
+  # Name of the heater to use, will override extuder's heater when specificed.  
 # extruder_stepper: 
   # Name of extruder stepper to use for filament motion.
   # When set the main extruder is only used for temperature control.
