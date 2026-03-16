@@ -51,6 +51,9 @@ class ToolsCalibrate:
         self.gcode.register_command('TOOL_CALIBRATE_TOOL_OFFSET',
                                     self.cmd_TOOL_CALIBRATE_TOOL_OFFSET,
                                     desc=self.cmd_TOOL_CALIBRATE_TOOL_OFFSET_help)
+        self.gcode.register_command('TOOL_CALIBRATE_TOOL_OFFSET_LIVE_UPDATE',
+                                    self.cmd_TOOL_CALIBRATE_TOOL_OFFSET_LIVE_UPDATE,
+                                    desc=self.cmd_TOOL_CALIBRATE_TOOL_OFFSET_LIVE_UPDATE_help)
         self.gcode.register_command('TOOL_CALIBRATE_SAVE_TOOL_OFFSET',
                                     self.cmd_TOOL_CALIBRATE_SAVE_TOOL_OFFSET,
                                     desc=self.cmd_TOOL_CALIBRATE_SAVE_TOOL_OFFSET_help)
@@ -128,6 +131,22 @@ class ToolsCalibrate:
         location = self.locate_sensor(gcmd)
         self.last_result = [location[i] - self.sensor_location[i] for i in
                             range(3)]
+        self.gcode.respond_info("Tool offset is %.6f,%.6f,%.6f"
+                                % (self.last_result[0], self.last_result[1],
+                                   self.last_result[2]))
+
+    cmd_TOOL_CALIBRATE_TOOL_OFFSET_LIVE_UPDATE_help = "Calibrate current tool offset relative to tool 0 (and apply)"
+
+    def cmd_TOOL_CALIBRATE_TOOL_OFFSET_LIVE_UPDATE(self, gcmd):
+        if not self.sensor_location:
+            raise gcmd.error(
+                "No recorded sensor location, please run TOOL_LOCATE_SENSOR first")
+        location = self.locate_sensor(gcmd)
+        self.last_result = [location[i] - self.sensor_location[i] for i in
+                            range(3)]
+        # set live tool offset using a_tool.set_offset(self.last_result)
+        self.printer.lookup_object('toolchanger').get_selected_tool().set_offset(self.last_result)
+
         self.gcode.respond_info("Tool offset is %.6f,%.6f,%.6f"
                                 % (self.last_result[0], self.last_result[1],
                                    self.last_result[2]))
