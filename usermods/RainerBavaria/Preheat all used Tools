@@ -1,0 +1,9 @@
+I wanted to preheat all used Tools for actual Print whil doing the Preperations.
+
+1.Preheat Bed
+2.Checking used Tools for actual Print and start heating
+3.Homing->QGL->Bedmesh
+4.Checking if T0 is used, then getting on temperature, otherwise stop heating T0
+5.waiting for all used Tools to be hot
+6."PrimeLines" for priming all used Tools before start printing
+7.Message on display: "Ready to Rock"
