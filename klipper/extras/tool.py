@@ -58,6 +58,8 @@ class Tool:
         self.t_command_restore_axis = self._config_get(
             config, 't_command_restore_axis', 'XYZ')
         self.tool_number = config.getint('tool_number', -1, minval=0)
+        if self.tool_number >= 0:
+            self.assign_tool(self.tool_number)
 
         gcode = self.printer.lookup_object('gcode')
         gcode.register_mux_command("ASSIGN_TOOL", "TOOL", self.name,
@@ -104,8 +106,6 @@ class Tool:
         if self.fan_name:
             self.fan = self.printer.lookup_object(self.fan_name,
                       self.printer.lookup_object("fan_generic " + self.fan_name, None))
-        if self.tool_number >= 0:
-            self.assign_tool(self.tool_number)
 
     def _handle_detect(self, eventtime, is_triggered):
         self.detect_state = toolchanger.DETECT_ABSENT if is_triggered else toolchanger.DETECT_PRESENT
