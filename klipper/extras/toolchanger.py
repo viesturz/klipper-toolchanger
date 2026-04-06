@@ -26,9 +26,10 @@ DETECT_PRESENT = "mounted"
 
 _FUTURE = 9999999999999999.
 
-class Interval:
-    def __init__(self, start):
+class ToolInterval:
+    def __init__(self, start, tool):
         self.start = start
+        self.tool = tool
         self.end = _FUTURE
 
 class ToolMissingHelper:
@@ -40,7 +41,8 @@ class ToolMissingHelper:
         self.wait_time = config.getfloat('tool_missing_delay', 2.0, above=0.)
         # Keep a log of last 10 active intervals. Probably an overkill.
         self.active_intervals = []
-        self.missing_lasttime = 0.
+        self.tool_lasttime = 0.
+        self.current_tool = None
         self.printer.register_event_handler('klippy:connect',
                                             self._handle_connect)
 
@@ -48,45 +50,48 @@ class ToolMissingHelper:
         self.toolhead = self.printer.lookup_object('toolhead')
         self.sdcard = self.printer.lookup_object('virtual_sdcard')
 
-    def activate(self):
+    def activate(self, tool):
         if self.enabled:
-            self.toolhead.register_lookahead_callback(lambda t: self.activate_at_time(t))
+            self.toolhead.register_lookahead_callback(lambda t: self.activate_at_time(t, tool))
     def deactivate(self):
         if self.enabled:
             self.toolhead.register_lookahead_callback(lambda t: self.deactivate_at_time(t))
 
-    def activate_at_time(self, time):
+    def activate_at_time(self, time, tool):
         if len(self.active_intervals) == 0 or self.active_intervals[-1].end <= time:
-            self.active_intervals.append(Interval(time))
+            self.active_intervals.append(ToolInterval(time, tool))
         if len(self.active_intervals) > 10:
             del self.active_intervals[0]
+        self.tool_lasttime = time
+        self.reactor.register_callback(lambda _: self._tool_change_delayed(time, tool), time + self.wait_time)
 
     def deactivate_at_time(self, time):
         if len(self.active_intervals) > 0 and self.active_intervals[-1].end >= time:
             self.active_intervals[-1].end = time
+        self.activate_lasttime = 0.
 
-    def note_tool_change(self, eventtime):
-        if self.toolchanger.detected_tool != self.toolchanger.active_tool:
-            self.missing_lasttime = eventtime
-            logging.warning(f"Tool missing detected, waiting {self.wait_time} seconds to trigger.")
-            self.reactor.register_callback(lambda _: self._tool_missing_delayed(eventtime),
-                                           eventtime + self.wait_time)
-        else:
-            self.missing_lasttime = 0.
+    def note_tool_change(self, eventtime, current_tool):
+        logging.info(f"Tool change to {current_tool} - detected, waiting... ")
+        self.tool_lasttime = eventtime
+        self.current_tool = current_tool
+        self.reactor.register_callback(lambda _: self._tool_change_delayed(eventtime, current_tool),
+                                       eventtime + self.wait_time)
 
-    def was_active_between(self, start, end):
-        return any([i.start <= end and i.end >= start for i in self.active_intervals])
+    def find_interval_at(self, eventtime):
+        return next((i for i in self.active_intervals if i.start <= eventtime <= i.end), None)
 
-    def _tool_missing_delayed(self, crashtime):
-        if self.missing_lasttime != crashtime:
-            logging.warning(f"Tool missing trigger was cancelled, cleared before timeout")
+    def _tool_change_delayed(self, time, current_tool):
+        interval = self.find_interval_at(time)
+        if interval is None:
+            logging.info(f"Tool change to {current_tool}, no active tool requested, ignoring")
+        elif self.tool_lasttime != time:
+            logging.info(f"Tool change to {current_tool} ignored, changed again before timeout")
         elif not self.sdcard.is_active():
-            logging.warning(f"Tool missing trigger was cancelled, no active print")
-        elif not self.was_active_between(crashtime, crashtime + self.wait_time):
-            logging.warning(f"Tool missing trigger was cancelled, detection not active.")
+            logging.info(f"Tool change to {current_tool} ignored, not printing")
+        elif interval and interval.tool == current_tool:
+            logging.info(f"Tool change to {current_tool}, as expected")
         else:
-            self.active_intervals = []
-            logging.error(f"Tool missing after wait time, erroring out!!!")
+            logging.error(f"Tool change to{current_tool} at {time} - mismatch after wait time, expected {interval}, erroring out!!!")
             self.toolchanger.process_error(None, "Tool no longer attached.")
 
 class Toolchanger:
@@ -352,7 +357,7 @@ class Toolchanger:
 
         self._restore_state_and_transform(self.active_tool)
         self.status = STATUS_READY
-        self.tool_missing_helper.activate()
+        self.tool_missing_helper.activate(self.active_tool)
 
     cmd_TEST_TOOL_DOCKING_help = "Unselect active tool and select it again"
     def cmd_TEST_TOOL_DOCKING(self, gcmd):
@@ -390,7 +395,7 @@ class Toolchanger:
         if should_run_initialize:
             if self.status == STATUS_INITIALIZING:
                 self.status = STATUS_READY
-                self.tool_missing_helper.activate()
+                self.tool_missing_helper.activate(self.active_tool)
                 self.gcode.respond_info('%s initialized, active %s' %
                                         (self.name,
                                          self.active_tool.name if self.active_tool else None))
@@ -440,8 +445,13 @@ class Toolchanger:
                 self.run_gcode('tool.pickup_gcode',
                                tool.pickup_gcode, extra_context)
                 if self.has_detection and self.verify_tool_pickup:
+                    toolhead = self.printer.lookup_object('toolhead')
+                    reactor = self.printer.get_reactor()
+                    toolhead.wait_moves()
+                    # Wait some more to allow tool sensors to update
+                    reactor.pause(reactor.monotonic() + 0.2)
                     self.validate_detected_tool(tool, respond_info=gcmd.respond_info, raise_error=gcmd.error)
-                self.tool_missing_helper.activate()
+                self.tool_missing_helper.activate(tool)
                 self.run_gcode('after_change_gcode',
                                tool.after_change_gcode, extra_context)
 
@@ -542,7 +552,7 @@ class Toolchanger:
         if len(detected_names) > 1:
             detected = None
         self.detected_tool = detected
-        self.tool_missing_helper.note_tool_change(eventtime)
+        self.tool_missing_helper.note_tool_change(eventtime, detected)
 
     def require_detected_tool(self, respond_info):
         if self.detected_tool is not None:
@@ -765,7 +775,7 @@ class Toolchanger:
         if tool_number is not None:
             tool = self.lookup_tool(tool_number)
             if not tool:
-                raise gcmd.error('Tool #%d is not assigned' % (tool_number))
+                raise gcmd.error(f"Tool #{tool_number} is not assigned")
         if tool is None:
             if default == sentinel:
                 raise gcmd.error('Missing TOOL=<name> or T=<number>')
@@ -774,7 +784,7 @@ class Toolchanger:
 
     def _ensure_toolchanger_ready(self, gcmd):
         if self.status not in [STATUS_READY, STATUS_CHANGING]:
-            raise gcmd.error("VERIFY_TOOL_DETECTED: toolchanger not ready: status = %s", (self.status,))
+            raise gcmd.error(f"VERIFY_TOOL_DETECTED: toolchanger not ready: status = {self.status}")
 
 class FanSwitcher:
     def __init__(self, toolchanger, config):

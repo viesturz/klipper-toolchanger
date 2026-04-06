@@ -23,6 +23,7 @@ primary_branch: main
 Add the [macros.cfg](/macros.cfg) to your printer config.
 
 ## Changelog
+* 2026.4.6 - Fix `abort_on_tool_missing` mis-firing if there are waits during tool change.
 * 2026.2.15 - Bring back the adjust Z after nozzle homing.
 * 2026.2.8
      - **Breaking change** tool.detection_pin is inverted. Add/Remove the `!` in pin definition when updating.

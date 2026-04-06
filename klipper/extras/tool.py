@@ -85,6 +85,9 @@ class Tool:
         configfile = self.printer.lookup_object('configfile')
         configfile.set(self.name, name, self.params[name])
 
+    def __str__(self):
+        return self.name
+
     def _apply_param(self, name, value):
         if name == 'gcode_x_offset':
                 self.gcode_x_offset = float(value)
