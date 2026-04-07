@@ -189,6 +189,9 @@ class Toolchanger:
                                     self.cmd_VERIFY_TOOL_DETECTED)
         self.gcode.register_command("ADJUST_Z_AFTER_TOOL_NOZZLE_HOME",
                                     self.cmd_ADJUST_Z_AFTER_TOOL_NOZZLE_HOME)
+        self.gcode.register_command("RESET_ALL_TOOL_FILAMENT",
+                                    self.cmd_RESET_ALL_TOOL_FILAMENT,
+                                    desc="Reset filament counters for all tools")
         self.fan_switcher = None
         self.tool_probe_endstop = None
         self.validate_tool_timer = None
@@ -702,6 +705,15 @@ class Toolchanger:
         if not tool:
             raise gcmd.error("ADJUST_Z_AFTER_TOOL_NOZZLE_HOME - no active tool")
         self._adjust_z_position_for_tool(tool)
+
+    def cmd_RESET_ALL_TOOL_FILAMENT(self, gcmd):
+        for tool in self.tools.values():
+            tool.filament_used = 0.
+            tool._last_epos = 0.
+            if tool._active:
+                gc_status = tool.gcode_move.get_status()
+                tool._last_epos = gc_status['position'].e
+        gcmd.respond_info('All tool filament counters reset')
 
     def _adjust_z_position_for_tool(self, tool):
         z_offset = tool.gcode_z_offset
