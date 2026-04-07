@@ -119,6 +119,12 @@ class Tool:
         self.toolchanger.note_detect_change(self, eventtime)
 
     def get_status(self, eventtime):
+        filament = self.filament_used
+        if self._active:
+            gc_status = self.gcode_move.get_status(eventtime)
+            cur_epos = gc_status['position'].e
+            filament += max(0., (cur_epos - self._last_epos)
+                           / gc_status['extrude_factor'])
         return {**self.params,
                 'name': self.name,
                 'toolchanger': self.toolchanger.name,
@@ -132,6 +138,7 @@ class Tool:
                 'gcode_x_offset': self.gcode_x_offset if self.gcode_x_offset else 0.0,
                 'gcode_y_offset': self.gcode_y_offset if self.gcode_y_offset else 0.0,
                 'gcode_z_offset': self.gcode_z_offset if self.gcode_z_offset else 0.0,
+                'filament_used': filament,
                 }
 
     def get_offset(self):
@@ -150,6 +157,14 @@ class Tool:
         self.tool_number = number
         self.main_toolchanger.assign_tool(self, number, prev_number, replace)
         self.register_t_gcode(number)
+
+    def cmd_RESET_TOOL_FILAMENT(self, gcmd):
+        self.filament_used = 0.
+        self._last_epos = 0.
+        if self._active:
+            gc_status = self.gcode_move.get_status()
+            self._last_epos = gc_status['position'].e
+        gcmd.respond_info('%s filament counter reset' % self.name)
 
     def register_t_gcode(self, number):
         gcode = self.printer.lookup_object('gcode')
