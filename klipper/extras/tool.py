@@ -12,6 +12,10 @@ class Tool:
         self.printer = config.get_printer()
         self.params = config.get_prefix_options('params_')
         self.gcode_macro = self.printer.load_object(config, 'gcode_macro')
+        self.filament_used = 0.
+        self._last_epos = 0.
+        self._active = False
+        self.gcode_move = self.printer.load_object(config, 'gcode_move')
 
         self.name = config.get_name()
         toolchanger_name = config.get('toolchanger', 'toolchanger')
@@ -65,6 +69,9 @@ class Tool:
         gcode.register_mux_command("ASSIGN_TOOL", "TOOL", self.name,
                                    self.cmd_ASSIGN_TOOL,
                                    desc=self.cmd_ASSIGN_TOOL_help)
+        gcode.register_mux_command("RESET_TOOL_FILAMENT", "TOOL", self.name,
+                                   self.cmd_RESET_TOOL_FILAMENT,
+                                   desc="Reset filament usage counter for tool")
 
         self.printer.register_event_handler("klippy:connect",
                                     self._handle_connect)
