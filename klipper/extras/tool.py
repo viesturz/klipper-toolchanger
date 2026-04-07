@@ -181,7 +181,16 @@ class Tool:
                     "SYNC_EXTRUDER_MOTION EXTRUDER='%s' MOTION_QUEUE='%s'" % (self.extruder_stepper_name, hotend_extruder, ))
         if self.fan:
             self.toolchanger.fan_switcher.activate_fan(self.fan)
+        gc_status = self.gcode_move.get_status()
+        self._last_epos = gc_status['position'].e
+        self._active = True
     def deactivate(self):
+        if self._active:
+            gc_status = self.gcode_move.get_status()
+            cur_epos = gc_status['position'].e
+            self.filament_used += max(0., (cur_epos - self._last_epos)
+                                      / gc_status['extrude_factor'])
+            self._active = False
         if self.extruder_stepper:
             toolhead = self.printer.lookup_object('toolhead')
             gcode = self.printer.lookup_object('gcode')
