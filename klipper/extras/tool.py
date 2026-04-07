@@ -12,6 +12,10 @@ class Tool:
         self.printer = config.get_printer()
         self.params = config.get_prefix_options('params_')
         self.gcode_macro = self.printer.load_object(config, 'gcode_macro')
+        self.filament_used = 0.
+        self._last_epos = 0.
+        self._active = False
+        self.gcode_move = self.printer.load_object(config, 'gcode_move')
 
         self.name = config.get_name()
         toolchanger_name = config.get('toolchanger', 'toolchanger')
@@ -65,6 +69,9 @@ class Tool:
         gcode.register_mux_command("ASSIGN_TOOL", "TOOL", self.name,
                                    self.cmd_ASSIGN_TOOL,
                                    desc=self.cmd_ASSIGN_TOOL_help)
+        gcode.register_mux_command("RESET_TOOL_FILAMENT", "TOOL", self.name,
+                                   self.cmd_RESET_TOOL_FILAMENT,
+                                   desc="Reset filament usage counter for tool")
 
         self.printer.register_event_handler("klippy:connect",
                                     self._handle_connect)
@@ -115,6 +122,12 @@ class Tool:
         self.toolchanger.note_detect_change(self, eventtime)
 
     def get_status(self, eventtime):
+        filament = self.filament_used
+        if self._active:
+            gc_status = self.gcode_move.get_status(eventtime)
+            cur_epos = gc_status['position'].e
+            filament += max(0., (cur_epos - self._last_epos)
+                           / gc_status['extrude_factor'])
         return {**self.params,
                 'name': self.name,
                 'toolchanger': self.toolchanger.name,
@@ -128,6 +141,7 @@ class Tool:
                 'gcode_x_offset': self.gcode_x_offset if self.gcode_x_offset else 0.0,
                 'gcode_y_offset': self.gcode_y_offset if self.gcode_y_offset else 0.0,
                 'gcode_z_offset': self.gcode_z_offset if self.gcode_z_offset else 0.0,
+                'filament_used': filament,
                 }
 
     def get_offset(self):
@@ -146,6 +160,14 @@ class Tool:
         self.tool_number = number
         self.main_toolchanger.assign_tool(self, number, prev_number, replace)
         self.register_t_gcode(number)
+
+    def cmd_RESET_TOOL_FILAMENT(self, gcmd):
+        self.filament_used = 0.
+        self._last_epos = 0.
+        if self._active:
+            gc_status = self.gcode_move.get_status()
+            self._last_epos = gc_status['position'].e
+        gcmd.respond_info('%s filament counter reset' % self.name)
 
     def register_t_gcode(self, number):
         gcode = self.printer.lookup_object('gcode')
@@ -177,7 +199,16 @@ class Tool:
                     "SYNC_EXTRUDER_MOTION EXTRUDER='%s' MOTION_QUEUE='%s'" % (self.extruder_stepper_name, hotend_extruder, ))
         if self.fan:
             self.toolchanger.fan_switcher.activate_fan(self.fan)
+        gc_status = self.gcode_move.get_status()
+        self._last_epos = gc_status['position'].e
+        self._active = True
     def deactivate(self):
+        if self._active:
+            gc_status = self.gcode_move.get_status()
+            cur_epos = gc_status['position'].e
+            self.filament_used += max(0., (cur_epos - self._last_epos)
+                                      / gc_status['extrude_factor'])
+            self._active = False
         if self.extruder_stepper:
             toolhead = self.printer.lookup_object('toolhead')
             gcode = self.printer.lookup_object('gcode')

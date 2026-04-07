@@ -258,6 +258,19 @@ Defaults to current tool if tool not specified.
 Resets a parameter to its original value.
 Defaults to current tool if tool not specified.
 
+### RESET_TOOL_FILAMENT
+`RESET_TOOL_FILAMENT TOOL=<name>`: Reset the filament usage counter for a specific tool.
+
+### RESET_ALL_TOOL_FILAMENT
+`RESET_ALL_TOOL_FILAMENT`: Reset filament usage counters for all tools.
+Add this to your `PRINT_START` macro to track per-print usage:
+```
+[gcode_macro PRINT_START]
+gcode:
+  RESET_ALL_TOOL_FILAMENT
+  # ... rest of your PRINT_START
+```
+
 # Gcodes if *fan* is specified for any of tools
 
 ### M106 
@@ -292,6 +305,7 @@ The following information is available in the `tool` object:
  - `gcode_x_offset`: current X offset.
  - `gcode_y_offset`: current Y offset.
  - `gcode_z_offset`: current Z offset.
+ - `filament_used`: filament extruded by this tool in mm since last reset. Tracks extrusion per tool independently, accounting for extrude_factor. Reset with `RESET_TOOL_FILAMENT` or `RESET_ALL_TOOL_FILAMENT`.
 
 ## toolchanger
 
