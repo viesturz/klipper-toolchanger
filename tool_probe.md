@@ -12,7 +12,7 @@ endstop_pin: probe:z_virtual_endstop
 
 [tool T1]
 detection_pin: ^et1:PB6
-probe: tool_probe T1
+tool_probe: tool_probe T1
 
 [tool_probe T1]
 pin: ^et1:PB6
