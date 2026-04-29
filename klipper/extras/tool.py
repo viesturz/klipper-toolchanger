@@ -109,6 +109,9 @@ class Tool:
         if self.fan_name:
             self.fan = self.printer.lookup_object(self.fan_name,
                       self.printer.lookup_object("fan_generic " + self.fan_name, None))
+        # Register T commands for initial tool assignments after all gcode_macros are loaded
+        if self.tool_number >= 0:
+            self.register_t_gcode(self.tool_number)
 
     def _handle_detect(self, eventtime, is_triggered):
         self.detect_state = toolchanger.DETECT_ABSENT if is_triggered else toolchanger.DETECT_PRESENT
@@ -145,7 +148,10 @@ class Tool:
         prev_number = self.tool_number
         self.tool_number = number
         self.main_toolchanger.assign_tool(self, number, prev_number, replace)
-        self.register_t_gcode(number)
+        # Only register T commands when replacing (runtime reassignment)
+        # Initial assignments are handled in _handle_connect
+        if replace:
+            self.register_t_gcode(number)
 
     def register_t_gcode(self, number):
         gcode = self.printer.lookup_object('gcode')
