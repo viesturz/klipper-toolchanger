@@ -98,6 +98,9 @@ All probing moves and final offsets will be printed in the console.
 
 - Run TOOL_CALIBRATE_PROBE_OFFSET - to measure Z offset from nozzle triggering the probe to tool's nozzle probe activating.
 
+The calibration uses the tool probe's raw trigger Z position, so an existing
+configured probe `z_offset` is not applied to the new calibration result.
+
 All probing moves and final offsets will be printed in the console.
 
 
