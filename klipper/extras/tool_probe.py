@@ -16,9 +16,10 @@ class ToolProbe:
         ppins = self.printer.lookup_object('pins')
         ppins.allow_multi_use_pin(pin.replace('^', '').replace('!', ''))
 
-        self.mcu_probe = probe.ProbeEndstopWrapper(config)
         self.probe_offsets = probe.ProbeOffsetsHelper(config)
         self.param_helper = probe.ProbeParameterHelper(config)
+        self.mcu_probe = probe.ProbeEndstopWrapper(
+            config, self.probe_offsets, self.param_helper)
 
         if self.tool_number is not None:
             # Crash detection stuff
