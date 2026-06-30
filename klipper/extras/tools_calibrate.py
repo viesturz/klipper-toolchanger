@@ -373,8 +373,18 @@ class ProbeEndstopWrapper:
     def _handle_mcu_identify(self):
         kin = self.printer.lookup_object('toolhead').get_kinematics()
         for stepper in kin.get_steppers():
+            # 1. Standard registration (works for Z and T0 X/Y)
             if stepper.is_active_axis(self.axis):
                 self.add_stepper(stepper)
+
+            # 2. Force registration for Dual-CoreXY IDEX
+            # If we are wrapping the X or Y axis, we must register all
+            # horizontal motors (x, y, u, v) to the stop-list.
+            elif self.axis in ['x', 'y']:
+                name = stepper.get_name()
+                # Klipper internal names are usually 'stepper x', 'stepper u', etc.
+                if any(s in name for s in ['stepper x', 'stepper y', 'stepper u', 'stepper v']):
+                    self.add_stepper(stepper)
 
     def get_position_endstop(self):
         return 0.
