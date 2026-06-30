@@ -373,8 +373,45 @@ class ProbeEndstopWrapper:
     def _handle_mcu_identify(self):
         kin = self.printer.lookup_object('toolhead').get_kinematics()
         for stepper in kin.get_steppers():
+            # 1. Standard registration (works for Z and T0 X/Y)
             if stepper.is_active_axis(self.axis):
                 self.add_stepper(stepper)
+
+            # 2. Force registration for Dual-CoreXY IDEX
+            # If we are wrapping the X or Y axis, we must register all
+            # horizontal motors (x, y, u, v) to the stop-list.
+            # 
+            # is_active_axis in klipper only understands x, y, or z
+            # so if your axis is u or v then is_active_axis will always return false.
+            #
+            # This is very likely if you have an IDEX which has dual_carriage u
+            # for example (the self.axis here is still called x and y)
+            #
+            # If you don't do this, you will just run past the probe 
+            # without stopping your steppers, to the maximum probe distance.
+            elif self.axis in ['x', 'y']:
+                name = stepper.get_name()
+                # Klipper internal names are usually 'stepper x', 'stepper u', etc.
+                # We know we need at least 'stepper x', 'stepper y', 'stepper u' and
+                # 'stepper v' (depending on which way round the u and x carriage are
+                # defined...) and we have guessed some other likely names.
+                #
+                # It's probably fine to actually stop all the steppers when we hit
+                # the probe, but this gets things working for our test case with
+                # minimal blast radius.
+                if any(s in name for s in ['stepper x',
+                                           'stepper x1',
+                                           'stepper x2',
+                                           'stepper x3',
+                                           'stepper y',
+                                           'stepper y1',
+                                           'stepper y2',
+                                           'stepper y3',
+                                           'stepper u',
+                                           'stepper u1',
+                                           'stepper v',
+                                           'stepper v1']):                
+                    self.add_stepper(stepper)
 
     def get_position_endstop(self):
         return 0.
