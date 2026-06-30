@@ -383,7 +383,7 @@ class ProbeEndstopWrapper:
             elif self.axis in ['x', 'y']:
                 name = stepper.get_name()
                 # Klipper internal names are usually 'stepper x', 'stepper u', etc.
-                if any(s in name for s in ['stepper x', 'stepper y', 'stepper u', 'stepper v']):
+                if any(s in name for s in ['stepper x', 'stepper x1', 'stepper x2', 'stepper x3', 'stepper y', 'stepper y1', 'stepper y2', 'stepper y3', 'stepper u', 'stepper u1', 'stepper v','stepper v1']):                
                     self.add_stepper(stepper)
 
     def get_position_endstop(self):
